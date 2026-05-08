@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/infotradescout/merlin-os-action-layer/schemas/stripe-metadata.schema.json",
+  "title": "MealScout Stripe Metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "brand",
+    "payment_type",
+    "fee_type",
+    "fee_payer",
+    "platform_fee_amount",
+    "source_system",
+    "fulfillment_required"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string",
+      "const": "MealScout"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": ["monthly_plan", "online_ordering", "parking_booking"]
+    },
+    "fee_type": {
+      "type": "string",
+      "enum": ["monthly_subscription", "customer_platform_fee", "vendor_platform_fee", "none"]
+    },
+    "fee_payer": {
+      "type": "string",
+      "enum": ["customer", "vendor", "host", "business", "none"]
+    },
+    "platform_fee_amount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Amount in cents. Online ordering fee is 100. Parking booking fee is 1000."
+    },
+    "source_system": {
+      "type": "string",
+      "enum": ["mealscout", "merlin_os", "manual_stripe_dashboard"]
+    },
+    "fulfillment_required": {
+      "type": "string",
+      "enum": ["true", "false"]
+    },
+    "order_id": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "host_id": {
+      "type": "string"
+    },
+    "vendor_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "host_payout_required": {
+      "type": "string",
+      "enum": ["true", "false"]
+    },
+    "host_price_amount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Host pass-through amount in cents."
+    },
+    "billing_period": {
+      "type": "string",
+      "enum": ["monthly", "none"]
+    },
+    "launch_status": {
+      "type": "string",
+      "enum": ["free_until_working", "active", "inactive", "deprecated"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "payment_type": { "const": "online_ordering" } }
+      },
+      "then": {
+        "required": ["order_id", "vendor_id"],
+        "properties": {
+          "fee_type": { "const": "customer_platform_fee" },
+          "fee_payer": { "const": "customer" },
+          "platform_fee_amount": { "const": 100 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "payment_type": { "const": "parking_booking" } }
+      },
+      "then": {
+        "required": ["booking_id", "host_id", "vendor_id", "host_payout_required", "host_price_amount"],
+        "properties": {
+          "fee_type": { "const": "vendor_platform_fee" },
+          "fee_payer": { "const": "vendor" },
+          "platform_fee_amount": { "const": 1000 },
+          "host_payout_required": { "const": "true" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "payment_type": { "const": "monthly_plan" } }
+      },
+      "then": {
+        "required": ["billing_period", "launch_status"],
+        "properties": {
+          "fee_type": { "const": "monthly_subscription" },
+          "fee_payer": { "const": "business" },
+          "billing_period": { "const": "monthly" }
+        }
+      }
+    }
+  ]
+}
