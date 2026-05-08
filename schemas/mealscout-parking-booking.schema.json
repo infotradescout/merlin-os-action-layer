@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/infotradescout/merlin-os-action-layer/schemas/mealscout-parking-booking.schema.json",
+  "title": "MealScout Parking Booking",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "booking_id",
+    "host_id",
+    "vendor_id",
+    "host_price_amount",
+    "processing_paid_by",
+    "mealscout_fee_amount",
+    "mealscout_fee_paid_by",
+    "host_payout_required",
+    "currency",
+    "status"
+  ],
+  "properties": {
+    "booking_id": { "type": "string", "minLength": 1 },
+    "host_id": { "type": "string", "minLength": 1 },
+    "vendor_id": { "type": "string", "minLength": 1 },
+    "host_price_amount": { "type": "integer", "minimum": 0, "description": "Host pass-through amount in cents." },
+    "processing_paid_by": { "type": "string", "const": "vendor" },
+    "mealscout_fee_amount": { "type": "integer", "const": 1000 },
+    "mealscout_fee_paid_by": { "type": "string", "const": "vendor" },
+    "host_payout_required": { "type": "boolean", "const": true },
+    "currency": { "type": "string", "const": "usd" },
+    "status": { "type": "string", "enum": ["draft", "pending_payment", "paid", "host_payout_pending", "complete", "cancelled", "refunded"] },
+    "stripe_payment_intent_id": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}
