@@ -1,0 +1,50 @@
+{
+  "brand": "MealScout",
+  "kpi": "parking booking working",
+  "intent": "Inspect a food truck parking booking payment before confirming host payout.",
+  "source_of_truth": [
+    {
+      "type": "user_input",
+      "name": "Current parking booking request",
+      "reference": "real booking context required"
+    }
+  ],
+  "required_real_data": [
+    {
+      "field": "booking_id",
+      "value_status": "missing",
+      "value_reference": "must come from MealScout booking system"
+    },
+    {
+      "field": "host_id",
+      "value_status": "missing",
+      "value_reference": "must come from host profile"
+    },
+    {
+      "field": "vendor_id",
+      "value_status": "missing",
+      "value_reference": "must come from vendor profile"
+    },
+    {
+      "field": "host_price_amount",
+      "value_status": "missing",
+      "value_reference": "must be host-set price in cents"
+    }
+  ],
+  "tool": "Stripe",
+  "action": {
+    "type": "inspect",
+    "description": "Confirm vendor payment for host price plus processing plus $10 MealScout fee."
+  },
+  "permission_level": 0,
+  "fail_safes": [
+    "Do not confirm booking without real host and vendor records.",
+    "Do not make the host absorb the $10 MealScout fee.",
+    "Do not issue payout decisions without payment status."
+  ],
+  "output_location": {
+    "type": "chat_response",
+    "reference": "status report"
+  },
+  "status": "planned"
+}
