@@ -1,0 +1,45 @@
+{
+  "brand": "MealScout",
+  "kpi": "online ordering working",
+  "intent": "Inspect an online order payment before fulfillment.",
+  "source_of_truth": [
+    {
+      "type": "user_input",
+      "name": "Current order request",
+      "reference": "real order context required"
+    }
+  ],
+  "required_real_data": [
+    {
+      "field": "order_id",
+      "value_status": "missing",
+      "value_reference": "must come from MealScout order system"
+    },
+    {
+      "field": "vendor_id",
+      "value_status": "missing",
+      "value_reference": "must come from MealScout vendor record"
+    },
+    {
+      "field": "stripe_payment_intent_id",
+      "value_status": "missing",
+      "value_reference": "required before payment-state inspection"
+    }
+  ],
+  "tool": "Stripe",
+  "action": {
+    "type": "inspect",
+    "description": "Check payment status before order fulfillment. Customer pays processing plus $1 MealScout fee."
+  },
+  "permission_level": 0,
+  "fail_safes": [
+    "Do not fulfill without paid status.",
+    "Do not invent order or vendor records.",
+    "Do not absorb customer-paid processing into MealScout margin."
+  ],
+  "output_location": {
+    "type": "chat_response",
+    "reference": "status report"
+  },
+  "status": "planned"
+}
