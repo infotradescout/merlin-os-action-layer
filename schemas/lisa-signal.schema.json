@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/infotradescout/merlin-os-action-layer/schemas/lisa-signal.schema.json",
+  "title": "LISA Signal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "signal_id",
+    "source",
+    "brand_lane",
+    "signal_type",
+    "entity",
+    "observed_at",
+    "truth_score",
+    "newness_score",
+    "recommended_action",
+    "review_required"
+  ],
+  "properties": {
+    "signal_id": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name", "reference"],
+      "properties": {
+        "type": { "type": "string", "enum": ["drive", "gmail", "calendar", "stripe", "canva", "github", "web", "app", "manual"] },
+        "name": { "type": "string", "minLength": 1 },
+        "reference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "brand_lane": { "type": "string", "enum": ["TradeScout", "MealScout", "TradersCorner", "LISA", "MerlinOS"] },
+    "signal_type": {
+      "type": "string",
+      "enum": [
+        "contractor_claim",
+        "homeowner_need",
+        "host_intake",
+        "event_intake",
+        "vendor_activation",
+        "online_order",
+        "parking_booking",
+        "payment_status",
+        "design_request",
+        "calendar_commitment",
+        "support_request",
+        "repo_task",
+        "ops_update"
+      ]
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "id_or_name"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id_or_name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "truth_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "newness_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "recommended_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "description"],
+      "properties": {
+        "type": { "type": "string", "enum": ["none", "inspect", "draft", "create", "update", "route", "block"] },
+        "description": { "type": "string" }
+      }
+    },
+    "review_required": { "type": "boolean" },
+    "block_reason": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}
