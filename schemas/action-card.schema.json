@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/infotradescout/merlin-os-action-layer/schemas/action-card.schema.json",
+  "title": "Merlin OS Action Card",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brand",
+    "kpi",
+    "intent",
+    "source_of_truth",
+    "required_real_data",
+    "tool",
+    "action",
+    "permission_level",
+    "fail_safes",
+    "output_location",
+    "status"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string",
+      "enum": ["TradeScout", "MealScout", "TradersCorner", "LISA", "MerlinOS"]
+    },
+    "kpi": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_of_truth": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "name", "reference"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["drive_doc", "drive_sheet", "gmail", "calendar", "stripe", "canva", "github", "user_input", "lisa_signal", "app_database"]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_real_data": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "value_status"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value_status": {
+            "type": "string",
+            "enum": ["present", "missing", "not_required"]
+          },
+          "value_reference": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "string",
+      "enum": ["GoogleDrive", "Gmail", "GoogleCalendar", "Stripe", "Canva", "GitHub", "Codex", "LISA", "Manual", "None"]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["inspect", "create", "update", "draft", "send", "schedule", "label", "generate", "refund", "archive", "delete", "route", "block"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "permission_level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "fail_safes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "output_location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reference"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["drive_doc", "drive_sheet", "gmail_thread", "calendar_event", "stripe_object", "canva_folder", "github_issue", "github_pr", "chat_response", "none"]
+        },
+        "reference": {
+          "type": "string"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "blocked", "drafted", "executed", "failed", "cancelled"]
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
