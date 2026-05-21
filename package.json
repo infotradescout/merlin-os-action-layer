@@ -1,0 +1,24 @@
+{
+  "name": "merlin-or",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Merlin OR product seed: read-only daily coordination surface backed by LISA context.",
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {}
+}
