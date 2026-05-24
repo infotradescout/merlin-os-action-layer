@@ -9,6 +9,13 @@ import {
   getRecentChanges,
   ingestTradeScoutEvent
 } from './lisa.js';
+import {
+  getApprovalsForEntity,
+  getApprovalById,
+  getPendingApprovals,
+  getRecentApprovals,
+  updateApprovalStatus
+} from './approvalQueue.js';
 import { getHealthPayload } from './health.js';
 import { getSearchPayload } from './search.js';
 
@@ -85,6 +92,49 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'GET' && pathname === '/api/changes/recent') {
     const limit = getNumber(query.limit, 20);
     return responseJson(res, getRecentChanges(limit));
+  }
+
+  if (method === 'GET' && pathname === '/api/approvals') {
+    const limit = getNumber(query.limit, 20);
+    const requestedStatus = query.status;
+    const entityId = query.entity;
+    const payload = requestedStatus === 'pending'
+      ? getPendingApprovals().slice(0, limit)
+      : entityId
+        ? getApprovalsForEntity(entityId)
+        : getRecentApprovals(limit);
+    return responseJson(res, { approvals: payload });
+  }
+
+  const approvalMatch = pathname.match(/^\/api\/approvals\/([^/]+)$/);
+  if (method === 'GET' && approvalMatch) {
+    const approvalId = decodeURIComponent(approvalMatch[1]);
+    const approval = getApprovalById(approvalId);
+    if (!approval) {
+      return responseJson(res, { error: 'Approval not found' }, 404);
+    }
+    return responseJson(res, approval);
+  }
+
+  const approvalApproveMatch = pathname.match(/^\/api\/approvals\/([^/]+)\/approve$/);
+  if (method === 'POST' && approvalApproveMatch) {
+    const approvalId = decodeURIComponent(approvalApproveMatch[1]);
+    const approval = updateApprovalStatus(approvalId, 'approved');
+    return responseJson(res, { status: 'ok', approval });
+  }
+
+  const approvalDismissMatch = pathname.match(/^\/api\/approvals\/([^/]+)\/dismiss$/);
+  if (method === 'POST' && approvalDismissMatch) {
+    const approvalId = decodeURIComponent(approvalDismissMatch[1]);
+    const approval = updateApprovalStatus(approvalId, 'dismissed');
+    return responseJson(res, { status: 'ok', approval });
+  }
+
+  const approvalCompleteMatch = pathname.match(/^\/api\/approvals\/([^/]+)\/complete$/);
+  if (method === 'POST' && approvalCompleteMatch) {
+    const approvalId = decodeURIComponent(approvalCompleteMatch[1]);
+    const approval = updateApprovalStatus(approvalId, 'completed');
+    return responseJson(res, { status: 'ok', approval });
   }
 
   const stateMatch = pathname.match(/^\/api\/entities\/([^/]+)\/state$/);

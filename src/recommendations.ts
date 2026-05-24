@@ -3,8 +3,8 @@ import { PolicyDecision, evaluatePolicy } from './policy.js';
 import { resolveEntityIdentity } from './entityResolution.js';
 import { recordReplayEvent } from './replay.js';
 
-type RecommendationStatus = 'suggested' | 'accepted' | 'dismissed' | 'completed' | 'failed' | 'expired';
-type RecommendationActionType =
+export type RecommendationStatus = 'suggested' | 'accepted' | 'dismissed' | 'completed' | 'failed' | 'expired';
+export type RecommendationActionType =
   | 'view_context'
   | 'create_internal_note'
   | 'create_task'
