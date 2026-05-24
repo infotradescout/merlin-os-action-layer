@@ -83,6 +83,7 @@ interface TradeScoutActivityEvent {
   entity_type?: string;
   event_type?: string;
   signal_type?: string;
+  origin_surface?: string;
   observed_at?: string;
   truth_score?: number;
   newness_score?: number;
@@ -156,17 +157,161 @@ type ChangeResult = {
   sourceRefs: string[];
 };
 
-const events = new Map<string, LISAEvent[]>();
-const eventIndex: LISAEvent[] = [];
+type EventRow = {
+  id: string;
+  event_type: string;
+  normalized_signal_type: string;
+  entity_id: string;
+  entity_type: string;
+  observed_at: string;
+  truth_score: number;
+  newness_score: number;
+  review_required: number;
+  recommended_action_type: string;
+  recommended_action_description: string | null;
+  source_type: string;
+  source_name: string;
+  source_reference: string;
+  brand_lane: string;
+  title: string | null;
+  summary: string | null;
+  notes: string | null;
+};
 
+type TimelineRow = {
+  id: string;
+  entity_id: string;
+  signal_id: string;
+  event_type: string;
+  title: string;
+  summary: string;
+  observed_at: string;
+  created_at: string;
+  source_json: string;
+  truth_score: number;
+  newness_score: number;
+  review_required: number;
+  brand_lane: string;
+};
+
+import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+
+const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
 const ONE_HOUR = 1000 * 60 * 60;
 const DAY = ONE_HOUR * 24;
+
+let db: Database.Database | null = null;
+let dbPath: string | null = null;
+
+function toBoolean(value: number | boolean | null): boolean {
+  if (typeof value === 'boolean') return value;
+  if (value === null || value === undefined) return false;
+  return value === 1;
+}
 
 function clamp01(value: number): number {
   if (Number.isNaN(value)) return 0;
   if (value < 0) return 0;
   if (value > 1) return 1;
   return value;
+}
+
+function resolveDbPath(explicitPath?: string): string {
+  return resolve(process.cwd(), explicitPath || process.env.MERLIN_DB_PATH || DEFAULT_DB_PATH);
+}
+
+function getDb(): Database.Database {
+  if (!db) {
+    initializeLisaStore();
+  }
+  return db as Database.Database;
+}
+
+export function initializeLisaStore(explicitPath?: string): string {
+  const nextPath = resolveDbPath(explicitPath);
+  if (dbPath === nextPath && db) {
+    return nextPath;
+  }
+
+  if (db) {
+    db.close();
+    db = null;
+  }
+
+  mkdirSync(dirname(nextPath), { recursive: true });
+  const nextDb = new Database(nextPath);
+  nextDb.pragma('journal_mode = WAL');
+  nextDb.pragma('foreign_keys = ON');
+
+  nextDb.exec(`
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      origin_system TEXT NOT NULL,
+      origin_surface TEXT,
+      entity_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      normalized_signal_type TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      payload_json TEXT,
+      raw_json TEXT,
+      truth_score REAL NOT NULL DEFAULT 0.9,
+      newness_score REAL NOT NULL DEFAULT 0.9,
+      review_required INTEGER NOT NULL DEFAULT 0,
+      entity_type TEXT NOT NULL DEFAULT 'entity',
+      source_reference TEXT NOT NULL,
+      source_type TEXT NOT NULL DEFAULT 'app',
+      source_name TEXT NOT NULL DEFAULT 'TradeScout',
+      recommended_action_type TEXT NOT NULL DEFAULT 'none',
+      recommended_action_description TEXT,
+      title TEXT,
+      summary TEXT,
+      notes TEXT,
+      brand_lane TEXT NOT NULL DEFAULT 'TradeScout'
+    );
+
+    CREATE TABLE IF NOT EXISTS timeline_entries (
+      id TEXT PRIMARY KEY,
+      entity_id TEXT NOT NULL,
+      signal_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      source_json TEXT NOT NULL,
+      truth_score REAL NOT NULL DEFAULT 0.9,
+      newness_score REAL NOT NULL DEFAULT 0.9,
+      review_required INTEGER NOT NULL DEFAULT 0,
+      brand_lane TEXT NOT NULL DEFAULT 'TradeScout'
+    );
+
+    CREATE INDEX IF NOT EXISTS events_entity_idx ON events(entity_id, observed_at DESC);
+    CREATE INDEX IF NOT EXISTS events_observed_idx ON events(observed_at DESC);
+    CREATE INDEX IF NOT EXISTS timeline_entity_idx ON timeline_entries(entity_id, observed_at DESC);
+  `);
+
+  nextDb.exec(`
+    CREATE TABLE IF NOT EXISTS entity_state (
+      entity_id TEXT PRIMARY KEY,
+      state_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+
+  db = nextDb;
+  dbPath = nextPath;
+  return nextPath;
+}
+
+export function closeLisaStore(): void {
+  if (db) {
+    db.close();
+    db = null;
+    dbPath = null;
+  }
 }
 
 function toSignalDate(observedAt?: string): string {
@@ -176,51 +321,35 @@ function toSignalDate(observedAt?: string): string {
   return parsed.toISOString();
 }
 
-function addEvent(signal: LISAEvent): void {
-  const existing = events.get(signal.entity.id_or_name) ?? [];
-  existing.push(signal);
-  existing.sort((a, b) => new Date(b.observed_at).getTime() - new Date(a.observed_at).getTime());
-  events.set(signal.entity.id_or_name, existing);
-
-  eventIndex.push(signal);
-  eventIndex.sort((a, b) => new Date(b.observed_at).getTime() - new Date(a.observed_at).getTime());
-}
-
-function toTimelineEntry(event: LISAEvent, now: number): TimelineEntry {
+function toTimelineEntry(event: EventRow, now: number): TimelineEntry {
   const observedTime = new Date(event.observed_at).getTime();
-  const title =
-    event.title ??
-    `${event.signal_type.replace(/_/g, ' ')} for ${event.entity.id_or_name} (${event.brand_lane})`;
-  const summary =
-    event.summary ??
-    `${event.source.name} reported: ${event.recommended_action.description}`;
+  const title = event.title || `${event.normalized_signal_type.replace(/_/g, ' ')} for ${event.entity_id} (TradeScout)`;
+  const summary = event.summary || `TradeScout reported: ${event.recommended_action_description || `Review ${event.normalized_signal_type.replace(/_/g, ' ')}`}`;
 
   return {
-    id: event.signal_id,
-    entity_id: event.entity.id_or_name,
-    signal_type: event.signal_type,
+    id: event.id,
+    entity_id: event.entity_id,
+    signal_type: event.normalized_signal_type as SignalType,
     observed_at: event.observed_at,
     age_hours: Math.max(0, (now - observedTime) / ONE_HOUR),
     title,
     summary,
-    source: event.source.reference,
-    brand_lane: event.brand_lane,
-    review_required: event.review_required,
+    source: event.source_reference,
+    brand_lane: event.brand_lane as BrandLane,
+    review_required: toBoolean(event.review_required),
     truth_score: event.truth_score,
     newness_score: event.newness_score
   };
 }
 
-function asDailyItem(event: LISAEvent): DailyChangeItem {
-  const summary =
-    event.summary ??
-    `${event.recommended_action.description} (${new Date(event.observed_at).toISOString()})`;
+function asDailyItem(event: EventRow): DailyChangeItem {
+  const summary = event.summary || `${event.recommended_action_description || 'Review event'} (${new Date(event.observed_at).toISOString()})`;
   return {
-    id: `daily-${event.signal_id}`,
-    title: event.title ?? `${event.signal_type.replace(/_/g, ' ')}`,
+    id: `daily-${event.id}`,
+    title: (event.title || `${event.normalized_signal_type.replace(/_/g, ' ')}`),
     summary,
     confidence: event.truth_score,
-    source_refs: [event.source.reference, `lisa:${event.signal_id}`]
+    source_refs: [event.source_reference, `lisa:${event.id}`]
   };
 }
 
@@ -244,12 +373,8 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
   const rawSignalType = payload.signal_type ?? payload.event_type;
   const signalType = normalizeSignalType(rawSignalType);
   const signalId = payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const title =
-    payload.title ??
-    `TradeScout ${signalType.replace(/_/g, ' ')}: ${payload.entity_id}`;
-  const summary =
-    payload.summary ??
-    `${payload.entity_id} had a TradeScout activity of ${signalType.replace(/_/g, ' ')}`;
+  const title = payload.title || `TradeScout ${signalType.replace(/_/g, ' ')}: ${payload.entity_id}`;
+  const summary = payload.summary || `${payload.entity_id} had a TradeScout activity of ${signalType.replace(/_/g, ' ')}`;
   const action =
     payload.recommended_action ??
     { type: deriveActionType(signalType), description: `Review ${signalType.replace(/_/g, ' ')}` };
@@ -278,17 +403,112 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
   };
 }
 
-function classifyEventForDaily(event: LISAEvent, now: number): keyof DailyPayload['sections'] | 'ignore' {
+function classifyEventForDaily(event: EventRow, now: number): keyof DailyPayload['sections'] | 'ignore' {
   const ageHours = (now - new Date(event.observed_at).getTime()) / ONE_HOUR;
-  if (event.review_required) return 'needs_attention';
+  if (Boolean(event.review_required)) return 'needs_attention';
   if (ageHours <= 24 && event.truth_score >= 0.6) return 'changed';
-  if (event.recommended_action.type === 'route' && ageHours <= (DAY / ONE_HOUR) * 2) return 'waiting';
+  if (event.recommended_action_type === 'route' && ageHours <= (DAY / ONE_HOUR) * 2) return 'waiting';
   if (ageHours >= 72 && event.truth_score < 0.75) return 'stale';
   return 'ignore';
 }
 
-function collectRecentEvents(limit: number): LISAEvent[] {
-  return eventIndex.slice(0, Math.max(1, limit));
+function sanitizeLimit(limit: number): number {
+  return Math.max(1, Math.min(100, limit));
+}
+
+function buildEntityStateFromEvent(event: EventRow): EntityStatePayload {
+  const now = Date.now();
+  const ageHours = (now - new Date(event.observed_at).getTime()) / ONE_HOUR;
+  const attentionRequired = toBoolean(event.review_required) || event.truth_score < 0.5;
+  const actionType = event.recommended_action_type as ActionType;
+  const currentState =
+    toBoolean(event.review_required)
+      ? 'needs_attention'
+      : actionType === 'route'
+        ? 'waiting_for_followup'
+        : actionType === 'none'
+          ? 'monitoring'
+          : 'active';
+
+  return {
+    entity_id: event.entity_id,
+    entity_type: event.entity_type,
+    brand_lane: event.brand_lane as BrandLane,
+    current_state: currentState,
+    truth_score: event.truth_score,
+    newness_score: event.newness_score,
+    state_age_hours: ageHours,
+    last_signal_id: event.id,
+    source_refs: [event.source_reference, `lisa:${event.id}`],
+    last_observed_at: event.observed_at,
+    attention_required: attentionRequired
+  };
+}
+
+function fetchEventById(eventId: string): EventRow | null {
+  const row = getDb()
+    .prepare(
+      `
+      SELECT
+        e.id,
+        e.event_type,
+        e.normalized_signal_type,
+        e.entity_id,
+        e.entity_type,
+        e.observed_at,
+        e.truth_score,
+        e.newness_score,
+        e.review_required,
+        e.recommended_action_type,
+        e.recommended_action_description,
+        e.source_reference,
+        e.source_type,
+        e.source_name,
+        e.brand_lane,
+        e.title,
+        e.summary,
+        e.notes
+      FROM events e
+      WHERE e.id = ?;
+      `
+    )
+    .get(eventId) as EventRow | undefined;
+  return row ?? null;
+}
+
+function fetchEvents(limit: number): EventRow[] {
+  return getDb()
+    .prepare(
+      `
+      SELECT
+        e.id,
+        e.event_type,
+        e.normalized_signal_type,
+        e.entity_id,
+        e.entity_type,
+        e.observed_at,
+        e.truth_score,
+        e.newness_score,
+        e.review_required,
+        e.recommended_action_type,
+        e.recommended_action_description,
+        e.source_reference,
+        e.source_type,
+        e.source_name,
+        e.brand_lane,
+        e.title,
+        e.summary,
+        e.notes
+      FROM events e
+      ORDER BY e.observed_at DESC, e.created_at DESC
+      LIMIT ?;
+      `
+    )
+    .all(limit) as EventRow[];
+}
+
+function fetchEntityStateRow(entityId: string): { state_json: string } | undefined {
+  return getDb().prepare('SELECT state_json FROM entity_state WHERE entity_id = ?').get(entityId) as { state_json: string } | undefined;
 }
 
 export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string {
@@ -297,71 +517,234 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
   }
 
   const event = createSignalFromTradeScoutEvent(payload);
-  addEvent(event);
+  const now = new Date().toISOString();
+  const dbInstance = getDb();
+  const eventRow = {
+    id: event.signal_id,
+    origin_system: 'tradescout',
+    origin_surface: payload.origin_surface || 'tradescout',
+    entity_id: event.entity.id_or_name,
+    event_type: payload.event_type || payload.signal_type || event.signal_type,
+    normalized_signal_type: event.signal_type,
+    observed_at: event.observed_at,
+    created_at: now,
+    payload_json: JSON.stringify(payload),
+    raw_json: JSON.stringify(payload),
+    truth_score: event.truth_score,
+    newness_score: event.newness_score,
+    review_required: event.review_required ? 1 : 0,
+    entity_type: event.entity.type,
+    source_reference: event.source.reference,
+    source_type: event.source.type,
+    source_name: event.source.name,
+    recommended_action_type: event.recommended_action.type,
+    recommended_action_description: event.recommended_action.description,
+    title: event.title,
+    summary: event.summary,
+    notes: event.notes,
+    brand_lane: event.brand_lane
+  };
+
+  const timelineRow = {
+    id: event.signal_id,
+    entity_id: event.entity.id_or_name,
+    signal_id: event.signal_id,
+    event_type: event.signal_type,
+    title: event.title ?? `TradeScout ${event.signal_type.replace(/_/g, ' ')}`,
+    summary: event.summary ?? `${event.entity.id_or_name} had a TradeScout activity of ${event.signal_type.replace(/_/g, ' ')}`,
+    observed_at: event.observed_at,
+    created_at: now,
+    source_json: JSON.stringify(event.source),
+    truth_score: event.truth_score,
+    newness_score: event.newness_score,
+    review_required: event.review_required ? 1 : 0,
+    brand_lane: event.brand_lane
+  };
+
+  const state = buildEntityStateFromEvent({ ...eventRow, source_type: 'app', source_name: 'TradeScout', notes: event.notes || null } as unknown as EventRow);
+  const upsertState = dbInstance.prepare(`
+    INSERT INTO entity_state (entity_id, state_json, updated_at)
+    VALUES (@entity_id, @state_json, @updated_at)
+    ON CONFLICT(entity_id) DO UPDATE SET
+      state_json = excluded.state_json,
+      updated_at = excluded.updated_at;
+  `);
+  const insertEvent = dbInstance.prepare(`
+    INSERT INTO events (
+      id,
+      origin_system,
+      origin_surface,
+      entity_id,
+      event_type,
+      normalized_signal_type,
+      observed_at,
+      created_at,
+      payload_json,
+      raw_json,
+      truth_score,
+      newness_score,
+      review_required,
+      entity_type,
+      source_reference,
+      source_type,
+      source_name,
+      recommended_action_type,
+      recommended_action_description,
+      title,
+      summary,
+      notes,
+      brand_lane
+    ) VALUES (
+      @id,
+      @origin_system,
+      @origin_surface,
+      @entity_id,
+      @event_type,
+      @normalized_signal_type,
+      @observed_at,
+      @created_at,
+      @payload_json,
+      @raw_json,
+      @truth_score,
+      @newness_score,
+      @review_required,
+      @entity_type,
+      @source_reference,
+      @source_type,
+      @source_name,
+      @recommended_action_type,
+      @recommended_action_description,
+      @title,
+      @summary,
+      @notes,
+      @brand_lane
+    );
+  `);
+  const insertTimeline = dbInstance.prepare(`
+    INSERT INTO timeline_entries (
+      id,
+      entity_id,
+      signal_id,
+      event_type,
+      title,
+      summary,
+      observed_at,
+      created_at,
+      source_json,
+      truth_score,
+      newness_score,
+      review_required,
+      brand_lane
+    ) VALUES (
+      @id,
+      @entity_id,
+      @signal_id,
+      @event_type,
+      @title,
+      @summary,
+      @observed_at,
+      @created_at,
+      @source_json,
+      @truth_score,
+      @newness_score,
+      @review_required,
+      @brand_lane
+    );
+  `);
+
+  const tx = dbInstance.transaction(() => {
+    insertEvent.run(eventRow);
+    insertTimeline.run(timelineRow);
+    upsertState.run({
+      entity_id: state.entity_id,
+      state_json: JSON.stringify(state),
+      updated_at: now
+    });
+  });
+  tx();
+
   return event.signal_id;
 }
 
 export function getEntityState(entityId: string): EntityStatePayload | null {
-  const timeline = events.get(entityId) ?? [];
-  if (!timeline.length) return null;
-
-  const latest = timeline[0];
-  const now = Date.now();
-  const ageHours = (now - new Date(latest.observed_at).getTime()) / ONE_HOUR;
-  const attentionRequired = latest.review_required || latest.truth_score < 0.5;
-
-  const currentState =
-    latest.review_required
-      ? 'needs_attention'
-      : latest.recommended_action.type === 'route'
-        ? 'waiting_for_followup'
-        : latest.recommended_action.type === 'none'
-          ? 'monitoring'
-          : 'active';
-
-  return {
-    entity_id: entityId,
-    entity_type: latest.entity.type,
-    brand_lane: latest.brand_lane,
-    current_state: currentState,
-    truth_score: latest.truth_score,
-    newness_score: latest.newness_score,
-    state_age_hours: ageHours,
-    last_signal_id: latest.signal_id,
-    source_refs: [latest.source.reference, `lisa:${latest.signal_id}`],
-    last_observed_at: latest.observed_at,
-    attention_required: attentionRequired
-  };
+  const row = fetchEntityStateRow(entityId);
+  if (!row) return null;
+  try {
+    return JSON.parse(row.state_json) as EntityStatePayload;
+  } catch {
+    return null;
+  }
 }
 
 export function getEntityTimeline(entityId: string, limit = 20): TimelineEntry[] {
-  const timeline = events.get(entityId) ?? [];
+  const safeLimit = sanitizeLimit(limit);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT
+        id,
+        entity_id,
+        signal_id,
+        event_type,
+        title,
+        summary,
+        observed_at,
+        truth_score,
+        newness_score,
+        review_required,
+        brand_lane,
+        source_json
+      FROM timeline_entries
+      WHERE entity_id = ?
+      ORDER BY observed_at DESC, created_at DESC
+      LIMIT ?;
+      `
+    )
+    .all(entityId, safeLimit) as TimelineRow[];
   const now = Date.now();
-  const maxCount = Math.max(1, Math.min(100, limit));
-  return timeline.slice(0, maxCount).map((event) => toTimelineEntry(event, now));
+  return rows.map((row) => {
+    const title = row.title || `${row.event_type.replace(/_/g, ' ')} for ${row.entity_id} (TradeScout)`;
+    const summary = row.summary || `TradeScout reported: ${row.event_type.replace(/_/g, ' ')}`;
+    const sourceJson = JSON.parse(row.source_json) as LISASource;
+    return {
+      id: row.id,
+      entity_id: row.entity_id,
+      signal_type: row.event_type as SignalType,
+      observed_at: row.observed_at,
+      age_hours: Math.max(0, (now - new Date(row.observed_at).getTime()) / ONE_HOUR),
+      title,
+      summary,
+      source: sourceJson.reference,
+      brand_lane: row.brand_lane as BrandLane,
+      review_required: Boolean(row.review_required),
+      truth_score: row.truth_score,
+      newness_score: row.newness_score
+    };
+  });
 }
 
 export function getRecentChanges(limit = 20): ChangeResult {
-  const safeLimit = Math.max(1, Math.min(100, limit));
+  const safeLimit = sanitizeLimit(limit);
   const now = Date.now();
-  const changes = collectRecentEvents(safeLimit).map((event) => toTimelineEntry(event, now));
-  const sourceRefs = Array.from(
-    new Set(changes.map((change) => change.id).map((id) => `lisa:${id}`))
-  );
+  const rows = fetchEvents(safeLimit);
+  const changes = rows.map((row) => toTimelineEntry(row, now));
+  const sourceRefs = Array.from(new Set(changes.map((change) => `lisa:${change.id}`)));
   return { changes, sourceRefs };
 }
 
 export function searchLisaSignals(query: string, limit = 20): ChangeResult {
   const token = (query || '').trim().toLowerCase();
-  const maxCount = Math.max(1, Math.min(100, limit));
+  const maxCount = sanitizeLimit(limit);
+  const events = fetchEvents(500);
   const now = Date.now();
 
   const candidates = token.length
-    ? eventIndex.filter((event) => {
-        const haystack = `${event.signal_id} ${event.signal_type} ${event.entity.id_or_name} ${event.title ?? ''} ${event.summary ?? ''} ${event.notes ?? ''}`.toLowerCase();
+    ? events.filter((event) => {
+        const haystack =
+          `${event.id} ${event.normalized_signal_type} ${event.entity_id} ${event.title ?? ''} ${event.summary ?? ''} ${event.notes ?? ''}`.toLowerCase();
         return haystack.includes(token);
       })
-    : eventIndex;
+    : events;
 
   const results = candidates.slice(0, maxCount).map((event) => toTimelineEntry(event, now));
   const sourceRefs = Array.from(new Set(results.map((item) => item.source)));
@@ -371,7 +754,7 @@ export function searchLisaSignals(query: string, limit = 20): ChangeResult {
 export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<DailyConfig> = {}): DailyPayload {
   const now = options.now || Date.now();
   const maxItemsPerSection = options.maxItemsPerSection || 12;
-  const sorted = eventIndex.slice();
+  const events = fetchEvents(500);
   const sectionCounts = {
     changed: [] as DailyChangeItem[],
     needs_attention: [] as DailyChangeItem[],
@@ -380,15 +763,13 @@ export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<Da
     suggested_next_steps: [] as DailyChangeItem[]
   };
 
-  for (const event of sorted) {
+  for (const event of events) {
     const category = classifyEventForDaily(event, now);
     if (category === 'ignore') continue;
     if (sectionCounts[category].length >= maxItemsPerSection) continue;
     sectionCounts[category].push(asDailyItem(event));
   }
 
-  // fill one suggested-next-step section from anything that needs attention, waiting,
-  // or changed with high urgency signals.
   sectionCounts.suggested_next_steps = [
     ...sectionCounts.needs_attention,
     ...sectionCounts.waiting,
@@ -413,6 +794,10 @@ export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<Da
 }
 
 export function resetLisaStore(): void {
-  events.clear();
-  eventIndex.length = 0;
+  const dbInstance = getDb();
+  dbInstance.prepare('DELETE FROM timeline_entries').run();
+  dbInstance.prepare('DELETE FROM events').run();
+  dbInstance.prepare('DELETE FROM entity_state').run();
 }
+
+initializeLisaStore();

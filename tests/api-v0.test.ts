@@ -6,7 +6,7 @@ import type { Server } from 'node:http';
 process.env.MERLIN_RUNTIME = 'test';
 
 const { createMerlinServer } = await import('../src/server.ts');
-const { resetLisaStore } = await import('../src/lisa.ts');
+const { resetLisaStore, closeLisaStore } = await import('../src/lisa.ts');
 
 let server: Server;
 let baseUrl: string;
@@ -45,6 +45,7 @@ after(async () => {
   await new Promise<void>((resolve) => {
     server.close(() => resolve());
   });
+  closeLisaStore();
 });
 
 beforeEach(() => {
