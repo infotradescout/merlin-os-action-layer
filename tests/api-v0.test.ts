@@ -218,3 +218,79 @@ test('Merlin Daily reflects real activity from LISA', async () => {
   assert.equal(dailyResponse.body.sections.changed.length, 1);
   assert.equal(dailyResponse.body.sections.changed[0].source_refs.includes(`tradescout:${entityId}`), true);
 });
+
+test('onboarding_started and role_selected map to changed section', async () => {
+  const entityId = randomEventId('contractor', 'onboard');
+
+  const started = await requestJson<{ status: string }>('/api/events/tradescout', {
+    method: 'POST',
+    body: JSON.stringify({
+      entity_id: entityId,
+      event_type: 'onboarding_started',
+      payload: {
+        role: 'contractor',
+        entry_path: 'contractor-signup'
+      }
+    })
+  });
+  assert.equal(started.status, 200);
+
+  const roleSelected = await requestJson<{ status: string }>('/api/events/tradescout', {
+    method: 'POST',
+    body: JSON.stringify({
+      entity_id: entityId,
+      event_type: 'role_selected',
+      payload: {
+        role: 'contractor'
+      }
+    })
+  });
+  assert.equal(roleSelected.status, 200);
+
+  const dailyResponse = await requestJson<{
+    sections: {
+      changed: Array<{ source_refs: string[] }>;
+      needs_attention: Array<{ id: string }>;
+      waiting: Array<{ id: string }>;
+      stale: Array<{ id: string }>;
+      suggested_next_steps: Array<{ id: string }>;
+    };
+  }>('/api/daily');
+
+  assert.equal(dailyResponse.status, 200);
+  assert.equal(dailyResponse.body.sections.changed.length >= 2, true);
+  const hasOnboardingSource = dailyResponse.body.sections.changed.some((entry) =>
+    entry.source_refs.includes(`tradescout:${entityId}`)
+  );
+  assert.equal(hasOnboardingSource, true);
+});
+
+test('onboarding_abandoned maps to stale section', async () => {
+  const entityId = randomEventId('contractor', 'stale');
+  const oldAt = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
+
+  const response = await requestJson<{ status: string }>('/api/events/tradescout', {
+    method: 'POST',
+    body: JSON.stringify({
+      entity_id: entityId,
+      event_type: 'onboarding_abandoned',
+      observed_at: oldAt,
+      payload: {
+        reason: 'left_signup'
+      }
+    })
+  });
+  assert.equal(response.status, 200);
+
+  const dailyResponse = await requestJson<{
+    sections: {
+      stale: Array<{ source_refs: string[] }>;
+      changed: Array<{ id: string }>;
+      needs_attention: Array<{ id: string }>;
+      waiting: Array<{ id: string }>;
+      suggested_next_steps: Array<{ id: string }>;
+    };
+  }>('/api/daily');
+  assert.equal(dailyResponse.status, 200);
+  assert.equal(dailyResponse.body.sections.stale.length >= 1, true);
+});

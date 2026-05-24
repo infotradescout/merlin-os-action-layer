@@ -13,7 +13,19 @@ type SignalType =
   | 'calendar_commitment'
   | 'support_request'
   | 'repo_task'
-  | 'ops_update';
+  | 'ops_update'
+  | 'onboarding_started'
+  | 'role_selected'
+  | 'signup_completed'
+  | 'business_profile_started'
+  | 'business_claim_started'
+  | 'service_category_selected'
+  | 'location_added'
+  | 'verification_started'
+  | 'pricing_viewed'
+  | 'contact_cta_clicked'
+  | 'claim_cta_clicked'
+  | 'onboarding_abandoned';
 
 const SIGNAL_TYPES: SignalType[] = [
   'contractor_claim',
@@ -28,7 +40,19 @@ const SIGNAL_TYPES: SignalType[] = [
   'calendar_commitment',
   'support_request',
   'repo_task',
-  'ops_update'
+  'ops_update',
+  'onboarding_started',
+  'role_selected',
+  'signup_completed',
+  'business_profile_started',
+  'business_claim_started',
+  'service_category_selected',
+  'location_added',
+  'verification_started',
+  'pricing_viewed',
+  'contact_cta_clicked',
+  'claim_cta_clicked',
+  'onboarding_abandoned'
 ];
 
 const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
@@ -37,7 +61,19 @@ const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
   contractor_document_uploaded: 'contractor_claim',
   quote_requested: 'support_request',
   payment_received: 'payment_status',
-  verification_review_needed: 'support_request'
+  verification_review_needed: 'support_request',
+  onboarding_started: 'onboarding_started',
+  role_selected: 'role_selected',
+  signup_completed: 'signup_completed',
+  business_profile_started: 'business_profile_started',
+  business_claim_started: 'business_claim_started',
+  service_category_selected: 'service_category_selected',
+  location_added: 'location_added',
+  verification_started: 'verification_started',
+  pricing_viewed: 'pricing_viewed',
+  contact_cta_clicked: 'contact_cta_clicked',
+  claim_cta_clicked: 'claim_cta_clicked',
+  onboarding_abandoned: 'onboarding_abandoned'
 };
 
 type SourceType = 'drive' | 'gmail' | 'calendar' | 'stripe' | 'canva' | 'github' | 'web' | 'app' | 'manual';
@@ -377,7 +413,42 @@ function deriveActionType(signalType: SignalType): ActionType {
   if (signalType === 'contractor_claim' || signalType === 'support_request') return 'inspect';
   if (signalType === 'host_intake' || signalType === 'vendor_activation') return 'route';
   if (signalType === 'online_order' || signalType === 'parking_booking') return 'update';
+  if (signalType === 'business_claim_started' || signalType === 'business_profile_started' || signalType === 'verification_started') return 'inspect';
+  if (
+    signalType === 'onboarding_started' ||
+    signalType === 'role_selected' ||
+    signalType === 'signup_completed' ||
+    signalType === 'service_category_selected' ||
+    signalType === 'location_added' ||
+    signalType === 'pricing_viewed' ||
+    signalType === 'contact_cta_clicked' ||
+    signalType === 'claim_cta_clicked' ||
+    signalType === 'onboarding_abandoned'
+  )
+    return 'none';
   return 'none';
+}
+
+function inferSectionFromEventType(rawEventType: string): keyof DailyPayload['sections'] | undefined {
+  switch (rawEventType) {
+    case 'onboarding_started':
+    case 'role_selected':
+    case 'pricing_viewed':
+    case 'signup_completed':
+    case 'service_category_selected':
+    case 'contact_cta_clicked':
+    case 'claim_cta_clicked':
+    case 'location_added':
+      return 'changed';
+    case 'business_profile_started':
+    case 'business_claim_started':
+    case 'verification_started':
+      return 'needs_attention';
+    case 'onboarding_abandoned':
+      return 'stale';
+    default:
+      return undefined;
+  }
 }
 
 type PolicyActionType =
@@ -488,6 +559,9 @@ function asLISASource(source: ResolvedSource): LISASource {
 }
 
 function classifyEventForDaily(event: EventRow, now: number): keyof DailyPayload['sections'] | 'ignore' {
+  const mappedSection = inferSectionFromEventType(event.event_type);
+  if (mappedSection) return mappedSection;
+
   const ageHours = (now - new Date(event.observed_at).getTime()) / ONE_HOUR;
   if (Boolean(event.review_required)) return 'needs_attention';
   if (ageHours <= 24 && event.truth_score >= 0.6) return 'changed';
