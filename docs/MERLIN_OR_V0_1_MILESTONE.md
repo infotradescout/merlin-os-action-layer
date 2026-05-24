@@ -80,11 +80,11 @@ npx tsx --test tests/api-v0-persistence.test.ts
 
 ## Next milestone
 
-Merlin OR v0.3: real TradeScout emitter integration.
+Merlin OR v0.3: source registry + freshness foundations.
 
 Planned v0.3 priorities:
 
-- Receive TradeScout events from a production webhook source.
-- Maintain existing APIs and keep persistence behavior stable.
-- Keep event-to-state derivation deterministic for deterministic operational use.
-
+- Add a source registry module (`src/sourceRegistry.ts`) with TradeScout default and extensible source entries.
+- Add a freshness module (`src/freshness.ts`) to score event timeliness and support staleness policies.
+- Keep existing APIs and SQLite behavior stable.
+- Keep event-to-state derivation deterministic for operational use.

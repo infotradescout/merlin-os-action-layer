@@ -197,6 +197,8 @@ type TimelineRow = {
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { calculateFreshnessScore, type FreshnessResult } from './freshness.js';
+import { resolveSource, type ResolvedSource } from './sourceRegistry.js';
 
 const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
 const ONE_HOUR = 1000 * 60 * 60;
@@ -373,19 +375,25 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
   const rawSignalType = payload.signal_type ?? payload.event_type;
   const signalType = normalizeSignalType(rawSignalType);
   const signalId = payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const resolvedSource = resolveSource({
+    sourceReference: payload.source_reference,
+    originSurface: payload.origin_surface,
+    entityId: payload.entity_id
+  });
+  const freshness: FreshnessResult = calculateFreshnessScore(observedAt, {
+    trustLevel: resolvedSource.trustLevel,
+    nowMs: Date.now()
+  });
   const title = payload.title || `TradeScout ${signalType.replace(/_/g, ' ')}: ${payload.entity_id}`;
   const summary = payload.summary || `${payload.entity_id} had a TradeScout activity of ${signalType.replace(/_/g, ' ')}`;
   const action =
     payload.recommended_action ??
     { type: deriveActionType(signalType), description: `Review ${signalType.replace(/_/g, ' ')}` };
+  const source = asLISASource(resolvedSource);
 
   return {
     signal_id: signalId,
-    source: {
-      type: 'app',
-      name: 'TradeScout',
-      reference: payload.source_reference || `tradescout:${payload.entity_id}`
-    },
+    source,
     brand_lane: 'TradeScout',
     signal_type: signalType,
     entity: {
@@ -394,12 +402,20 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
     },
     observed_at: observedAt,
     truth_score: clamp01(payload.truth_score ?? 0.9),
-    newness_score: clamp01(payload.newness_score ?? 0.9),
+    newness_score: clamp01(payload.newness_score ?? freshness.score),
     recommended_action: action,
     review_required: Boolean(payload.review_required),
     title,
     summary,
     notes: payload.notes
+  };
+}
+
+function asLISASource(source: ResolvedSource): LISASource {
+  return {
+    type: source.type,
+    name: source.name,
+    reference: source.reference
   };
 }
 
