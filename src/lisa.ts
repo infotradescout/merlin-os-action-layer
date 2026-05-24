@@ -31,6 +31,15 @@ const SIGNAL_TYPES: SignalType[] = [
   'ops_update'
 ];
 
+const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
+  verification_document_uploaded: 'contractor_claim',
+  insurance_document_uploaded: 'contractor_claim',
+  contractor_document_uploaded: 'contractor_claim',
+  quote_requested: 'support_request',
+  payment_received: 'payment_status',
+  verification_review_needed: 'support_request'
+};
+
 type SourceType = 'drive' | 'gmail' | 'calendar' | 'stripe' | 'canva' | 'github' | 'web' | 'app' | 'manual';
 
 type ActionType = 'none' | 'inspect' | 'draft' | 'create' | 'update' | 'route' | 'block';
@@ -222,13 +231,18 @@ function deriveActionType(signalType: SignalType): ActionType {
   return 'none';
 }
 
+function normalizeSignalType(value?: string): SignalType {
+  if (!value) return 'contractor_claim';
+  const direct = value.trim().toLowerCase();
+  if (SIGNAL_TYPES.includes(direct as SignalType)) return direct as SignalType;
+  if (direct in TRADESCOUT_SIGNAL_MAP) return TRADESCOUT_SIGNAL_MAP[direct];
+  return 'contractor_claim';
+}
+
 function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISAEvent {
   const observedAt = toSignalDate(payload.observed_at);
   const rawSignalType = payload.signal_type ?? payload.event_type;
-  const signalType: SignalType =
-    rawSignalType && SIGNAL_TYPES.includes(rawSignalType as SignalType)
-      ? (rawSignalType as SignalType)
-      : 'contractor_claim';
+  const signalType = normalizeSignalType(rawSignalType);
   const signalId = payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title =
     payload.title ??

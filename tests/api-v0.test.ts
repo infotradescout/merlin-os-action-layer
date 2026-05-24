@@ -89,6 +89,33 @@ test('POST /api/events/tradescout creates a record', async () => {
   assert.equal(typeof response.body.signal_id, 'string');
 });
 
+test('TradeScout event aliases are normalized to LISA signal types', async () => {
+  const entityId = randomEventId('contractor', 'alias');
+  const response = await requestJson<{
+    status: string;
+    signal_id: string;
+  }>('/api/events/tradescout', {
+    method: 'POST',
+    body: JSON.stringify({
+      entity_id: entityId,
+      event_type: 'verification_document_uploaded',
+      payload: {
+        document_type: 'insurance',
+        status: 'needs_review'
+      }
+    })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+
+  const timeline = await requestJson<{ entity_id: string; timeline: Array<{ signal_type: string }> }>(
+    `/api/entities/${encodeURIComponent(entityId)}/timeline`
+  );
+
+  assert.equal(timeline.status, 200);
+  assert.equal(timeline.body.timeline[0].signal_type, 'contractor_claim');
+});
+
 test('entity state reflects the posted TradeScout event', async () => {
   const entityId = randomEventId('contractor', 'beta');
   const postResponse = await requestJson<{ status: string; signal_id: string }>('/api/events/tradescout', {
