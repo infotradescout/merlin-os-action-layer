@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Merlin Daily</title>
+    <style>
+      :root {
+        --bg: #0b1021;
+        --panel: #131a36;
+        --panel-soft: #1a2240;
+        --text: #ecf2ff;
+        --muted: #97a5ce;
+        --line: #27315e;
+        --accent: #58b8ff;
+        --positive: #48d1a5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+        background: radial-gradient(circle at 10% 10%, #1a2452, var(--bg) 55%);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1.2rem;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 1rem;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.9rem;
+        margin-bottom: 1rem;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+        margin-top: 0.75rem;
+      }
+
+      .section-title {
+        font-size: 0.9rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 0.4rem 0 0;
+        max-height: 240px;
+        overflow: auto;
+      }
+
+      .item {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 0.55rem;
+        margin: 0.35rem 0;
+        cursor: pointer;
+      }
+
+      .item:hover {
+        border-color: var(--accent);
+      }
+
+      .item-title {
+        font-weight: 600;
+      }
+
+      .item-summary {
+        color: var(--muted);
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+      }
+
+      .chips {
+        margin-top: 0.3rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .chip {
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 0.1rem 0.5rem;
+        font-size: 0.75rem;
+      }
+
+      .detail {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.9rem;
+        margin-top: 1rem;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.6rem;
+        color: var(--text);
+      }
+
+      .status-ok {
+        color: var(--positive);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Merlin Daily</h1>
+          <p class="subtitle">
+            Today &mdash; <span id="today-date">loading</span> · generated
+            <span id="generated-at">...</span>
+          </p>
+        </div>
+        <div class="subtitle">v1.0 command center</div>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Merlin Daily</h2>
+          <div class="columns">
+            <div>
+              <div class="section-title">Changed</div>
+              <ul id="changed-list" class="list"></ul>
+            </div>
+            <div>
+              <div class="section-title">Needs Attention</div>
+              <ul id="needs-list" class="list"></ul>
+            </div>
+            <div>
+              <div class="section-title">Waiting</div>
+              <ul id="waiting-list" class="list"></ul>
+            </div>
+            <div>
+              <div class="section-title">Stale</div>
+              <ul id="stale-list" class="list"></ul>
+            </div>
+            <div>
+              <div class="section-title">Suggested Next Steps</div>
+              <ul id="suggested-list" class="list"></ul>
+            </div>
+            <div>
+              <div class="section-title">Recent Changes</div>
+              <ul id="changes-list" class="list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="panel">
+            <h2>Pending Approvals</h2>
+            <ul id="approvals-list" class="list"></ul>
+          </div>
+          <div class="panel">
+            <h2>Recent Outcomes</h2>
+            <ul id="outcomes-list" class="list"></ul>
+          </div>
+          <div class="panel">
+            <h2>Replay / Audit</h2>
+            <ul id="replay-list" class="list"></ul>
+          </div>
+        </section>
+      </div>
+
+      <section class="detail">
+        <h3 id="detail-title">Select a section item</h3>
+        <p id="detail-summary" class="subtitle"></p>
+        <div id="detail-meta" class="subtitle"></div>
+        <h3 style="margin-top: 0.8rem;">Policy</h3>
+        <pre id="detail-policy">{}</pre>
+        <h3>Linked Outcome</h3>
+        <pre id="detail-outcome">(none)</pre>
+        <h3>Replay / Audit Events</h3>
+        <ul id="detail-replay" class="list"></ul>
+      </section>
+    </div>
+
+    <script>
+      const state = {
+        daily: null,
+        approvals: [],
+        replay: [],
+        recentChanges: null
+      };
+
+      const detailPayloadByKey = new Map();
+      const safeText = (value) => (value === undefined || value === null ? '' : String(value));
+      const formatDate = (value) => {
+        if (!value) return 'n/a';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return safeText(value);
+        return date.toLocaleString();
+      };
+
+      const createChip = (label) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = label;
+        return chip;
+      };
+
+      const renderListItem = (containerId, item, kind, keyOverride) => {
+        const container = document.getElementById(containerId);
+        const li = document.createElement('li');
+        li.className = 'item';
+        const key = keyOverride || `${kind}:${item.id}`;
+        li.dataset.key = key;
+        li.addEventListener('click', () => showDetail(key));
+
+        const title = document.createElement('div');
+        title.className = 'item-title';
+        title.textContent = safeText(item.title || 'Untitled');
+        const summary = document.createElement('div');
+        summary.className = 'item-summary';
+        summary.textContent = safeText(item.summary || '(no summary)');
+        const chips = document.createElement('div');
+        chips.className = 'chips';
+        chips.appendChild(createChip(kind));
+        if (item.policy_level) chips.appendChild(createChip(item.policy_level));
+        if (item.status) chips.appendChild(createChip(item.status));
+        if (item.entity_id) chips.appendChild(createChip(item.entity_id));
+        if (item.created_at) chips.appendChild(createChip(formatDate(item.created_at)));
+
+        li.appendChild(title);
+        li.appendChild(summary);
+        li.appendChild(chips);
+        detailPayloadByKey.set(key, {
+          kind,
+          ...item,
+          key,
+          source_refs: item.source_refs || []
+        });
+        container.appendChild(li);
+      };
+
+      const showDetail = (key) => {
+        const item = detailPayloadByKey.get(key);
+        if (!item) return;
+
+        const title = `${item.kind.toUpperCase()} ${item.id || ''}`;
+        const policy = item.policy_result || (item.policy_level ? { level: item.policy_level } : {});
+        const outcomeId = item.outcome_id || null;
+        const outcomeMatch = outcomeId
+          ? state.replay.find((entry) => entry.outcome_id === outcomeId)
+          : state.replay.find((entry) => entry.event_type === 'outcome_recorded' && entry.recommendation_id === item.recommendation_id);
+
+        const relatedReplay = state.replay.filter((entry) => {
+          if (item.id && (entry.id === item.id || entry.recommendation_id === item.id || entry.outcome_id === item.id)) return true;
+          if (item.recommendation_id && entry.recommendation_id === item.recommendation_id) return true;
+          if (item.outcome_id && entry.outcome_id === item.outcome_id) return true;
+          if (item.entity_id && entry.entity_id === item.entity_id) return true;
+          if (Array.isArray(item.source_refs) && Array.isArray(entry.source_refs)) {
+            return item.source_refs.some((value) => entry.source_refs.includes(value));
+          }
+          return false;
+        });
+
+        document.getElementById('detail-title').textContent = title;
+        document.getElementById('detail-summary').textContent = safeText(item.summary);
+        document.getElementById('detail-meta').innerHTML = `
+          <span class="status-ok">Entity:</span> ${safeText(item.entity_id || item.entity || 'n/a')}
+          · <span class="status-ok">Created:</span> ${formatDate(item.created_at)}
+          · <span class="status-ok">Source:</span> ${safeText(item.source || 'n/a')}
+        `;
+        document.getElementById('detail-policy').textContent = JSON.stringify(policy, null, 2);
+        document.getElementById('detail-outcome').textContent = outcomeMatch
+          ? JSON.stringify(outcomeMatch, null, 2)
+          : '(none)';
+
+        const replayList = document.getElementById('detail-replay');
+        replayList.innerHTML = '';
+        if (!relatedReplay.length) {
+          replayList.innerHTML = '<li class="item">No replay/audit records linked.</li>';
+          return;
+        }
+        for (const replayEvent of relatedReplay.slice(0, 30)) {
+          const row = document.createElement('li');
+          row.className = 'item';
+          const summary = document.createElement('div');
+          summary.className = 'item-summary';
+          summary.textContent = `${formatDate(replayEvent.created_at)} · ${replayEvent.event_type}`;
+          const titleNode = document.createElement('div');
+          titleNode.className = 'item-title';
+          titleNode.textContent = replayEvent.summary || replayEvent.id;
+          row.appendChild(titleNode);
+          row.appendChild(summary);
+          replayList.appendChild(row);
+        }
+      };
+
+      const renderSection = (containerId, items, kind) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        if (!items?.length) {
+          container.innerHTML = '<li class="item">No items.</li>';
+          return;
+        }
+        for (const item of items) {
+          const key = `${kind}:${item.id || `idx-${Math.random()}`}`;
+          renderListItem(containerId, item, kind, key);
+        }
+      };
+
+      const loadDaily = async () => {
+        const payload = await fetchJson('/api/daily?limit=50');
+        state.daily = payload;
+        document.getElementById('today-date').textContent = payload.date || 'n/a';
+        document.getElementById('generated-at').textContent = formatDate(payload.generated_at);
+        renderSection('changed-list', payload.sections?.changed || [], 'changed');
+        renderSection('needs-list', payload.sections?.needs_attention || [], 'needs_attention');
+        renderSection('waiting-list', payload.sections?.waiting || [], 'waiting');
+        renderSection('stale-list', payload.sections?.stale || [], 'stale');
+        renderSection('suggested-list', payload.sections?.suggested_next_steps || [], 'suggested_next_step');
+      };
+
+      const loadApprovals = async () => {
+        const payload = await fetchJson('/api/approvals?status=pending&limit=50');
+        state.approvals = payload.approvals || [];
+        renderSection('approvals-list', state.approvals, 'approval');
+      };
+
+      const loadRecentChanges = async () => {
+        const payload = await fetchJson('/api/changes/recent?limit=20');
+        state.recentChanges = payload;
+        renderSection('changes-list', (payload.changes || []).slice(0, 12), 'recent_change');
+      };
+
+      const loadReplay = async () => {
+        const payload = await fetchJson('/api/replay/recent?limit=80');
+        state.replay = payload.replay_events || [];
+
+        const outcomeEvents = state.replay.filter((event) => event.event_type === 'outcome_recorded');
+        const renderedOutcomes = outcomeEvents.map((event) => ({
+          id: event.outcome_id || event.id,
+          kind: 'outcome',
+          title: safeText(event.payload?.outcome) || 'Outcome',
+          summary: event.summary || 'Outcome recorded',
+          status: event.payload?.status,
+          entity_id: event.entity_id,
+          source_refs: event.source_refs,
+          outcome_id: event.outcome_id,
+          created_at: event.created_at,
+          policy_level: event.policy_level
+        }));
+        renderSection('outcomes-list', renderedOutcomes.slice(0, 15), 'outcome');
+
+        renderSection('replay-list', state.replay.slice(0, 15).map((event) => ({
+          id: event.id,
+          title: event.event_type,
+          summary: event.summary,
+          created_at: event.created_at,
+          kind: 'replay',
+          source_refs: event.source_refs,
+          policy_level: event.policy_level,
+          recommendation_id: event.recommendation_id,
+          outcome_id: event.outcome_id,
+          entity_id: event.entity_id
+        })), 'replay');
+      };
+
+      const fetchJson = async (endpoint) => {
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Request failed: ${endpoint}`);
+        }
+        return response.json();
+      };
+
+      async function boot() {
+        try {
+          await Promise.all([loadDaily(), loadApprovals(), loadRecentChanges(), loadReplay()]);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          alert(`Could not load Merlin Daily UI: ${message}`);
+        }
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

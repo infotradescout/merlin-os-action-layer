@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server as HttpServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { URL } from 'node:url';
 import { DEFAULT_PORT } from './constants.js';
 import {
@@ -18,6 +20,7 @@ import {
 } from './approvalQueue.js';
 import { getHealthPayload } from './health.js';
 import { getSearchPayload } from './search.js';
+import { getRecentReplayEvents } from './replay.js';
 
 type QueryBag = { [key: string]: string | undefined };
 
@@ -60,6 +63,22 @@ function getNumber(value: string | undefined, fallback = 20): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function serveUiIndex(res: ServerResponse): boolean {
+  const indexPath = resolve(process.cwd(), 'public', 'index.html');
+  if (!existsSync(indexPath)) {
+    return false;
+  }
+  try {
+    const html = readFileSync(indexPath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html');
+    res.end(html);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const createMerlinHandler = async (req: IncomingMessage, res: ServerResponse) => {
   if (!req.url || !req.method) {
     return responseJson(res, { error: 'Invalid request' }, 400);
@@ -92,6 +111,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'GET' && pathname === '/api/changes/recent') {
     const limit = getNumber(query.limit, 20);
     return responseJson(res, getRecentChanges(limit));
+  }
+
+  if (method === 'GET' && pathname === '/api/replay/recent') {
+    const limit = getNumber(query.limit, 20);
+    return responseJson(res, { replay_events: getRecentReplayEvents(limit) });
   }
 
   if (method === 'GET' && pathname === '/api/approvals') {
@@ -187,6 +211,12 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       request_id: randomUUID(),
       instructions: 'POST events with entity_id and optional signal fields'
     });
+  }
+
+  if (method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+    const served = serveUiIndex(res);
+    if (served) return;
+    return responseJson(res, { error: 'Merlin Daily UI not found' }, 404);
   }
 
   responseJson(res, { error: 'Not found' }, 404);
