@@ -48,6 +48,11 @@ They flow through:
 5. Refresh Daily and approval views:
    - `GET /api/daily`
    - `GET /api/approvals`
+6. Approve or dismiss one pending recommendation:
+   - `POST /api/approvals/:id/approve`
+   - `POST /api/approvals/:id/dismiss`
+7. Verify replay/outcome update:
+   - `GET /api/replay/recent`
 
 Optional checks:
 
@@ -55,6 +60,16 @@ Optional checks:
 - `GET /api/replay/recent`
 - `GET /api/entities/business_demo_001/state`
 - `GET /api/entities/business_demo_001/timeline`
+
+Partner demo flow:
+
+- Open the demo UI.
+- Click through one seed/reset cycle manually via API.
+- Show:
+  - incoming loop in Daily and Changes.
+  - pending approval item.
+  - replay/audit trail after approval/dismissal.
+- Reset and replay the same demo sequence to prove repeatability.
 
 ## Notes
 

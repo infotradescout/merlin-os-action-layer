@@ -149,6 +149,39 @@ test('demo seed creates Merlin Daily sections', async () => {
   assert.equal(daily.body.sections.suggested_next_steps.length >= 1, true);
 });
 
+test('demo seed creates replay events', async () => {
+  await requestJson('/api/demo/seed-tradescout-loop', { method: 'POST' });
+
+  const replay = await requestJson<{
+    replay_events: Array<{
+      id: string;
+      event_type:
+        | 'event_ingested'
+        | 'state_updated'
+        | 'recommendation_created'
+        | 'policy_evaluated'
+        | 'recommendation_status_updated'
+        | 'outcome_recorded'
+        | 'outcome_linked'
+        | 'daily_generated';
+      entity_id?: string;
+      signal_id?: string;
+      summary: string;
+    }>;
+  }>('/api/replay/recent');
+
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.replay_events.length >= 6, true);
+  assert.equal(
+    replay.body.replay_events.some((event) => event.event_type === 'event_ingested'),
+    true
+  );
+  assert.equal(
+    replay.body.replay_events.some((event) => event.event_type === 'recommendation_created'),
+    true
+  );
+});
+
 test('demo seed creates pending approvals when policy requires approval', async () => {
   await requestJson('/api/demo/seed-tradescout-loop', { method: 'POST' });
 

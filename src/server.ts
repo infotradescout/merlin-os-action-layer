@@ -25,6 +25,7 @@ import { getRecentRecommendations } from './recommendations.js';
 import { getHealthPayload } from './health.js';
 import { getSearchPayload } from './search.js';
 import { getRecentReplayEvents, resetReplayForTest } from './replay.js';
+import { resetDriveManifestForTest } from './driveManifest.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
 import { resetRecommendationsForTest } from './recommendations.js';
@@ -180,6 +181,7 @@ function resetDemoRuntimeState(): void {
   resetReplayForTest();
   resetEntityResolutionForTest();
   resetSourceRegistryForTest();
+  resetDriveManifestForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
