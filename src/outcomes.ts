@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { resolveEntityIdentity } from './entityResolution.js';
+import { recordReplayEvent } from './replay.js';
 
 type OutcomeType =
   | 'customer_replied'
@@ -176,6 +177,20 @@ export function recordOutcome(input: OutcomeInput): OutcomeRecord {
 
   outcomes.set(outcome.id, outcome);
   upsertEntityIndex(entityId, outcome.id);
+  recordReplayEvent({
+    event_type: 'outcome_recorded',
+    entity_id: entityId,
+    signal_id: outcome.signal_id,
+    recommendation_id: outcome.recommendation_id,
+    outcome_id: outcome.id,
+    summary: `Outcome ${outcome.id} recorded for entity ${entityId}`,
+    source_refs: outcome.source_refs,
+    payload: {
+      action: outcome.action,
+      outcome: outcome.outcome,
+      status: outcome.status
+    }
+  });
   return outcome;
 }
 

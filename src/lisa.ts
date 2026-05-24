@@ -210,6 +210,7 @@ import { dirname, resolve } from 'node:path';
 import { calculateFreshnessScore, type FreshnessResult } from './freshness.js';
 import { resolveAndTrackEntity, resolveEntityIdentity } from './entityResolution.js';
 import { resolveSource, type ResolvedSource } from './sourceRegistry.js';
+import { recordReplayEvent } from './replay.js';
 import { createRecommendation } from './recommendations.js';
 
 const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
@@ -762,6 +763,33 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     });
   });
   tx();
+
+  recordReplayEvent({
+    event_type: 'event_ingested',
+    entity_id: event.entity.id_or_name,
+    signal_id: event.signal_id,
+    summary: `TradeScout event ${event.signal_id} ingested for ${event.entity.id_or_name}`,
+    source_refs: [event.source.reference, `lisa:${event.signal_id}`],
+    payload: {
+      origin_system: 'tradescout',
+      event_type: eventRow.event_type,
+      normalized_signal_type: eventRow.normalized_signal_type,
+      origin_surface: eventRow.origin_surface
+    }
+  });
+
+  recordReplayEvent({
+    event_type: 'state_updated',
+    entity_id: event.entity.id_or_name,
+    signal_id: event.signal_id,
+    summary: `Entity ${event.entity.id_or_name} state updated from event ${event.signal_id}`,
+    source_refs: [event.source.reference, `lisa:${event.signal_id}`],
+    payload: {
+      new_state: state.current_state,
+      last_signal_id: state.last_signal_id,
+      state_age_hours: state.state_age_hours
+    }
+  });
 
   return event.signal_id;
 }

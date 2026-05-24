@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PolicyDecision, evaluatePolicy } from './policy.js';
 import { resolveEntityIdentity } from './entityResolution.js';
+import { recordReplayEvent } from './replay.js';
 
 type RecommendationStatus = 'suggested' | 'accepted' | 'dismissed' | 'completed' | 'failed' | 'expired';
 type RecommendationActionType =
@@ -124,6 +125,36 @@ export function createRecommendation(input: RecommendationInput): Recommendation
   recommendations.set(recommendation.id, recommendation);
   recommendationOrder.set(recommendation.id, sequence);
   indexForEntity(canonicalEntityId, recommendation.id);
+  recordReplayEvent({
+    event_type: 'recommendation_created',
+    entity_id: canonicalEntityId,
+    signal_id: input.signal_id,
+    recommendation_id: recommendation.id,
+    summary: `Recommendation ${recommendation.id} created for entity ${canonicalEntityId}`,
+    source_refs: recommendation.source_refs,
+    policy_level: recommendation.policy_result.level,
+    payload: {
+      title: recommendation.title,
+      summary: recommendation.summary,
+      action_type: recommendation.action_type
+    }
+  });
+  recordReplayEvent({
+    event_type: 'policy_evaluated',
+    entity_id: canonicalEntityId,
+    signal_id: input.signal_id,
+    recommendation_id: recommendation.id,
+    policy_level: recommendation.policy_result.level,
+    summary: `Policy evaluated for ${recommendation.action_type} (${recommendation.policy_result.level})`,
+    source_refs: recommendation.source_refs,
+    payload: {
+      allowed: recommendation.policy_result.allowed,
+      level: recommendation.policy_result.level,
+      requires_approval: recommendation.policy_result.requires_approval,
+      blocked: recommendation.policy_result.blocked,
+      reason: recommendation.policy_result.reason
+    }
+  });
   return recommendation;
 }
 
@@ -136,6 +167,18 @@ export function updateRecommendationStatus(id: string, status: RecommendationSta
     throw new Error(`Invalid recommendation status: ${status}`);
   }
   recommendation.status = status;
+  recordReplayEvent({
+    event_type: 'recommendation_status_updated',
+    entity_id: recommendation.entity_id,
+    signal_id: recommendation.signal_id,
+    recommendation_id: recommendation.id,
+    summary: `Recommendation ${recommendation.id} status updated to ${status}`,
+    source_refs: recommendation.source_refs,
+    policy_level: recommendation.policy_result.level,
+    payload: {
+      status
+    }
+  });
   return recommendation;
 }
 
@@ -145,6 +188,19 @@ export function linkOutcomeToRecommendation(recommendationId: string, outcomeId:
     throw new Error(`Recommendation not found: ${recommendationId}`);
   }
   recommendation.outcome_id = outcomeId;
+  recordReplayEvent({
+    event_type: 'outcome_linked',
+    entity_id: recommendation.entity_id,
+    signal_id: recommendation.signal_id,
+    recommendation_id: recommendation.id,
+    outcome_id: outcomeId,
+    summary: `Recommendation ${recommendation.id} linked to outcome ${outcomeId}`,
+    source_refs: recommendation.source_refs,
+    policy_level: recommendation.policy_result.level,
+    payload: {
+      outcome_id: outcomeId
+    }
+  });
   return recommendation;
 }
 
