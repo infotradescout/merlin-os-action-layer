@@ -913,8 +913,12 @@ export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<Da
   if (shouldCreateRecommendations && sectionCounts.suggested_next_steps.length > 0) {
     for (const suggestion of sectionCounts.suggested_next_steps) {
       const matched = /^next-\d+-(.+)$/.exec(suggestion.id);
-      const eventId = matched ? matched[1] : undefined;
-      if (!eventId || !eventId.startsWith('daily-')) {
+      if (!matched) {
+        continue;
+      }
+      const dailyEventId = matched[1];
+      const eventId = dailyEventId.startsWith('daily-') ? dailyEventId.slice('daily-'.length) : dailyEventId;
+      if (!eventId) {
         continue;
       }
       const eventRow = eventId ? fetchEventById(eventId) : null;
