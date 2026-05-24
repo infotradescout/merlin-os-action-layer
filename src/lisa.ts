@@ -80,6 +80,15 @@ interface LISAEvent {
 interface TradeScoutActivityEvent {
   event_id?: string;
   entity_id: string;
+  business_name?: string;
+  entity_name?: string;
+  email?: string;
+  phone?: string;
+  phone_number?: string;
+  domain?: string;
+  location?: string;
+  county?: string;
+  aliases?: string[];
   entity_type?: string;
   event_type?: string;
   signal_type?: string;
@@ -198,6 +207,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { calculateFreshnessScore, type FreshnessResult } from './freshness.js';
+import { resolveAndTrackEntity, resolveEntityIdentity } from './entityResolution.js';
 import { resolveSource, type ResolvedSource } from './sourceRegistry.js';
 
 const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
@@ -229,6 +239,11 @@ function getDb(): Database.Database {
     initializeLisaStore();
   }
   return db as Database.Database;
+}
+
+function resolveCanonicalEntityId(entityId: string): string {
+  const resolved = resolveEntityIdentity({ entity_id: entityId });
+  return resolved.canonical_entity_id;
 }
 
 export function initializeLisaStore(explicitPath?: string): string {
@@ -532,7 +547,24 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     throw new Error('TradeScout events require entity_id');
   }
 
-  const event = createSignalFromTradeScoutEvent(payload);
+  const resolved = resolveAndTrackEntity({
+    entity_id: payload.entity_id,
+    business_name: payload.business_name,
+    entity_name: payload.entity_name,
+    phone: payload.phone,
+    phone_number: payload.phone_number,
+    email: payload.email,
+    domain: payload.domain,
+    location: payload.location,
+    county: payload.county,
+    aliases: payload.aliases
+  });
+  const normalizedPayload = {
+    ...payload,
+    entity_id: resolved.canonical_entity_id
+  };
+
+  const event = createSignalFromTradeScoutEvent(normalizedPayload);
   const now = new Date().toISOString();
   const dbInstance = getDb();
   const eventRow = {
@@ -544,8 +576,8 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     normalized_signal_type: event.signal_type,
     observed_at: event.observed_at,
     created_at: now,
-    payload_json: JSON.stringify(payload),
-    raw_json: JSON.stringify(payload),
+    payload_json: JSON.stringify(normalizedPayload),
+    raw_json: JSON.stringify(normalizedPayload),
     truth_score: event.truth_score,
     newness_score: event.newness_score,
     review_required: event.review_required ? 1 : 0,
@@ -683,7 +715,8 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
 }
 
 export function getEntityState(entityId: string): EntityStatePayload | null {
-  const row = fetchEntityStateRow(entityId);
+  const resolvedEntityId = resolveCanonicalEntityId(entityId);
+  const row = fetchEntityStateRow(resolvedEntityId);
   if (!row) return null;
   try {
     return JSON.parse(row.state_json) as EntityStatePayload;
@@ -693,6 +726,7 @@ export function getEntityState(entityId: string): EntityStatePayload | null {
 }
 
 export function getEntityTimeline(entityId: string, limit = 20): TimelineEntry[] {
+  const resolvedEntityId = resolveCanonicalEntityId(entityId);
   const safeLimit = sanitizeLimit(limit);
   const rows = getDb()
     .prepare(
@@ -716,7 +750,7 @@ export function getEntityTimeline(entityId: string, limit = 20): TimelineEntry[]
       LIMIT ?;
       `
     )
-    .all(entityId, safeLimit) as TimelineRow[];
+    .all(resolvedEntityId, safeLimit) as TimelineRow[];
   const now = Date.now();
   return rows.map((row) => {
     const title = row.title || `${row.event_type.replace(/_/g, ' ')} for ${row.entity_id} (TradeScout)`;
