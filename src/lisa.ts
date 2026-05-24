@@ -159,6 +159,7 @@ interface DailyConfig {
   userId: string;
   now: number;
   maxItemsPerSection: number;
+  createRecommendations?: boolean;
 }
 
 type ChangeResult = {
@@ -209,6 +210,7 @@ import { dirname, resolve } from 'node:path';
 import { calculateFreshnessScore, type FreshnessResult } from './freshness.js';
 import { resolveAndTrackEntity, resolveEntityIdentity } from './entityResolution.js';
 import { resolveSource, type ResolvedSource } from './sourceRegistry.js';
+import { createRecommendation } from './recommendations.js';
 
 const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
 const ONE_HOUR = 1000 * 60 * 60;
@@ -375,6 +377,56 @@ function deriveActionType(signalType: SignalType): ActionType {
   if (signalType === 'host_intake' || signalType === 'vendor_activation') return 'route';
   if (signalType === 'online_order' || signalType === 'parking_booking') return 'update';
   return 'none';
+}
+
+type PolicyActionType =
+  | 'view_context'
+  | 'create_internal_note'
+  | 'create_task'
+  | 'draft_message'
+  | 'suggest_follow_up'
+  | 'update_internal_status'
+  | 'send_external_message'
+  | 'approve_verification'
+  | 'change_payment_state'
+  | 'delete_record';
+
+function mapPolicyActionFromEvent(event: EventRow): PolicyActionType {
+  const actionType = event.recommended_action_type || '';
+  switch (actionType) {
+    case 'draft':
+      return 'draft_message';
+    case 'create':
+    case 'inspect':
+      return 'update_internal_status';
+    case 'route':
+    case 'update':
+      return 'suggest_follow_up';
+    case 'none':
+    default:
+      return 'view_context';
+  }
+}
+
+function normalizeBrandLaneForRecommendation(brandLane: string): 'tradescout' | 'mealscout' | 'merlin' | 'lisa' | 'continuum' | 'marketfilter' | 'system' {
+  const normalized = brandLane.toLowerCase();
+  const supported = [
+    'tradescout',
+    'mealscout',
+    'merlin',
+    'lisa',
+    'continuum',
+    'marketfilter',
+    'system'
+  ];
+  return (supported.includes(normalized) ? normalized : 'system') as
+    | 'tradescout'
+    | 'mealscout'
+    | 'merlin'
+    | 'lisa'
+    | 'continuum'
+    | 'marketfilter'
+    | 'system';
 }
 
 function normalizeSignalType(value?: string): SignalType {
@@ -804,6 +856,7 @@ export function searchLisaSignals(query: string, limit = 20): ChangeResult {
 export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<DailyConfig> = {}): DailyPayload {
   const now = options.now || Date.now();
   const maxItemsPerSection = options.maxItemsPerSection || 12;
+  const shouldCreateRecommendations = Boolean(options.createRecommendations);
   const events = fetchEvents(500);
   const sectionCounts = {
     changed: [] as DailyChangeItem[],
@@ -828,6 +881,29 @@ export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<Da
     ...entry,
     id: `next-${index + 1}-${entry.id}`
   }));
+
+  if (shouldCreateRecommendations && sectionCounts.suggested_next_steps.length > 0) {
+    for (const suggestion of sectionCounts.suggested_next_steps) {
+      const matched = /^next-\d+-(.+)$/.exec(suggestion.id);
+      const eventId = matched ? matched[1] : undefined;
+      if (!eventId || !eventId.startsWith('daily-')) {
+        continue;
+      }
+      const eventRow = eventId ? fetchEventById(eventId) : null;
+      if (!eventRow) continue;
+      const policyAction = mapPolicyActionFromEvent(eventRow);
+      const brandLane = normalizeBrandLaneForRecommendation(eventRow.brand_lane);
+      createRecommendation({
+        entity_id: eventRow.entity_id,
+        signal_id: eventRow.id,
+        title: suggestion.title,
+        summary: suggestion.summary,
+        action_type: policyAction,
+        brand_lane: brandLane,
+        source_refs: suggestion.source_refs
+      });
+    }
+  }
 
   const sourceRefs = new Set<string>(['lisa']);
   for (const item of [...sectionCounts.changed, ...sectionCounts.needs_attention, ...sectionCounts.waiting, ...sectionCounts.stale]) {
