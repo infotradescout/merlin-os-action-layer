@@ -1,4 +1,7 @@
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import Database from 'better-sqlite3';
 import { PolicyDecision, evaluatePolicy } from './policy.js';
 import { resolveEntityIdentity } from './entityResolution.js';
 import { recordReplayEvent } from './replay.js';
@@ -18,7 +21,7 @@ export type RecommendationActionType =
 
 type BrandLane = 'tradescout' | 'mealscout' | 'merlin' | 'lisa' | 'continuum' | 'marketfilter' | 'system';
 
-interface RecommendationRecord {
+export interface RecommendationRecord {
   id: string;
   entity_id: string;
   signal_id?: string;
@@ -45,57 +48,164 @@ export interface RecommendationInput {
   ttlMinutes?: number;
 }
 
-const recommendations = new Map<string, RecommendationRecord>();
-const recommendationIndexByEntity = new Map<string, string[]>();
-const recommendationOrder = new Map<string, number>();
+interface RecommendationRow {
+  id: string;
+  entity_id: string;
+  signal_id: string | null;
+  title: string;
+  summary: string;
+  action_type: RecommendationActionType;
+  brand_lane: BrandLane;
+  policy_result_json: string;
+  source_refs_json: string;
+  status: RecommendationStatus;
+  created_at: string;
+  expires_at: string;
+  outcome_id: string | null;
+  order_id: number;
+}
+
+const DEFAULT_DB_PATH = './data/merlin-or.sqlite';
+let db: Database.Database | null = null;
+let dbPath: string | null = null;
 let recommendationSequence = 0;
 
-function nowIso(): string {
-  return new Date().toISOString();
+function resolveDbPath(explicitPath?: string): string {
+  return resolve(process.cwd(), explicitPath || process.env.MERLIN_DB_PATH || DEFAULT_DB_PATH);
+}
+
+function getDb(): Database.Database {
+  if (!db) {
+    initializeRecommendationsStore();
+  }
+  return db as Database.Database;
+}
+
+function toCanonicalEntityId(entityId: string): string {
+  return resolveEntityIdentity({ entity_id: entityId }).canonical_entity_id;
 }
 
 function normalizeRefs(sourceRefs: string[] = []): string[] {
   return Array.from(new Set(sourceRefs.map((value) => value.trim()).filter(Boolean)));
 }
 
-function canonicalizeEntityId(entityId: string): string {
-  return resolveEntityIdentity({ entity_id: entityId }).canonical_entity_id;
-}
-
 function brandFromInput(value: string): BrandLane {
   const normalized = (value || 'system').toLowerCase();
   const supported: BrandLane[] = ['tradescout', 'mealscout', 'merlin', 'lisa', 'continuum', 'marketfilter', 'system'];
-  return (supported.includes(normalized as BrandLane) ? (normalized as BrandLane) : 'system');
+  return supported.includes(normalized as BrandLane) ? (normalized as BrandLane) : 'system';
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function buildExpiry(createdAt: string, ttlMinutes = 60 * 24): string {
+  const parsed = new Date(createdAt).getTime();
+  return new Date(parsed + ttlMinutes * 60_000).toISOString();
 }
 
 function isValidStatus(value: string): value is RecommendationStatus {
   return value === 'suggested' || value === 'accepted' || value === 'dismissed' || value === 'completed' || value === 'failed' || value === 'expired';
 }
 
-function indexForEntity(entityId: string, recommendationId: string): void {
-  const list = recommendationIndexByEntity.get(entityId);
-  if (!list) {
-    recommendationIndexByEntity.set(entityId, [recommendationId]);
-    return;
-  }
-  list.push(recommendationId);
+function parsePolicyResult(value: string): PolicyDecision {
+  return JSON.parse(value) as PolicyDecision;
 }
 
-function buildExpiry(createdAt: string, ttlMinutes = 60 * 24): string {
-  const parsed = new Date(createdAt).getTime();
-  const expiresAt = new Date(parsed + ttlMinutes * 60_000);
-  return expiresAt.toISOString();
+function mapRecommendationRow(row: RecommendationRow): RecommendationRecord {
+  return {
+    id: row.id,
+    entity_id: row.entity_id,
+    signal_id: row.signal_id ?? undefined,
+    title: row.title,
+    summary: row.summary,
+    action_type: row.action_type,
+    brand_lane: row.brand_lane,
+    policy_result: parsePolicyResult(row.policy_result_json),
+    source_refs: JSON.parse(row.source_refs_json) as string[],
+    status: row.status,
+    created_at: row.created_at,
+    expires_at: row.expires_at,
+    outcome_id: row.outcome_id ?? undefined
+  };
+}
+
+function nextSequence(): number {
+  const row = getDb()
+    .prepare('SELECT COALESCE(MAX(order_id), 0) AS max_order_id FROM recommendations')
+    .get() as { max_order_id: number };
+  recommendationSequence = Math.max(recommendationSequence, row?.max_order_id ?? 0) + 1;
+  return recommendationSequence;
+}
+
+function ensureCanonicalEntityId(id: string): string {
+  const row = getDb().prepare('SELECT entity_id FROM recommendations WHERE id = ?').get(id) as { entity_id: string } | undefined;
+  if (!row) {
+    throw new Error(`Recommendation not found: ${id}`);
+  }
+  return row.entity_id;
+}
+
+export function initializeRecommendationsStore(explicitPath?: string): string {
+  const nextPath = resolveDbPath(explicitPath);
+  if (dbPath === nextPath && db) {
+    return nextPath;
+  }
+  if (db) {
+    db.close();
+    db = null;
+  }
+
+  mkdirSync(dirname(nextPath), { recursive: true });
+  const nextDb = new Database(nextPath);
+  nextDb.pragma('journal_mode = WAL');
+  nextDb.pragma('foreign_keys = ON');
+
+  nextDb.exec(`
+    CREATE TABLE IF NOT EXISTS recommendations (
+      id TEXT PRIMARY KEY,
+      entity_id TEXT NOT NULL,
+      signal_id TEXT,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      action_type TEXT NOT NULL,
+      brand_lane TEXT NOT NULL,
+      policy_result_json TEXT NOT NULL,
+      source_refs_json TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      outcome_id TEXT,
+      order_id INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS recommendations_entity_idx ON recommendations(entity_id, order_id DESC);
+    CREATE INDEX IF NOT EXISTS recommendations_status_idx ON recommendations(status, order_id DESC);
+    CREATE INDEX IF NOT EXISTS recommendations_created_idx ON recommendations(created_at DESC);
+  `);
+
+  db = nextDb;
+  dbPath = nextPath;
+  recommendationSequence = 0;
+  return nextPath;
+}
+
+export function closeRecommendationsStore(): void {
+  if (db) {
+    db.close();
+    db = null;
+    dbPath = null;
+    recommendationSequence = 0;
+  }
 }
 
 export function resetRecommendationsForTest(): void {
-  recommendations.clear();
-  recommendationIndexByEntity.clear();
-  recommendationOrder.clear();
+  const dbInstance = getDb();
+  dbInstance.prepare('DELETE FROM recommendations').run();
   recommendationSequence = 0;
 }
 
 export function createRecommendation(input: RecommendationInput): RecommendationRecord {
-  const canonicalEntityId = canonicalizeEntityId(input.entity_id);
+  const canonicalEntityId = toCanonicalEntityId(input.entity_id);
   const createdAt = nowIso();
   const brandLane = brandFromInput(input.brand_lane);
   const actionType = input.action_type;
@@ -103,10 +213,10 @@ export function createRecommendation(input: RecommendationInput): Recommendation
     action_type: actionType,
     brand_lane: brandLane
   });
-  recommendationSequence += 1;
-  const sequence = recommendationSequence;
+  const sourceRefs = normalizeRefs(input.source_refs);
+  const orderId = nextSequence();
 
-  const recommendation: RecommendationRecord = {
+  const record: RecommendationRecord = {
     id: `rec-${randomUUID()}`,
     entity_id: canonicalEntityId,
     signal_id: input.signal_id,
@@ -115,61 +225,106 @@ export function createRecommendation(input: RecommendationInput): Recommendation
     action_type: actionType,
     brand_lane: brandLane,
     policy_result: policy,
-    source_refs: normalizeRefs(input.source_refs),
+    source_refs: sourceRefs,
     status: 'suggested',
     created_at: createdAt,
     expires_at: buildExpiry(createdAt, input.ttlMinutes),
     outcome_id: undefined
   };
 
-  recommendations.set(recommendation.id, recommendation);
-  recommendationOrder.set(recommendation.id, sequence);
-  indexForEntity(canonicalEntityId, recommendation.id);
+  getDb()
+    .prepare(
+      `
+      INSERT INTO recommendations (
+        id, entity_id, signal_id, title, summary, action_type, brand_lane,
+        policy_result_json, source_refs_json, status, created_at, expires_at,
+        outcome_id, order_id
+      ) VALUES (
+        @id, @entity_id, @signal_id, @title, @summary, @action_type, @brand_lane,
+        @policy_result_json, @source_refs_json, @status, @created_at, @expires_at,
+        @outcome_id, @order_id
+      )
+      `
+    )
+    .run({
+      id: record.id,
+      entity_id: record.entity_id,
+      signal_id: record.signal_id ?? null,
+      title: record.title,
+      summary: record.summary,
+      action_type: record.action_type,
+      brand_lane: record.brand_lane,
+      policy_result_json: JSON.stringify(record.policy_result),
+      source_refs_json: JSON.stringify(record.source_refs),
+      status: record.status,
+      created_at: record.created_at,
+      expires_at: record.expires_at,
+      outcome_id: null,
+      order_id: orderId
+    });
+
   recordReplayEvent({
     event_type: 'recommendation_created',
     entity_id: canonicalEntityId,
     signal_id: input.signal_id,
-    recommendation_id: recommendation.id,
-    summary: `Recommendation ${recommendation.id} created for entity ${canonicalEntityId}`,
-    source_refs: recommendation.source_refs,
-    policy_level: recommendation.policy_result.level,
+    recommendation_id: record.id,
+    summary: `Recommendation ${record.id} created for entity ${canonicalEntityId}`,
+    source_refs: record.source_refs,
+    policy_level: record.policy_result.level,
     payload: {
-      title: recommendation.title,
-      summary: recommendation.summary,
-      action_type: recommendation.action_type
+      title: record.title,
+      summary: record.summary,
+      action_type: record.action_type
     }
   });
   recordReplayEvent({
     event_type: 'policy_evaluated',
     entity_id: canonicalEntityId,
     signal_id: input.signal_id,
-    recommendation_id: recommendation.id,
-    policy_level: recommendation.policy_result.level,
-    summary: `Policy evaluated for ${recommendation.action_type} (${recommendation.policy_result.level})`,
-    source_refs: recommendation.source_refs,
+    recommendation_id: record.id,
+    policy_level: record.policy_result.level,
+    summary: `Policy evaluated for ${record.action_type} (${record.policy_result.level})`,
+    source_refs: record.source_refs,
     payload: {
-      allowed: recommendation.policy_result.allowed,
-      level: recommendation.policy_result.level,
-      requires_approval: recommendation.policy_result.requires_approval,
-      blocked: recommendation.policy_result.blocked,
-      reason: recommendation.policy_result.reason
+      allowed: record.policy_result.allowed,
+      level: record.policy_result.level,
+      requires_approval: record.policy_result.requires_approval,
+      blocked: record.policy_result.blocked,
+      reason: record.policy_result.reason
     }
   });
-  return recommendation;
+
+  return record;
 }
 
 export function updateRecommendationStatus(id: string, status: RecommendationStatus): RecommendationRecord {
-  const recommendation = recommendations.get(id);
-  if (!recommendation) {
-    throw new Error(`Recommendation not found: ${id}`);
-  }
   if (!isValidStatus(status)) {
     throw new Error(`Invalid recommendation status: ${status}`);
   }
-  recommendation.status = status;
+
+  const canonicalEntityId = ensureCanonicalEntityId(id);
+  const dbInstance = getDb();
+  const updated = dbInstance
+    .prepare(
+      `
+      UPDATE recommendations
+      SET status = ?
+      WHERE id = ?
+      `
+    )
+    .run(status, id);
+  if (!updated.changes) {
+    throw new Error(`Recommendation not found: ${id}`);
+  }
+
+  const recommendation = getRecommendationById(id);
+  if (!recommendation) {
+    throw new Error(`Recommendation not found: ${id}`);
+  }
+
   recordReplayEvent({
     event_type: 'recommendation_status_updated',
-    entity_id: recommendation.entity_id,
+    entity_id: canonicalEntityId,
     signal_id: recommendation.signal_id,
     recommendation_id: recommendation.id,
     summary: `Recommendation ${recommendation.id} status updated to ${status}`,
@@ -179,18 +334,34 @@ export function updateRecommendationStatus(id: string, status: RecommendationSta
       status
     }
   });
+
   return recommendation;
 }
 
 export function linkOutcomeToRecommendation(recommendationId: string, outcomeId: string): RecommendationRecord {
-  const recommendation = recommendations.get(recommendationId);
+  const canonicalEntityId = ensureCanonicalEntityId(recommendationId);
+  const dbInstance = getDb();
+  const updated = dbInstance
+    .prepare(
+      `
+      UPDATE recommendations
+      SET outcome_id = ?
+      WHERE id = ?
+      `
+    )
+    .run(outcomeId, recommendationId);
+  if (!updated.changes) {
+    throw new Error(`Recommendation not found: ${recommendationId}`);
+  }
+
+  const recommendation = getRecommendationById(recommendationId);
   if (!recommendation) {
     throw new Error(`Recommendation not found: ${recommendationId}`);
   }
-  recommendation.outcome_id = outcomeId;
+
   recordReplayEvent({
     event_type: 'outcome_linked',
-    entity_id: recommendation.entity_id,
+    entity_id: canonicalEntityId,
     signal_id: recommendation.signal_id,
     recommendation_id: recommendation.id,
     outcome_id: outcomeId,
@@ -201,31 +372,43 @@ export function linkOutcomeToRecommendation(recommendationId: string, outcomeId:
       outcome_id: outcomeId
     }
   });
+
   return recommendation;
 }
 
 export function getRecommendationById(id: string): RecommendationRecord | undefined {
-  return recommendations.get(id);
+  const row = getDb()
+    .prepare('SELECT * FROM recommendations WHERE id = ?')
+    .get(id) as RecommendationRow | undefined;
+  return row ? mapRecommendationRow(row) : undefined;
 }
 
 export function getRecommendationsForEntity(entityId: string): RecommendationRecord[] {
-  const canonicalEntityId = canonicalizeEntityId(entityId);
-  const ids = recommendationIndexByEntity.get(canonicalEntityId) || [];
-  return ids
-    .map((id) => recommendations.get(id))
-    .filter((recommendation): recommendation is RecommendationRecord => Boolean(recommendation))
-    .sort((left, right) => {
-      const dateSort = Date.parse(right.created_at) - Date.parse(left.created_at);
-      if (dateSort !== 0) return dateSort;
-      return (recommendationOrder.get(right.id) ?? 0) - (recommendationOrder.get(left.id) ?? 0);
-    });
+  const canonicalEntityId = toCanonicalEntityId(entityId);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT * FROM recommendations
+      WHERE entity_id = ?
+      ORDER BY created_at DESC, order_id DESC
+      `
+    )
+    .all(canonicalEntityId) as RecommendationRow[];
+  return rows.map(mapRecommendationRow);
 }
 
 export function getRecentRecommendations(limit = 20): RecommendationRecord[] {
   const maxItems = Math.max(1, Math.min(100, limit));
-  return [...recommendations.values()].sort((left, right) => {
-    const dateSort = Date.parse(right.created_at) - Date.parse(left.created_at);
-    if (dateSort !== 0) return dateSort;
-    return (recommendationOrder.get(right.id) ?? 0) - (recommendationOrder.get(left.id) ?? 0);
-  }).slice(0, maxItems);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT * FROM recommendations
+      ORDER BY created_at DESC, order_id DESC
+      LIMIT ?
+      `
+    )
+    .all(maxItems) as RecommendationRow[];
+  return rows.map(mapRecommendationRow);
 }
+
+initializeRecommendationsStore();

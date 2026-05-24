@@ -12,6 +12,11 @@ process.env.MERLIN_RUNTIME = 'test';
 
 const { createMerlinServer } = await import('../src/server.ts');
 const { closeLisaStore } = await import('../src/lisa.ts');
+const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
+const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
+const { closeRecommendationsStore } = await import('../src/recommendations.ts');
+const { closeReplayStore } = await import('../src/replay.ts');
+const { closeOutcomesStore } = await import('../src/outcomes.ts');
 
 let server: Server;
 let baseUrl: string;
@@ -60,6 +65,11 @@ after(async () => {
     server.close(() => resolve());
   });
   closeLisaStore();
+  closeApprovalQueueStore();
+  closeDriveManifestStore();
+  closeRecommendationsStore();
+  closeReplayStore();
+  closeOutcomesStore();
   rmSync(tempDir, { recursive: true, force: true });
 });
 
