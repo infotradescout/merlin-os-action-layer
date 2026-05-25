@@ -34,7 +34,11 @@ const FOLDER_NAMES: FolderAlias[] = [
   '06_Audit',
   '07_System'
 ];
-const ALLOW_FOLDER_CREATE_ENV = 'MERLIN_DRIVE_ALLOW_FOLDER_CREATE';
+const BOOTSTRAP_ENABLED_ENV = 'MERLIN_DRIVE_BOOTSTRAP_ENABLED';
+const CREATE_MISSING_ENV = 'MERLIN_DRIVE_CREATE_MISSING_FOLDERS';
+const LEGACY_ALLOW_CREATE_ENV = 'MERLIN_DRIVE_ALLOW_FOLDER_CREATE';
+
+type DriveSyncBlockReason = 'setup_required' | 'folder_conflict';
 
 type RouteDecision = 'processed' | 'needs_review' | 'skipped';
 
@@ -94,6 +98,9 @@ export interface DriveSyncDiscovery {
   canonical_folder_ids: Record<FolderAlias, string>;
   duplicate_managed_folders: Partial<Record<FolderAlias, string[]>>;
   sync_blocked: boolean;
+  sync_block_reason?: DriveSyncBlockReason;
+  bootstrap_enabled: boolean;
+  create_missing_folders: boolean;
   folder_create_allowed: boolean;
   bootstrap_plan: ReturnType<typeof createDriveBootstrapPlan>;
 }
@@ -106,7 +113,12 @@ export interface DriveSyncSummary {
   failed: number;
   manifest_updates: number;
   replay_events: number;
+  block_reason?: DriveSyncBlockReason;
   reason?: string;
+}
+
+function envTrue(value: string | undefined): boolean {
+  return (value || '').toLowerCase() === 'true';
 }
 
 export interface DriveSyncImportResult {
@@ -124,7 +136,10 @@ export async function discoverManagedFolders(
   const config = options.config || parseDriveManagerConfig();
   const authConfig = toAuthConfig(config);
   const profile = getDriveAuthProfile(authConfig);
-  const allowFolderCreate = (process.env[ALLOW_FOLDER_CREATE_ENV] || '').toLowerCase() === 'true';
+  const bootstrapEnabled = envTrue(process.env[BOOTSTRAP_ENABLED_ENV]);
+  const createMissingFolders = envTrue(process.env[CREATE_MISSING_ENV]);
+  const legacyAllowCreate = envTrue(process.env[LEGACY_ALLOW_CREATE_ENV]);
+  const allowFolderCreate = legacyAllowCreate || (bootstrapEnabled && createMissingFolders);
   const defaultCanonicalIds = {} as Record<FolderAlias, string>;
   for (const folderName of FOLDER_NAMES) {
     defaultCanonicalIds[folderName] = '';
@@ -143,6 +158,8 @@ export async function discoverManagedFolders(
       canonical_folder_ids: defaultCanonicalIds,
       duplicate_managed_folders: {},
       sync_blocked: true,
+      bootstrap_enabled: bootstrapEnabled,
+      create_missing_folders: createMissingFolders,
       folder_create_allowed: allowFolderCreate,
       bootstrap_plan: createDriveBootstrapPlan([], config.rootFolderName)
     };
@@ -189,14 +206,13 @@ export async function discoverManagedFolders(
   const bootstrap = createDriveBootstrapPlan(observedExistingPaths, config.rootFolderName);
   const hasDuplicates = Object.keys(duplicateManagedFolders).length > 0;
   const syncBlocked = hasDuplicates || hasMissing;
-  const status: DriveSyncDiscovery['status'] = syncBlocked ? 'error' : 'ready';
-  const reason = hasDuplicates
-    ? 'Duplicate managed folders detected; resolve canonical folders before sync.'
+  const blockReason: DriveSyncBlockReason | undefined = hasDuplicates
+    ? 'folder_conflict'
     : hasMissing
-      ? allowFolderCreate
-        ? 'Managed folders are still missing after create attempt.'
-        : 'Managed folders missing and folder creation is disabled.'
+      ? 'setup_required'
       : undefined;
+  const status: DriveSyncDiscovery['status'] = syncBlocked ? 'error' : 'ready';
+  const reason = blockReason;
 
   return {
     status,
@@ -211,6 +227,9 @@ export async function discoverManagedFolders(
     canonical_folder_ids: canonicalFolderIds,
     duplicate_managed_folders: duplicateManagedFolders,
     sync_blocked: syncBlocked,
+    sync_block_reason: blockReason,
+    bootstrap_enabled: bootstrapEnabled,
+    create_missing_folders: createMissingFolders,
     folder_create_allowed: allowFolderCreate,
     bootstrap_plan: {
       root_folder_name: bootstrap.root_folder_name,
@@ -444,6 +463,7 @@ export async function syncDriveInbox(
       failed: 0,
       manifest_updates: 0,
       replay_events: 0,
+      block_reason: undefined,
       reason: profile.reason
     };
   }
@@ -469,6 +489,7 @@ export async function syncDriveInbox(
       failed: 1,
       manifest_updates: 0,
       replay_events: 0,
+      block_reason: discovery.sync_block_reason,
       reason: discovery.reason
     };
   }

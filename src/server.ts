@@ -768,6 +768,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         canonical_folder_ids: discovery.canonical_folder_ids,
         duplicate_managed_folders: discovery.duplicate_managed_folders,
         sync_blocked: discovery.sync_blocked,
+        sync_block_reason: discovery.sync_block_reason,
+        bootstrap_enabled: discovery.bootstrap_enabled,
+        create_missing_folders: discovery.create_missing_folders,
         folder_create_allowed: discovery.folder_create_allowed,
         bootstrap_plan: discovery.bootstrap_plan,
         sync_mode: discovery.syncMode
