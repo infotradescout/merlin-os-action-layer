@@ -38,6 +38,7 @@ import {
   recordReplayEvent,
   resetReplayForTest
 } from './replay.js';
+import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
 import {
   createManifestEntry,
   getManifestEntriesByStatus,
@@ -740,12 +741,25 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'GET' && pathname === '/api/drive/status') {
     try {
       const discovery = await discoverManagedFolders();
+      const authConfig = getDriveAuthConfig();
+      const authProfile = getDriveAuthProfile(authConfig);
       return responseJson(res, {
         status: discovery.status,
         mode: discovery.mode,
         root_mode: discovery.rootMode,
         root_folder_name: discovery.root_folder_name,
         root_folder_id: discovery.root_folder_id,
+        auth: {
+          configured: authProfile.configured,
+          ready: authProfile.ready,
+          reason: authProfile.reason,
+          sync_enabled: authConfig.syncEnabled,
+          sync_mode: authConfig.syncMode,
+          root_mode: authConfig.rootMode,
+          root_folder_name: authConfig.rootFolderName,
+          root_folder_id: authConfig.rootFolderId,
+          mode: authConfig.mode
+        },
         reason: discovery.reason,
         managed_folders: discovery.managed_folders,
         bootstrap_plan: discovery.bootstrap_plan,
