@@ -58,6 +58,7 @@ import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEve
 import { extractSupportedFile } from './fileExtraction.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { getRecentOutcomes } from './outcomes.js';
+import { recordOutcome } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
 import { getRecentRecommendations, resetRecommendationsForTest } from './recommendations.js';
 import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegistry.js';
@@ -340,6 +341,10 @@ function inferDriveReplayType(fileRecord: ReturnType<typeof createDriveFileRecor
     return 'drive_import_needs_review';
   }
   return 'drive_import_skipped';
+}
+
+function canMarkDriveFileReviewed(status: string): boolean {
+  return status === 'needs_review' || status === 'failed' || status === 'skipped';
 }
 
 function seedDemoEvents(): DemoSeedEvent[] {
@@ -874,6 +879,61 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
     }
     return responseJson(res, { manifest_entry: entry });
+  }
+
+  const driveReviewMarkMatch = pathname.match(/^\/api\/drive\/review\/([^/]+)\/mark-reviewed$/);
+  if (method === 'POST' && driveReviewMarkMatch) {
+    const driveFileId = decodeURIComponent(driveReviewMarkMatch[1]);
+    const entry = getManifestEntryByDriveFileId(driveFileId);
+    if (!entry) {
+      return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
+    }
+
+    if (!canMarkDriveFileReviewed(entry.processing_status)) {
+      return responseJson(
+        res,
+        {
+          error: 'Drive file is not reviewable in current state',
+          processing_status: entry.processing_status
+        },
+        409
+      );
+    }
+
+    const reviewedManifest = markManifestProcessed(entry.id, {
+      notes: [entry.notes, 'Reviewed manually in Merlin UI'].filter(Boolean).join(' | ')
+    });
+
+    const outcome = recordOutcome({
+      entity_id: reviewedManifest.entity_id || `drive:${reviewedManifest.drive_file_id}`,
+      signal_id: reviewedManifest.created_4data_event_id || reviewedManifest.source_record_id || reviewedManifest.id,
+      action: 'mark_drive_file_reviewed',
+      outcome: 'manual_done',
+      status: 'completed',
+      result: `Drive file ${reviewedManifest.file_name} marked reviewed`,
+      source_refs: [`drive:${reviewedManifest.drive_file_id}`, `manifest:${reviewedManifest.id}`],
+      observed_at: new Date().toISOString()
+    });
+
+    const replayEvent = recordReplayEvent({
+      event_type: 'drive_file_reviewed',
+      entity_id: reviewedManifest.entity_id || `drive:${reviewedManifest.drive_file_id}`,
+      signal_id: reviewedManifest.created_4data_event_id || reviewedManifest.source_record_id || reviewedManifest.id,
+      outcome_id: outcome.id,
+      summary: `Drive file ${reviewedManifest.drive_file_id} marked reviewed`,
+      source_refs: [`drive:${reviewedManifest.drive_file_id}`, `manifest:${reviewedManifest.id}`],
+      payload: {
+        processing_status_before: entry.processing_status,
+        processing_status_after: reviewedManifest.processing_status
+      }
+    });
+
+    return responseJson(res, {
+      status: 'ok',
+      manifest_entry: reviewedManifest,
+      outcome,
+      replay_event: replayEvent
+    });
   }
 
   if (method === 'POST' && pathname === '/api/demo/seed-tradescout-loop') {

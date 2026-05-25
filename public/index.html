@@ -233,6 +233,14 @@
         <h3 id="detail-title">Select a section item</h3>
         <p id="detail-summary" class="subtitle"></p>
         <div id="detail-meta" class="subtitle"></div>
+        <div style="margin: 0.5rem 0;">
+          <button
+            id="detail-mark-reviewed"
+            style="display: none; background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer;"
+          >
+            Mark reviewed
+          </button>
+        </div>
         <h3>Entity Timeline</h3>
         <ul id="detail-timeline" class="list"></ul>
         <h3 style="margin-top: 0.8rem;">Policy</h3>
@@ -253,6 +261,7 @@
         lisaSearch: [],
         driveNeedsReview: []
       };
+      let selectedDetailKey = null;
 
       const detailPayloadByKey = new Map();
       const safeText = (value) => (value === undefined || value === null ? '' : String(value));
@@ -330,6 +339,7 @@
       };
 
       const showDetail = async (key) => {
+        selectedDetailKey = key;
         const item = detailPayloadByKey.get(key);
         if (!item) return;
 
@@ -364,6 +374,15 @@
           }
           return false;
         });
+
+        const markReviewedButton = document.getElementById('detail-mark-reviewed');
+        if (item.kind === 'drive_review' && item.drive_file_id) {
+          markReviewedButton.style.display = 'inline-block';
+          markReviewedButton.dataset.driveFileId = item.drive_file_id;
+        } else {
+          markReviewedButton.style.display = 'none';
+          markReviewedButton.dataset.driveFileId = '';
+        }
 
         document.getElementById('detail-title').textContent = title;
         document.getElementById('detail-summary').textContent = safeText(item.summary);
@@ -438,6 +457,38 @@
           row.appendChild(titleNode);
           row.appendChild(summary);
           replayList.appendChild(row);
+        }
+      };
+
+      const markSelectedDriveFileReviewed = async () => {
+        const button = document.getElementById('detail-mark-reviewed');
+        const driveFileId = button?.dataset?.driveFileId;
+        if (!driveFileId) return;
+        button.disabled = true;
+        button.textContent = 'Marking...';
+        try {
+          await fetchJson(`/api/drive/review/${encodeURIComponent(driveFileId)}/mark-reviewed`, { method: 'POST' });
+          await Promise.all([loadDriveReview(), loadReplay(), loadLisaBrowser()]);
+          if (selectedDetailKey) {
+            const nextKey = detailPayloadByKey.has(selectedDetailKey) ? selectedDetailKey : null;
+            if (nextKey) {
+              await showDetail(nextKey);
+            } else {
+              document.getElementById('detail-title').textContent = 'Select a section item';
+              document.getElementById('detail-summary').textContent = '';
+              document.getElementById('detail-meta').textContent = '';
+              document.getElementById('detail-policy').textContent = '{}';
+              document.getElementById('detail-outcome').textContent = '(none)';
+              renderTimeline([]);
+              document.getElementById('detail-replay').innerHTML = '<li class="item">No replay/audit records linked.</li>';
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Request failed';
+          alert(`Could not mark file reviewed: ${message}`);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Mark reviewed';
         }
       };
 
@@ -553,8 +604,8 @@
         renderSection('drive-review-list', reviewItems, 'drive_review');
       };
 
-      const fetchJson = async (endpoint) => {
-        const response = await fetch(endpoint, { cache: 'no-store' });
+      const fetchJson = async (endpoint, init = {}) => {
+        const response = await fetch(endpoint, { cache: 'no-store', ...init });
         if (!response.ok) {
           throw new Error(`Request failed: ${endpoint}`);
         }
@@ -563,6 +614,7 @@
 
       async function boot() {
         document.getElementById('lisa-search-run').addEventListener('click', loadLisaBrowser);
+        document.getElementById('detail-mark-reviewed').addEventListener('click', markSelectedDriveFileReviewed);
         const searchInput = document.getElementById('lisa-search-input');
         searchInput?.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {
