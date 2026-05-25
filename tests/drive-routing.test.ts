@@ -205,13 +205,27 @@ test('missing drive_file_id returns 404', async () => {
 
 test('blocked Drive status prevents route', async () => {
   await seedReviewFile('route-005', { entity_id: 'business_route_blocked' });
+  const before = await requestJson<{ manifest_entry: { processing_status: string; folder_path: string } }>(
+    '/api/drive/manifest/route-005'
+  );
+  assert.equal(before.status, 200);
+  const beforeStatus = before.body.manifest_entry.processing_status;
+  const beforePath = before.body.manifest_entry.folder_path;
   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'false';
   const routed = await requestJson<{ error: string; reason?: string }>('/api/drive/review/route-005/route', {
     method: 'POST',
     body: JSON.stringify({ target: 'processed' })
   });
   assert.equal(routed.status, 409);
-  assert.equal(typeof routed.body.error, 'string');
+  assert.equal(routed.body.error, 'Drive routing unavailable');
+
+  const after = await requestJson<{ manifest_entry: { processing_status: string; folder_path: string } }>(
+    '/api/drive/manifest/route-005'
+  );
+  assert.equal(after.status, 200);
+  assert.equal(after.body.manifest_entry.processing_status, beforeStatus);
+  assert.equal(after.body.manifest_entry.folder_path, beforePath);
+  assert.equal(moves.some((move) => move.fileId === 'route-005'), false);
 });
 
 test('route records outcome and replay and has no delete behavior', async () => {
