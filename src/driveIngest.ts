@@ -5,18 +5,7 @@ import {
   type DriveSourceMetadata
 } from './driveTypes.js';
 
-const PROCESSING_STATUS_BY_PATH: ReadonlyArray<{ marker: string; status: DriveProcessingStatus }> = [
-  { marker: '/01_Processed/', status: 'processed' },
-  { marker: '01_Processed', status: 'processed' },
-  { marker: '/02_Needs_Review/', status: 'needs_review' },
-  { marker: '02_Needs_Review', status: 'needs_review' },
-  { marker: '/03_Archived_Sources/', status: 'archived' },
-  { marker: '03_Archived_Sources', status: 'archived' },
-  { marker: '/00_Inbox/', status: 'pending' },
-  { marker: '00_Inbox', status: 'pending' },
-  { marker: '/04_Entity_Files/', status: 'processed' },
-  { marker: '04_Entity_Files', status: 'processed' }
-];
+import { classifyDriveManagedPath } from './driveFolders.js';
 
 const SUPPORTED_MIME_TYPES = new Set([
   'application/pdf',
@@ -46,8 +35,13 @@ function extractExtension(fileName: string): string {
 
 function pickStatus(path: string): DriveProcessingStatus {
   const normalized = normalizePath(path);
-  const hit = PROCESSING_STATUS_BY_PATH.find((entry) => normalized.includes(entry.marker.toLowerCase()));
-  return hit ? hit.status : 'inbox';
+  const classification = classifyDriveManagedPath(normalized);
+  if (classification === 'inbox') return 'pending';
+  if (classification === 'processed' || classification === 'entity_files' || classification === 'exports') return 'processed';
+  if (classification === 'needs_review') return 'needs_review';
+  if (classification === 'archived') return 'archived';
+  if (classification === 'audit' || classification === 'system') return 'pending';
+  return 'inbox';
 }
 
 function nowIso(): string {
@@ -101,11 +95,7 @@ function isSupportedFile(file: DriveFileRecord): boolean {
 }
 
 export function shouldCreate4dataEvent(fileRecord: DriveFileRecord): boolean {
-  if (
-    fileRecord.processing_status === 'needs_review' ||
-    fileRecord.processing_status === 'inbox' ||
-    fileRecord.processing_status === 'pending'
-  ) {
+  if (fileRecord.processing_status !== 'processed') {
     return false;
   }
   if (!isSupportedFile(fileRecord)) {
