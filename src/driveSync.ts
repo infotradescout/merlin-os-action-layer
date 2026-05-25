@@ -118,7 +118,6 @@ export async function discoverManagedFolders(
 ): Promise<DriveSyncDiscovery> {
   const config = options.config || parseDriveManagerConfig();
   const authConfig = toAuthConfig(config);
-  const client = options.client || getDriveClient(authConfig);
   const profile = getDriveAuthProfile(authConfig);
 
   if (!config.syncEnabled || !profile.ready) {
@@ -135,6 +134,7 @@ export async function discoverManagedFolders(
     };
   }
 
+  const client = options.client || getDriveClient(authConfig);
   const { folderId: parentFolderId, useFolderPrefix } = await resolveParentFolder(config, client, options.rootFolderId);
   const observedExistingPaths: string[] = [];
 
