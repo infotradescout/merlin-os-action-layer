@@ -23,7 +23,8 @@ type ReplayEventType =
   | 'drive_file_metadata_only'
   | 'drive_file_reviewed'
   | 'drive_file_attached_to_entity'
-  | 'drive_entity_suggestions_generated';
+  | 'drive_entity_suggestions_generated'
+  | 'drive_file_routed';
 
 type PolicyLevel = 'read_only' | 'organize_internal' | 'draft_only' | 'approval_required' | 'blocked_high_risk';
 

@@ -251,6 +251,24 @@
           >
             Attach to entity
           </button>
+          <button
+            id="detail-route-processed"
+            style="display: none; margin-left: 0.3rem; background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer;"
+          >
+            Move to Processed
+          </button>
+          <button
+            id="detail-route-entity"
+            style="display: none; margin-left: 0.3rem; background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer;"
+          >
+            Move to Entity Files
+          </button>
+          <button
+            id="detail-route-archive"
+            style="display: none; margin-left: 0.3rem; background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer;"
+          >
+            Archive Source
+          </button>
         </div>
         <h3>Entity Timeline</h3>
         <ul id="detail-timeline" class="list"></ul>
@@ -418,6 +436,9 @@
         const markReviewedButton = document.getElementById('detail-mark-reviewed');
         const attachEntityButton = document.getElementById('detail-attach-entity');
         const attachEntityInput = document.getElementById('detail-attach-entity-id');
+        const routeProcessedButton = document.getElementById('detail-route-processed');
+        const routeEntityButton = document.getElementById('detail-route-entity');
+        const routeArchiveButton = document.getElementById('detail-route-archive');
         if (item.kind === 'drive_review' && item.drive_file_id) {
           markReviewedButton.style.display = 'inline-block';
           markReviewedButton.dataset.driveFileId = item.drive_file_id;
@@ -425,6 +446,12 @@
           attachEntityButton.dataset.driveFileId = item.drive_file_id;
           attachEntityInput.style.display = 'inline-block';
           attachEntityInput.value = item.entity_id || '';
+          routeProcessedButton.style.display = 'inline-block';
+          routeEntityButton.style.display = 'inline-block';
+          routeArchiveButton.style.display = 'inline-block';
+          routeProcessedButton.dataset.driveFileId = item.drive_file_id;
+          routeEntityButton.dataset.driveFileId = item.drive_file_id;
+          routeArchiveButton.dataset.driveFileId = item.drive_file_id;
           try {
             const suggestionPayload = await fetchJson(
               `/api/drive/review/${encodeURIComponent(item.drive_file_id)}/entity-suggestions`
@@ -440,6 +467,12 @@
           attachEntityButton.dataset.driveFileId = '';
           attachEntityInput.style.display = 'none';
           attachEntityInput.value = '';
+          routeProcessedButton.style.display = 'none';
+          routeEntityButton.style.display = 'none';
+          routeArchiveButton.style.display = 'none';
+          routeProcessedButton.dataset.driveFileId = '';
+          routeEntityButton.dataset.driveFileId = '';
+          routeArchiveButton.dataset.driveFileId = '';
           renderEntitySuggestions([]);
         }
 
@@ -582,6 +615,43 @@
         }
       };
 
+      const routeSelectedDriveFile = async (target) => {
+        const buttonMap = {
+          processed: document.getElementById('detail-route-processed'),
+          entity_files: document.getElementById('detail-route-entity'),
+          archive: document.getElementById('detail-route-archive')
+        };
+        const button = buttonMap[target];
+        const driveFileId = button?.dataset?.driveFileId;
+        if (!driveFileId) return;
+        const entityIdInput = document.getElementById('detail-attach-entity-id');
+        const entityId = (entityIdInput?.value || '').trim();
+        if (target === 'entity_files' && !entityId) {
+          alert('entity_id is required for entity folder routing.');
+          return;
+        }
+        button.disabled = true;
+        const originalText = button.textContent;
+        button.textContent = 'Routing...';
+        try {
+          await fetchJson(`/api/drive/review/${encodeURIComponent(driveFileId)}/route`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              target,
+              entity_id: entityId || undefined
+            })
+          });
+          await Promise.all([loadDriveReview(), loadReplay(), loadLisaBrowser(), loadRecentChanges(), loadDaily()]);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Request failed';
+          alert(`Could not route file: ${message}`);
+        } finally {
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      };
+
       const renderSection = (containerId, items, kind) => {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
@@ -706,6 +776,9 @@
         document.getElementById('lisa-search-run').addEventListener('click', loadLisaBrowser);
         document.getElementById('detail-mark-reviewed').addEventListener('click', markSelectedDriveFileReviewed);
         document.getElementById('detail-attach-entity').addEventListener('click', attachSelectedDriveFileToEntity);
+        document.getElementById('detail-route-processed').addEventListener('click', () => routeSelectedDriveFile('processed'));
+        document.getElementById('detail-route-entity').addEventListener('click', () => routeSelectedDriveFile('entity_files'));
+        document.getElementById('detail-route-archive').addEventListener('click', () => routeSelectedDriveFile('archive'));
         const searchInput = document.getElementById('lisa-search-input');
         searchInput?.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {

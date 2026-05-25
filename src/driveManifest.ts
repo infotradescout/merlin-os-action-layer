@@ -31,6 +31,7 @@ export interface DriveImportManifestEntry {
 interface ManifestUpdate {
   entity_id?: string;
   entity_type?: string;
+  folder_path?: string;
   source_record_id?: string;
   created_4data_event_id?: string;
   processed_at?: string;
@@ -152,6 +153,7 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
         review_reason = @review_reason,
         entity_id = COALESCE(@entity_id, entity_id),
         entity_type = COALESCE(@entity_type, entity_type),
+        folder_path = COALESCE(@folder_path, folder_path),
         source_record_id = COALESCE(@source_record_id, source_record_id),
         created_4data_event_id = COALESCE(@created_4data_event_id, created_4data_event_id),
         notes = COALESCE(@notes, notes),
@@ -168,6 +170,7 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
     review_reason: reason ?? row.review_reason,
     entity_id: additional?.entity_id ?? null,
     entity_type: additional?.entity_type ?? null,
+    folder_path: additional?.folder_path ?? null,
     source_record_id: additional?.source_record_id ?? null,
     created_4data_event_id: additional?.created_4data_event_id ?? null,
     notes: additional?.notes ?? null,
@@ -357,6 +360,25 @@ export function attachManifestToEntity(
       notes: mergedNotes || undefined
     }
   );
+}
+
+export function routeManifestEntry(
+  id: string,
+  input: {
+    target: 'processed' | 'entity_files' | 'archive';
+    folder_path: string;
+    entity_id?: string;
+    note?: string;
+  }
+): DriveImportManifestEntry {
+  const row = getManifestOrThrow(id);
+  const mergedNotes = [row.notes, input.note].filter(Boolean).join(' | ');
+  const status: DriveManifestStatus = input.target === 'archive' ? 'archived' : 'processed';
+  return updateStatus(id, status, row.review_reason ?? undefined, {
+    folder_path: input.folder_path,
+    entity_id: input.entity_id,
+    notes: mergedNotes || undefined
+  });
 }
 
 export function getManifestEntryByDriveFileId(driveFileId: string): DriveImportManifestEntry | undefined {

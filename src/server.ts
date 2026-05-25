@@ -49,11 +49,13 @@ import {
   markManifestNeedsReview,
   markManifestProcessed,
   markManifestSkipped,
+  routeManifestEntry,
   updateManifestExtraction,
   resetDriveManifestForTest
 } from './driveManifest.js';
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
+import { getDriveClient } from './driveClient.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { extractSupportedFile } from './fileExtraction.js';
@@ -348,6 +350,10 @@ function inferDriveReplayType(fileRecord: ReturnType<typeof createDriveFileRecor
 
 function canMarkDriveFileReviewed(status: string): boolean {
   return status === 'needs_review' || status === 'failed' || status === 'skipped';
+}
+
+function isRouteTarget(value: unknown): value is 'processed' | 'entity_files' | 'archive' {
+  return value === 'processed' || value === 'entity_files' || value === 'archive';
 }
 
 function seedDemoEvents(): DemoSeedEvent[] {
@@ -1043,6 +1049,119 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       drive_file_id: driveFileId,
       suggestions,
       replay_event_id: replay.id
+    });
+  }
+
+  const driveRouteMatch = pathname.match(/^\/api\/drive\/review\/([^/]+)\/route$/);
+  if (method === 'POST' && driveRouteMatch) {
+    const driveFileId = decodeURIComponent(driveRouteMatch[1]);
+    const entry = getManifestEntryByDriveFileId(driveFileId);
+    if (!entry) {
+      return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
+    }
+
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const target = payload.target;
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    const requestEntityId = typeof payload.entity_id === 'string' ? payload.entity_id.trim() : undefined;
+    if (!isRouteTarget(target)) {
+      return responseJson(res, { error: 'target must be processed, entity_files, or archive' }, 400);
+    }
+
+    const authConfig = getDriveAuthConfig();
+    const discovery = await discoverManagedFolders({ rootFolderId: authConfig.rootFolderId });
+    if (discovery.status !== 'ready') {
+      return responseJson(
+        res,
+        {
+          error: 'Drive routing unavailable',
+          reason: discovery.reason || discovery.sync_block_reason || 'drive_not_ready'
+        },
+        409
+      );
+    }
+    if (discovery.sync_blocked) {
+      return responseJson(
+        res,
+        {
+          error: 'Drive routing blocked',
+          reason: discovery.sync_block_reason || 'folder_conflict'
+        },
+        409
+      );
+    }
+
+    const client = getDriveClient(authConfig);
+    let targetFolderId = '';
+    let targetFolderPath = '';
+    let attachedEntityId: string | undefined = entry.entity_id;
+
+    if (target === 'processed') {
+      targetFolderId = discovery.canonical_folder_ids['01_Processed'];
+      targetFolderPath = discovery.managed_folders['01_Processed'].path;
+    } else if (target === 'archive') {
+      targetFolderId = discovery.canonical_folder_ids['03_Archived_Sources'];
+      targetFolderPath = discovery.managed_folders['03_Archived_Sources'].path;
+    } else {
+      attachedEntityId = requestEntityId || entry.entity_id;
+      if (!attachedEntityId) {
+        return responseJson(res, { error: 'entity_id is required for entity_files routing' }, 400);
+      }
+      const entityRootId = discovery.canonical_folder_ids['04_Entity_Files'];
+      if (!entityRootId) {
+        return responseJson(res, { error: 'Entity files folder is not configured' }, 409);
+      }
+      const entityFolder = await client.createFolderIfMissing(attachedEntityId, entityRootId);
+      targetFolderId = entityFolder.id;
+      targetFolderPath = `${discovery.managed_folders['04_Entity_Files'].path}/${attachedEntityId}`;
+    }
+
+    if (!targetFolderId || !targetFolderPath) {
+      return responseJson(res, { error: 'Target folder is unavailable' }, 409);
+    }
+
+    await client.moveFileToFolder(driveFileId, targetFolderId);
+    const manifest = routeManifestEntry(entry.id, {
+      target,
+      folder_path: targetFolderPath,
+      entity_id: attachedEntityId,
+      note
+    });
+
+    const outcome = recordOutcome({
+      entity_id: attachedEntityId || `drive:${driveFileId}`,
+      signal_id: manifest.created_4data_event_id || manifest.source_record_id || manifest.id,
+      action: 'route_drive_file',
+      outcome: 'manual_done',
+      status: 'completed',
+      result: `Routed ${manifest.file_name} to ${target}`,
+      source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+      observed_at: new Date().toISOString()
+    });
+
+    const replayEvent = recordReplayEvent({
+      event_type: 'drive_file_routed',
+      entity_id: attachedEntityId,
+      signal_id: manifest.created_4data_event_id || manifest.source_record_id || manifest.id,
+      outcome_id: outcome.id,
+      summary: `Drive file ${driveFileId} routed to ${targetFolderPath}`,
+      source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+      payload: {
+        target,
+        target_folder_path: targetFolderPath
+      }
+    });
+
+    return responseJson(res, {
+      status: 'ok',
+      manifest_entry: manifest,
+      outcome,
+      replay_event: replayEvent,
+      routed_to: targetFolderPath
     });
   }
 
