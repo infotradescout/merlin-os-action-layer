@@ -21,7 +21,8 @@ type ReplayEventType =
   | 'drive_file_extraction_completed'
   | 'drive_file_extraction_failed'
   | 'drive_file_metadata_only'
-  | 'drive_file_reviewed';
+  | 'drive_file_reviewed'
+  | 'drive_file_attached_to_entity';
 
 type PolicyLevel = 'read_only' | 'organize_internal' | 'draft_only' | 'approval_required' | 'blocked_high_risk';
 

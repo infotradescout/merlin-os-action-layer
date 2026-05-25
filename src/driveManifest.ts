@@ -14,6 +14,7 @@ export interface DriveImportManifestEntry {
   folder_path: string;
   processing_status: DriveManifestStatus;
   entity_id?: string;
+  entity_type?: string;
   source_record_id?: string;
   created_4data_event_id?: string;
   seen_at: string;
@@ -28,6 +29,8 @@ export interface DriveImportManifestEntry {
 }
 
 interface ManifestUpdate {
+  entity_id?: string;
+  entity_type?: string;
   source_record_id?: string;
   created_4data_event_id?: string;
   processed_at?: string;
@@ -47,6 +50,7 @@ interface ManifestRow {
   folder_path: string;
   processing_status: DriveManifestStatus;
   entity_id: string | null;
+  entity_type: string | null;
   source_record_id: string | null;
   created_4data_event_id: string | null;
   seen_at: string;
@@ -108,6 +112,7 @@ function mapManifestRow(row: ManifestRow): DriveImportManifestEntry {
     folder_path: row.folder_path,
     processing_status: row.processing_status,
     entity_id: row.entity_id ?? undefined,
+    entity_type: row.entity_type ?? undefined,
     source_record_id: row.source_record_id ?? undefined,
     created_4data_event_id: row.created_4data_event_id ?? undefined,
     seen_at: row.seen_at,
@@ -145,6 +150,8 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
     SET processing_status = @status,
         processed_at = @processed_at,
         review_reason = @review_reason,
+        entity_id = COALESCE(@entity_id, entity_id),
+        entity_type = COALESCE(@entity_type, entity_type),
         source_record_id = COALESCE(@source_record_id, source_record_id),
         created_4data_event_id = COALESCE(@created_4data_event_id, created_4data_event_id),
         notes = COALESCE(@notes, notes),
@@ -159,6 +166,8 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
     status,
     processed_at: status === 'pending' || status === 'seen' ? null : row.processed_at ?? nowIso(),
     review_reason: reason ?? row.review_reason,
+    entity_id: additional?.entity_id ?? null,
+    entity_type: additional?.entity_type ?? null,
     source_record_id: additional?.source_record_id ?? null,
     created_4data_event_id: additional?.created_4data_event_id ?? null,
     notes: additional?.notes ?? null,
@@ -196,6 +205,7 @@ export function initializeDriveManifestStore(explicitPath?: string): string {
       folder_path TEXT NOT NULL,
       processing_status TEXT NOT NULL,
       entity_id TEXT,
+      entity_type TEXT,
       source_record_id TEXT,
       created_4data_event_id TEXT,
       seen_at TEXT NOT NULL,
@@ -224,6 +234,7 @@ export function initializeDriveManifestStore(explicitPath?: string): string {
   ensureColumn('extraction_status', 'TEXT');
   ensureColumn('extraction_error', 'TEXT');
   ensureColumn('extracted_at', 'TEXT');
+  ensureColumn('entity_type', 'TEXT');
 
   db = nextDb;
   dbPath = nextPath;
@@ -265,10 +276,10 @@ export function createManifestEntry(fileRecord: DriveFileRecord): DriveImportMan
       `
       INSERT INTO drive_manifest_entries (
         id, drive_file_id, file_name, mime_type, folder_path, processing_status, entity_id,
-        source_record_id, created_4data_event_id, seen_at, processed_at, review_reason, notes, order_id
+        entity_type, source_record_id, created_4data_event_id, seen_at, processed_at, review_reason, notes, order_id
       ) VALUES (
         @id, @drive_file_id, @file_name, @mime_type, @folder_path, @processing_status, @entity_id,
-        @source_record_id, @created_4data_event_id, @seen_at, @processed_at, @review_reason, @notes, @order_id
+        @entity_type, @source_record_id, @created_4data_event_id, @seen_at, @processed_at, @review_reason, @notes, @order_id
       )
       `
     )
@@ -280,6 +291,7 @@ export function createManifestEntry(fileRecord: DriveFileRecord): DriveImportMan
       folder_path: row.folder_path,
       processing_status: row.processing_status,
       entity_id: row.entity_id ?? null,
+      entity_type: null,
       source_record_id: null,
       created_4data_event_id: null,
       seen_at: row.seen_at,
@@ -298,6 +310,8 @@ export function markManifestProcessed(id: string, updates: ManifestUpdate = {}):
     throw new Error(`Manifest entry not found: ${id}`);
   }
   return updateStatus(id, 'processed', row.review_reason ?? undefined, {
+    entity_id: updates.entity_id,
+    entity_type: updates.entity_type,
     source_record_id: updates.source_record_id,
     created_4data_event_id: updates.created_4data_event_id,
     processed_at: updates.processed_at,
@@ -325,6 +339,24 @@ export function markManifestSkipped(id: string, reason: string): DriveImportMani
 
 export function markManifestFailed(id: string, reason: string): DriveImportManifestEntry {
   return updateStatus(id, 'failed', reason);
+}
+
+export function attachManifestToEntity(
+  id: string,
+  input: { entity_id: string; entity_type?: string; note?: string }
+): DriveImportManifestEntry {
+  const row = getManifestOrThrow(id);
+  const mergedNotes = [row.notes, input.note].filter(Boolean).join(' | ');
+  return updateStatus(
+    id,
+    'processed',
+    row.review_reason ?? undefined,
+    {
+      entity_id: input.entity_id,
+      entity_type: input.entity_type,
+      notes: mergedNotes || undefined
+    }
+  );
 }
 
 export function getManifestEntryByDriveFileId(driveFileId: string): DriveImportManifestEntry | undefined {

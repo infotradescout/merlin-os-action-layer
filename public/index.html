@@ -240,6 +240,17 @@
           >
             Mark reviewed
           </button>
+          <input
+            id="detail-attach-entity-id"
+            style="display: none; margin-left: 0.4rem; background: var(--panel-soft); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 0.35rem 0.5rem;"
+            placeholder="entity_id"
+          />
+          <button
+            id="detail-attach-entity"
+            style="display: none; margin-left: 0.3rem; background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer;"
+          >
+            Attach to entity
+          </button>
         </div>
         <h3>Entity Timeline</h3>
         <ul id="detail-timeline" class="list"></ul>
@@ -376,12 +387,22 @@
         });
 
         const markReviewedButton = document.getElementById('detail-mark-reviewed');
+        const attachEntityButton = document.getElementById('detail-attach-entity');
+        const attachEntityInput = document.getElementById('detail-attach-entity-id');
         if (item.kind === 'drive_review' && item.drive_file_id) {
           markReviewedButton.style.display = 'inline-block';
           markReviewedButton.dataset.driveFileId = item.drive_file_id;
+          attachEntityButton.style.display = 'inline-block';
+          attachEntityButton.dataset.driveFileId = item.drive_file_id;
+          attachEntityInput.style.display = 'inline-block';
+          attachEntityInput.value = item.entity_id || '';
         } else {
           markReviewedButton.style.display = 'none';
           markReviewedButton.dataset.driveFileId = '';
+          attachEntityButton.style.display = 'none';
+          attachEntityButton.dataset.driveFileId = '';
+          attachEntityInput.style.display = 'none';
+          attachEntityInput.value = '';
         }
 
         document.getElementById('detail-title').textContent = title;
@@ -489,6 +510,37 @@
         } finally {
           button.disabled = false;
           button.textContent = 'Mark reviewed';
+        }
+      };
+
+      const attachSelectedDriveFileToEntity = async () => {
+        const button = document.getElementById('detail-attach-entity');
+        const driveFileId = button?.dataset?.driveFileId;
+        const input = document.getElementById('detail-attach-entity-id');
+        const entityId = (input?.value || '').trim();
+        if (!driveFileId) return;
+        if (!entityId) {
+          alert('Enter an entity_id first.');
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Attaching...';
+        try {
+          await fetchJson(`/api/drive/review/${encodeURIComponent(driveFileId)}/attach-entity`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entity_id: entityId })
+          });
+          await Promise.all([loadDriveReview(), loadReplay(), loadLisaBrowser(), loadRecentChanges(), loadDaily()]);
+          if (selectedDetailKey && detailPayloadByKey.has(selectedDetailKey)) {
+            await showDetail(selectedDetailKey);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Request failed';
+          alert(`Could not attach file to entity: ${message}`);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Attach to entity';
         }
       };
 
@@ -615,6 +667,7 @@
       async function boot() {
         document.getElementById('lisa-search-run').addEventListener('click', loadLisaBrowser);
         document.getElementById('detail-mark-reviewed').addEventListener('click', markSelectedDriveFileReviewed);
+        document.getElementById('detail-attach-entity').addEventListener('click', attachSelectedDriveFileToEntity);
         const searchInput = document.getElementById('lisa-search-input');
         searchInput?.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {

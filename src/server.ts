@@ -40,6 +40,7 @@ import {
 } from './replay.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
 import {
+  attachManifestToEntity,
   createManifestEntry,
   getManifestEntriesByStatus,
   getManifestEntryByDriveFileId,
@@ -297,6 +298,7 @@ function buildBrowserSearchCandidates(query: string, limit = 50): LisaBrowserSea
         summary: `${entry.processing_status} for ${entry.drive_file_id}${
           entry.extracted_text ? ` | ${entry.extracted_text.slice(0, 120)}` : ''
         }`,
+        entity_id: entry.entity_id,
         source_refs: [`drive:${entry.drive_file_id}`],
         created_at: entry.seen_at
       })
@@ -933,6 +935,88 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       manifest_entry: reviewedManifest,
       outcome,
       replay_event: replayEvent
+    });
+  }
+
+  const driveAttachEntityMatch = pathname.match(/^\/api\/drive\/review\/([^/]+)\/attach-entity$/);
+  if (method === 'POST' && driveAttachEntityMatch) {
+    const driveFileId = decodeURIComponent(driveAttachEntityMatch[1]);
+    const entry = getManifestEntryByDriveFileId(driveFileId);
+    if (!entry) {
+      return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
+    }
+
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const entityId = typeof payload.entity_id === 'string' ? payload.entity_id.trim() : '';
+    const entityType = typeof payload.entity_type === 'string' ? payload.entity_type.trim() : undefined;
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    if (!entityId) {
+      return responseJson(res, { error: 'entity_id is required' }, 400);
+    }
+
+    const attachedManifest = attachManifestToEntity(entry.id, {
+      entity_id: entityId,
+      entity_type: entityType,
+      note
+    });
+
+    const signalId = ingestDriveImportEvent({
+      entity_id: entityId,
+      event_type: 'drive_file_attached',
+      origin_surface: 'drive',
+      observed_at: new Date().toISOString(),
+      source_reference: `drive:${attachedManifest.drive_file_id}`,
+      file_name: attachedManifest.file_name,
+      web_url: '',
+      folder_path: attachedManifest.folder_path,
+      folder_id: 'managed-folder',
+      mime_type: attachedManifest.mime_type,
+      drive_file_id: attachedManifest.drive_file_id,
+      source_type: 'google_drive_file',
+      processing_status: attachedManifest.processing_status,
+      payload: {
+        note,
+        entity_type: entityType,
+        manifest_id: attachedManifest.id
+      },
+      title: `Drive file attached: ${attachedManifest.file_name}`,
+      summary: note || `Drive file ${attachedManifest.file_name} manually attached to ${entityId}`
+    });
+
+    const outcome = recordOutcome({
+      entity_id: entityId,
+      signal_id: signalId,
+      action: 'attach_drive_file_to_entity',
+      outcome: 'manual_done',
+      status: 'completed',
+      result: `Attached ${attachedManifest.file_name} to ${entityId}`,
+      source_refs: [`drive:${attachedManifest.drive_file_id}`, `manifest:${attachedManifest.id}`, `lisa:${signalId}`],
+      observed_at: new Date().toISOString()
+    });
+
+    const replayEvent = recordReplayEvent({
+      event_type: 'drive_file_attached_to_entity',
+      entity_id: entityId,
+      signal_id: signalId,
+      outcome_id: outcome.id,
+      summary: `Drive file ${attachedManifest.drive_file_id} attached to ${entityId}`,
+      source_refs: [`drive:${attachedManifest.drive_file_id}`, `manifest:${attachedManifest.id}`, `lisa:${signalId}`],
+      payload: {
+        entity_type: entityType,
+        note
+      }
+    });
+
+    return responseJson(res, {
+      status: 'ok',
+      manifest_entry: attachedManifest,
+      outcome,
+      replay_event: replayEvent,
+      signal_id: signalId
     });
   }
 
