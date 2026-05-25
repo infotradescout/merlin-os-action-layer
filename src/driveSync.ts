@@ -7,12 +7,14 @@ import {
   markManifestFailed,
   markManifestNeedsReview,
   markManifestProcessed,
-  markManifestSkipped
+  markManifestSkipped,
+  updateManifestExtraction
 } from './driveManifest.js';
 import { ingestDriveImportEvent } from './lisa.js';
 import { getDriveAuthConfig, getDriveAuthProfile, type DriveAuthConfig } from './driveAuth.js';
 import { getDriveClient, type DriveClient, type DriveFileInfo } from './driveClient.js';
 import { recordReplayEvent } from './replay.js';
+import { extractSupportedFile } from './fileExtraction.js';
 
 type FolderAlias =
   | '00_Inbox'
@@ -334,7 +336,7 @@ export async function importDriveFile(
   });
 
   const sourceRecord = mapDriveFileToSourceRecord(fileRecord);
-  const manifest = createManifestEntry(fileRecord);
+  let manifest = createManifestEntry(fileRecord);
   const routing = routeImportedFile(fileRecord);
   const targetFolderId = options.managedFolders?.[routing.moveTo]?.id;
   recordReplayEvent({
@@ -345,6 +347,76 @@ export async function importDriveFile(
     source_refs: [`drive:${fileRecord.drive_file_id}`, `manifest:${manifest.id}`],
     payload: sourceRecord
   });
+
+  try {
+    const content = await client.downloadFileContent(file.drive_file_id);
+    const extraction = extractSupportedFile({
+      file_id: file.drive_file_id,
+      file_name: file.file_name,
+      mime_type: file.mime_type,
+      content
+    });
+    manifest = updateManifestExtraction(manifest.id, {
+      extracted_text: extraction.extracted_text,
+      extracted_fields: extraction.extracted_fields,
+      extraction_status: extraction.extraction_status,
+      extraction_error: extraction.extraction_error,
+      extracted_at: extraction.extracted_at
+    });
+
+    if (extraction.extraction_status === 'completed') {
+      recordReplayEvent({
+        event_type: 'drive_file_extraction_completed',
+        entity_id: fileRecord.entity_id,
+        signal_id: manifest.id,
+        summary: `Drive file ${file.drive_file_id} extraction completed`,
+        source_refs: [`manifest:${manifest.id}`],
+        payload: {
+          extracted_at: extraction.extracted_at,
+          mime_type: extraction.mime_type
+        }
+      });
+    } else if (extraction.extraction_status === 'failed') {
+      recordReplayEvent({
+        event_type: 'drive_file_extraction_failed',
+        entity_id: fileRecord.entity_id,
+        signal_id: manifest.id,
+        summary: `Drive file ${file.drive_file_id} extraction failed`,
+        source_refs: [`manifest:${manifest.id}`],
+        payload: {
+          extraction_error: extraction.extraction_error
+        }
+      });
+    } else {
+      recordReplayEvent({
+        event_type: 'drive_file_metadata_only',
+        entity_id: fileRecord.entity_id,
+        signal_id: manifest.id,
+        summary: `Drive file ${file.drive_file_id} extraction stored metadata only`,
+        source_refs: [`manifest:${manifest.id}`],
+        payload: {
+          extraction_status: extraction.extraction_status
+        }
+      });
+    }
+  } catch (error) {
+    const extractionError = error instanceof Error ? error.message : 'extraction_failed';
+    manifest = updateManifestExtraction(manifest.id, {
+      extraction_status: 'failed',
+      extraction_error: extractionError,
+      extracted_at: new Date().toISOString()
+    });
+    recordReplayEvent({
+      event_type: 'drive_file_extraction_failed',
+      entity_id: fileRecord.entity_id,
+      signal_id: manifest.id,
+      summary: `Drive file ${file.drive_file_id} extraction failed`,
+      source_refs: [`manifest:${manifest.id}`],
+      payload: {
+        extraction_error: extractionError
+      }
+    });
+  }
 
   try {
     if (routing.route === 'processed') {

@@ -20,6 +20,11 @@ export interface DriveImportManifestEntry {
   processed_at?: string;
   review_reason?: string;
   notes?: string;
+  extracted_text?: string;
+  extracted_fields?: Record<string, unknown>;
+  extraction_status?: string;
+  extraction_error?: string;
+  extracted_at?: string;
 }
 
 interface ManifestUpdate {
@@ -27,6 +32,11 @@ interface ManifestUpdate {
   created_4data_event_id?: string;
   processed_at?: string;
   notes?: string;
+  extracted_text?: string;
+  extracted_fields?: Record<string, unknown>;
+  extraction_status?: string;
+  extraction_error?: string;
+  extracted_at?: string;
 }
 
 interface ManifestRow {
@@ -43,6 +53,11 @@ interface ManifestRow {
   processed_at: string | null;
   review_reason: string | null;
   notes: string | null;
+  extracted_text: string | null;
+  extracted_fields_json: string | null;
+  extraction_status: string | null;
+  extraction_error: string | null;
+  extracted_at: string | null;
   order_id: number;
 }
 
@@ -98,7 +113,12 @@ function mapManifestRow(row: ManifestRow): DriveImportManifestEntry {
     seen_at: row.seen_at,
     processed_at: row.processed_at ?? undefined,
     review_reason: row.review_reason ?? undefined,
-    notes: row.notes ?? undefined
+    notes: row.notes ?? undefined,
+    extracted_text: row.extracted_text ?? undefined,
+    extracted_fields: row.extracted_fields_json ? JSON.parse(row.extracted_fields_json) as Record<string, unknown> : undefined,
+    extraction_status: row.extraction_status ?? undefined,
+    extraction_error: row.extraction_error ?? undefined,
+    extracted_at: row.extracted_at ?? undefined
   };
 }
 
@@ -127,7 +147,12 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
         review_reason = @review_reason,
         source_record_id = COALESCE(@source_record_id, source_record_id),
         created_4data_event_id = COALESCE(@created_4data_event_id, created_4data_event_id),
-        notes = COALESCE(@notes, notes)
+        notes = COALESCE(@notes, notes),
+        extracted_text = COALESCE(@extracted_text, extracted_text),
+        extracted_fields_json = COALESCE(@extracted_fields_json, extracted_fields_json),
+        extraction_status = COALESCE(@extraction_status, extraction_status),
+        extraction_error = COALESCE(@extraction_error, extraction_error),
+        extracted_at = COALESCE(@extracted_at, extracted_at)
     WHERE id = @id
   `);
   stmt.run({
@@ -137,6 +162,11 @@ function updateStatus(id: string, status: DriveManifestStatus, reason?: string, 
     source_record_id: additional?.source_record_id ?? null,
     created_4data_event_id: additional?.created_4data_event_id ?? null,
     notes: additional?.notes ?? null,
+    extracted_text: additional?.extracted_text ?? null,
+    extracted_fields_json: additional?.extracted_fields ? JSON.stringify(additional.extracted_fields) : null,
+    extraction_status: additional?.extraction_status ?? null,
+    extraction_error: additional?.extraction_error ?? null,
+    extracted_at: additional?.extracted_at ?? null,
     id
   });
   return mapManifestRow(getManifestOrThrow(id));
@@ -172,11 +202,28 @@ export function initializeDriveManifestStore(explicitPath?: string): string {
       processed_at TEXT,
       review_reason TEXT,
       notes TEXT,
+      extracted_text TEXT,
+      extracted_fields_json TEXT,
+      extraction_status TEXT,
+      extraction_error TEXT,
+      extracted_at TEXT,
       order_id INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS drive_manifest_drive_file_idx ON drive_manifest_entries(drive_file_id);
     CREATE INDEX IF NOT EXISTS drive_manifest_status_idx ON drive_manifest_entries(processing_status, seen_at DESC, order_id DESC);
   `);
+  const ensureColumn = (name: string, sqlType: string): void => {
+    try {
+      nextDb.exec(`ALTER TABLE drive_manifest_entries ADD COLUMN ${name} ${sqlType};`);
+    } catch {
+      // Existing databases already include the column.
+    }
+  };
+  ensureColumn('extracted_text', 'TEXT');
+  ensureColumn('extracted_fields_json', 'TEXT');
+  ensureColumn('extraction_status', 'TEXT');
+  ensureColumn('extraction_error', 'TEXT');
+  ensureColumn('extracted_at', 'TEXT');
 
   db = nextDb;
   dbPath = nextPath;
@@ -255,6 +302,16 @@ export function markManifestProcessed(id: string, updates: ManifestUpdate = {}):
     created_4data_event_id: updates.created_4data_event_id,
     processed_at: updates.processed_at,
     notes: updates.notes
+  });
+}
+
+export function updateManifestExtraction(id: string, updates: ManifestUpdate): DriveImportManifestEntry {
+  return updateStatus(id, getManifestOrThrow(id).processing_status, getManifestOrThrow(id).review_reason ?? undefined, {
+    extracted_text: updates.extracted_text,
+    extracted_fields: updates.extracted_fields,
+    extraction_status: updates.extraction_status,
+    extraction_error: updates.extraction_error,
+    extracted_at: updates.extracted_at
   });
 }
 

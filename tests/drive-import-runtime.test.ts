@@ -213,6 +213,36 @@ test('Drive import appears in LISA search when eligible', async () => {
   assert.equal(search.body.results.some((item) => item.entity_id === entityId), true);
 });
 
+test('extracted text appears in LISA search and replay records extraction lifecycle', async () => {
+  const uniqueText = `roofing-checklist-${Date.now()}`;
+  const imported = await requestJson<DriveImportResponse>('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'file-extract-001',
+      file_name: 'notes.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/01_Processed/contracts',
+      web_url: 'https://drive.google.com/file/d/file-extract-001',
+      entity_id: 'business-drive-extract',
+      observed_at: '2026-05-24T12:08:00.000Z',
+      raw_metadata: {
+        text_content: `Drive extraction content ${uniqueText}`
+      }
+    })
+  });
+  assert.equal(imported.status, 200);
+
+  const search = await requestJson<{ results: Array<{ id: string; summary: string }> }>(
+    `/api/lisa/search?q=${encodeURIComponent(uniqueText)}`
+  );
+  assert.equal(search.status, 200);
+  assert.equal(search.body.results.some((result) => result.id === imported.body.manifest_entry.id), true);
+
+  const replay = await requestJson<{ replay_events: Array<{ event_type: string }> }>('/api/replay/recent?limit=50');
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.replay_events.some((event) => event.event_type === 'drive_file_extraction_completed'), true);
+});
+
 test('Drive import lifecycle emits replay events', async () => {
   const imported = await requestJson<DriveImportResponse>('/api/drive/import-file', {
     method: 'POST',

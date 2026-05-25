@@ -48,12 +48,14 @@ import {
   markManifestNeedsReview,
   markManifestProcessed,
   markManifestSkipped,
+  updateManifestExtraction,
   resetDriveManifestForTest
 } from './driveManifest.js';
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
+import { extractSupportedFile } from './fileExtraction.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { getRecentOutcomes } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
@@ -291,7 +293,9 @@ function buildBrowserSearchCandidates(query: string, limit = 50): LisaBrowserSea
         id: entry.id,
         type: 'drive_manifest',
         title: entry.file_name,
-        summary: `${entry.processing_status} for ${entry.drive_file_id}`,
+        summary: `${entry.processing_status} for ${entry.drive_file_id}${
+          entry.extracted_text ? ` | ${entry.extracted_text.slice(0, 120)}` : ''
+        }`,
         source_refs: [`drive:${entry.drive_file_id}`],
         created_at: entry.seen_at
       })
@@ -632,6 +636,61 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     let status: 'processed' | 'needs_review' | 'skipped' | 'failed' = 'failed';
     let updatedManifest = manifest;
     const canCreateEvent = shouldCreate4dataEvent(fileRecord) && Boolean(entityId);
+    const textContent =
+      rawMetadata && typeof rawMetadata.text_content === 'string'
+        ? rawMetadata.text_content
+        : rawMetadata && typeof rawMetadata.content === 'string'
+          ? rawMetadata.content
+          : undefined;
+
+    const extraction = extractSupportedFile({
+      file_id: driveFileId,
+      file_name: fileName,
+      mime_type: mimeType,
+      content: textContent
+    });
+    updatedManifest = updateManifestExtraction(manifest.id, {
+      extracted_text: extraction.extracted_text,
+      extracted_fields: extraction.extracted_fields,
+      extraction_status: extraction.extraction_status,
+      extraction_error: extraction.extraction_error,
+      extracted_at: extraction.extracted_at
+    });
+
+    if (extraction.extraction_status === 'completed') {
+      recordReplayEvent({
+        event_type: 'drive_file_extraction_completed',
+        entity_id: entityId,
+        signal_id: manifest.id,
+        summary: `Drive file ${driveFileId} extraction completed`,
+        source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+        payload: {
+          extracted_at: extraction.extracted_at
+        }
+      });
+    } else if (extraction.extraction_status === 'failed') {
+      recordReplayEvent({
+        event_type: 'drive_file_extraction_failed',
+        entity_id: entityId,
+        signal_id: manifest.id,
+        summary: `Drive file ${driveFileId} extraction failed`,
+        source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+        payload: {
+          extraction_error: extraction.extraction_error
+        }
+      });
+    } else {
+      recordReplayEvent({
+        event_type: 'drive_file_metadata_only',
+        entity_id: entityId,
+        signal_id: manifest.id,
+        summary: `Drive file ${driveFileId} metadata-only extraction`,
+        source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+        payload: {
+          extraction_status: extraction.extraction_status
+        }
+      });
+    }
 
     recordReplayEvent({
       event_type: 'drive_import_received',
