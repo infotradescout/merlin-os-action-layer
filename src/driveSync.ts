@@ -34,6 +34,7 @@ const FOLDER_NAMES: FolderAlias[] = [
   '06_Audit',
   '07_System'
 ];
+const ALLOW_FOLDER_CREATE_ENV = 'MERLIN_DRIVE_ALLOW_FOLDER_CREATE';
 
 type RouteDecision = 'processed' | 'needs_review' | 'skipped';
 
@@ -90,6 +91,10 @@ export interface DriveSyncDiscovery {
   root_folder_id?: string;
   folder_paths: string[];
   managed_folders: Record<FolderAlias, { id: string; path: string }>;
+  canonical_folder_ids: Record<FolderAlias, string>;
+  duplicate_managed_folders: Partial<Record<FolderAlias, string[]>>;
+  sync_blocked: boolean;
+  folder_create_allowed: boolean;
   bootstrap_plan: ReturnType<typeof createDriveBootstrapPlan>;
 }
 
@@ -119,6 +124,11 @@ export async function discoverManagedFolders(
   const config = options.config || parseDriveManagerConfig();
   const authConfig = toAuthConfig(config);
   const profile = getDriveAuthProfile(authConfig);
+  const allowFolderCreate = (process.env[ALLOW_FOLDER_CREATE_ENV] || '').toLowerCase() === 'true';
+  const defaultCanonicalIds = {} as Record<FolderAlias, string>;
+  for (const folderName of FOLDER_NAMES) {
+    defaultCanonicalIds[folderName] = '';
+  }
 
   if (!config.syncEnabled || !profile.ready) {
     return {
@@ -130,6 +140,10 @@ export async function discoverManagedFolders(
       root_folder_name: config.rootFolderName,
       folder_paths: [],
       managed_folders: defaultManagedFolders(),
+      canonical_folder_ids: defaultCanonicalIds,
+      duplicate_managed_folders: {},
+      sync_blocked: true,
+      folder_create_allowed: allowFolderCreate,
       bootstrap_plan: createDriveBootstrapPlan([], config.rootFolderName)
     };
   }
@@ -137,6 +151,9 @@ export async function discoverManagedFolders(
   const client = options.client || getDriveClient(authConfig);
   const { folderId: parentFolderId, useFolderPrefix } = await resolveParentFolder(config, client, options.rootFolderId);
   const observedExistingPaths: string[] = [];
+  const duplicateManagedFolders: Partial<Record<FolderAlias, string[]>> = {};
+  const canonicalFolderIds = {} as Record<FolderAlias, string>;
+  let hasMissing = false;
 
   const managedFolders: Record<FolderAlias, { id: string; path: string }> = {} as Record<
     FolderAlias,
@@ -144,21 +161,46 @@ export async function discoverManagedFolders(
   >;
 
   for (const folderName of FOLDER_NAMES) {
-    const existing = await client.findFolderByName(folderName, parentFolderId);
-    const folder = existing || (await client.createFolderIfMissing(folderName, parentFolderId));
+    const matches = await client.listFoldersByName(folderName, parentFolderId);
+    const matchIds = matches.map((entry) => entry.id);
+    const hasDuplicates = matchIds.length > 1;
+    if (hasDuplicates) {
+      duplicateManagedFolders[folderName] = matchIds;
+    }
+
+    let folder = matches[0];
+    if (!folder && allowFolderCreate) {
+      folder = await client.createFolderIfMissing(folderName, parentFolderId);
+    }
+    if (!folder) {
+      hasMissing = true;
+    }
+
+    canonicalFolderIds[folderName] = folder?.id || '';
     managedFolders[folderName] = {
-      id: folder.id,
+      id: folder?.id || '',
       path: buildPath(folderName, useFolderPrefix, config.rootFolderName)
     };
-    if (existing) {
+    if (folder) {
       observedExistingPaths.push(buildPath(folderName, useFolderPrefix, config.rootFolderName));
     }
   }
 
   const bootstrap = createDriveBootstrapPlan(observedExistingPaths, config.rootFolderName);
+  const hasDuplicates = Object.keys(duplicateManagedFolders).length > 0;
+  const syncBlocked = hasDuplicates || hasMissing;
+  const status: DriveSyncDiscovery['status'] = syncBlocked ? 'error' : 'ready';
+  const reason = hasDuplicates
+    ? 'Duplicate managed folders detected; resolve canonical folders before sync.'
+    : hasMissing
+      ? allowFolderCreate
+        ? 'Managed folders are still missing after create attempt.'
+        : 'Managed folders missing and folder creation is disabled.'
+      : undefined;
 
   return {
-    status: 'ready',
+    status,
+    reason,
     mode: config.mode,
     syncMode: config.syncMode,
     rootMode: config.rootMode,
@@ -166,6 +208,10 @@ export async function discoverManagedFolders(
     root_folder_id: options.rootFolderId,
     folder_paths: Object.values(managedFolders).map((folder) => folder.path),
     managed_folders: managedFolders,
+    canonical_folder_ids: canonicalFolderIds,
+    duplicate_managed_folders: duplicateManagedFolders,
+    sync_blocked: syncBlocked,
+    folder_create_allowed: allowFolderCreate,
     bootstrap_plan: {
       root_folder_name: bootstrap.root_folder_name,
       required_folders: bootstrap.required_folders,

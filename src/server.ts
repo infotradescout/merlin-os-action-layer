@@ -58,7 +58,10 @@ import { getRecentOutcomes } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
 import { getRecentRecommendations, resetRecommendationsForTest } from './recommendations.js';
 import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegistry.js';
+import { loadEnvFromDotFile } from './env.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
+
+loadEnvFromDotFile();
 
 type QueryBag = { [key: string]: string | undefined };
 
@@ -762,6 +765,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         },
         reason: discovery.reason,
         managed_folders: discovery.managed_folders,
+        canonical_folder_ids: discovery.canonical_folder_ids,
+        duplicate_managed_folders: discovery.duplicate_managed_folders,
+        sync_blocked: discovery.sync_blocked,
+        folder_create_allowed: discovery.folder_create_allowed,
         bootstrap_plan: discovery.bootstrap_plan,
         sync_mode: discovery.syncMode
       });

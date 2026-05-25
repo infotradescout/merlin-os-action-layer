@@ -24,6 +24,7 @@ export interface DriveClient {
   downloadFileContent(fileId: string): Promise<string | undefined>;
   moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
+  listFoldersByName(name: string, parentFolderId: string): Promise<DriveFolderInfo[]>;
   createFolderIfMissing(name: string, parentFolderId: string): Promise<DriveFolderInfo>;
 }
 
@@ -108,17 +109,20 @@ class GoogleDriveClient implements DriveClient {
   }
 
   async findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined> {
+    const matches = await this.listFoldersByName(name, parentFolderId);
+    return matches[0];
+  }
+
+  async listFoldersByName(name: string, parentFolderId: string): Promise<DriveFolderInfo[]> {
     const response = await this.drive.files.list({
       q: `name = '${name.replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
       fields: 'files(id,name)',
       pageSize: 10
     });
-    const first = (response.data.files ?? [])[0];
-    if (!first?.id || !first.name) return undefined;
-    return {
-      id: first.id,
-      name: first.name
-    };
+    const matches = (response.data.files ?? [])
+      .filter((file) => Boolean(file.id && file.name))
+      .map((file) => ({ id: String(file.id), name: String(file.name) }));
+    return matches;
   }
 
   async createFolderIfMissing(name: string, parentFolderId: string): Promise<DriveFolderInfo> {

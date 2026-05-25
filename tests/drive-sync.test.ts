@@ -19,6 +19,7 @@ process.env.GOOGLE_CLIENT_ID = 'test-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
 process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
 process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+process.env.MERLIN_DRIVE_ALLOW_FOLDER_CREATE = 'false';
 
 const { closeLisaStore, resetLisaStore } = await import('../src/lisa.ts');
 const { closeDriveManifestStore, createManifestEntry, getManifestEntriesByStatus, getManifestEntryByDriveFileId, resetDriveManifestForTest } = await import('../src/driveManifest.ts');
@@ -132,6 +133,16 @@ async getFileMetadata(fileId) {
       return { id: folder.id, name: folder.name };
     },
 
+    async listFoldersByName(name, parentFolderId) {
+      const matches: Array<{ id: string; name: string }> = [];
+      for (const folder of foldersById.values()) {
+        if (folder.parent === parentFolderId && folder.name === name) {
+          matches.push({ id: folder.id, name: folder.name });
+        }
+      }
+      return matches;
+    },
+
     async createFolderIfMissing(name, parentFolderId) {
       const parentKey = makeFolderLookupKey(parentFolderId, name);
       const existingId = foldersByParentAndName.get(parentKey);
@@ -163,7 +174,12 @@ function createSyncFolders(): FolderRecord[] {
   folders.push(
     { id: 'inbox', name: inboxPath, parent: 'dedicated-root' },
     { id: 'processed', name: processedPath, parent: 'dedicated-root' },
-    { id: 'needs-review', name: needsReviewPath, parent: 'dedicated-root' }
+    { id: 'needs-review', name: needsReviewPath, parent: 'dedicated-root' },
+    { id: 'archived', name: '03_Archived_Sources', parent: 'dedicated-root' },
+    { id: 'entity-files', name: '04_Entity_Files', parent: 'dedicated-root' },
+    { id: 'exports', name: '05_Exports', parent: 'dedicated-root' },
+    { id: 'audit', name: '06_Audit', parent: 'dedicated-root' },
+    { id: 'system', name: '07_System', parent: 'dedicated-root' }
   );
   return folders;
 }
@@ -189,16 +205,47 @@ after(async () => {
 });
 
 test('discovers managed folders and reports missing folders before creation', async () => {
+  process.env.MERLIN_DRIVE_ALLOW_FOLDER_CREATE = 'true';
   const { client } = createMockDriveClient(createBaseFolders());
   setDriveClientFactory(() => client);
 
   const discovery = await discoverManagedFolders({ client });
   assert.equal(discovery.status, 'ready');
   const expectedFolderCount = 8;
-  assert.equal(discovery.bootstrap_plan.missing_folders.length >= expectedFolderCount, true);
+  assert.equal(discovery.folder_create_allowed, true);
   assert.equal(discovery.managed_folders['00_Inbox'].id.length > 0, true);
   assert.equal(discovery.managed_folders['01_Processed'].id.length > 0, true);
   assert.equal(mockClientCalls.createdFolders.length >= expectedFolderCount, true);
+  process.env.MERLIN_DRIVE_ALLOW_FOLDER_CREATE = 'false';
+});
+
+test('discovery blocks sync when duplicate managed folders exist', async () => {
+  const folders: FolderRecord[] = [
+    ...createBaseFolders(),
+    { id: 'inbox-a', name: inboxPath, parent: 'dedicated-root' },
+    { id: 'inbox-b', name: inboxPath, parent: 'dedicated-root' },
+    { id: 'processed', name: processedPath, parent: 'dedicated-root' },
+    { id: 'needs-review', name: needsReviewPath, parent: 'dedicated-root' }
+  ];
+  const { client } = createMockDriveClient(folders);
+  setDriveClientFactory(() => client);
+
+  const discovery = await discoverManagedFolders({ client });
+  assert.equal(discovery.status, 'error');
+  assert.equal(discovery.sync_blocked, true);
+  assert.deepEqual(discovery.duplicate_managed_folders['00_Inbox'], ['inbox-a', 'inbox-b']);
+});
+
+test('discovery does not create missing folders unless explicitly allowed', async () => {
+  process.env.MERLIN_DRIVE_ALLOW_FOLDER_CREATE = 'false';
+  const { client } = createMockDriveClient(createBaseFolders());
+  setDriveClientFactory(() => client);
+
+  const discovery = await discoverManagedFolders({ client });
+  assert.equal(discovery.status, 'error');
+  assert.equal(discovery.sync_blocked, true);
+  assert.equal(discovery.folder_create_allowed, false);
+  assert.equal(mockClientCalls.createdFolders.length, 0);
 });
 
 test('imports a supported PDF from inbox and marks processed', async () => {
