@@ -16,6 +16,7 @@ import {
   getTimelineEntriesForBrowser,
   getRecentChanges,
   ingestCrawlabilityEvent,
+  ingestDriveImportEvent,
   ingestTradeScoutEvent,
   ingestMealScoutEvent,
   resetLisaStore
@@ -34,10 +35,22 @@ import { getSearchPayload } from './search.js';
 import {
   getReplayEventsForEntity as getReplayEventsForEntityInServer,
   getRecentReplayEvents,
+  recordReplayEvent,
   resetReplayForTest
 } from './replay.js';
-import { getRecentManifestEntries, resetDriveManifestForTest } from './driveManifest.js';
+import {
+  createManifestEntry,
+  getManifestEntriesByStatus,
+  getManifestEntryByDriveFileId,
+  getRecentManifestEntries,
+  markManifestFailed,
+  markManifestNeedsReview,
+  markManifestProcessed,
+  markManifestSkipped,
+  resetDriveManifestForTest
+} from './driveManifest.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
+import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { getRecentOutcomes } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
@@ -280,6 +293,43 @@ function buildBrowserSearchCandidates(query: string, limit = 50): LisaBrowserSea
   );
 
   return results.slice(0, safeLimit);
+}
+
+type DriveManifestStatusLiteral = 'seen' | 'pending' | 'processed' | 'skipped' | 'needs_review' | 'archived' | 'failed';
+
+function parseDriveManifestStatus(
+  value: string | undefined
+): DriveManifestStatusLiteral | undefined {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  const allowedStatuses = new Set(['seen', 'pending', 'processed', 'skipped', 'needs_review', 'archived', 'failed']);
+  return allowedStatuses.has(normalized) ? (normalized as DriveManifestStatusLiteral) : undefined;
+}
+
+function getDriveImportRejectReason(fileRecord: ReturnType<typeof createDriveFileRecord>, eventCreated: boolean, hasEntity: boolean): string {
+  if (!hasEntity) {
+    return 'Missing entity_id for context mapping';
+  }
+  if (fileRecord.processing_status === 'needs_review') {
+    return 'File is in needs-review folder';
+  }
+  if (fileRecord.processing_status === 'pending') {
+    return 'File is still pending inbox processing';
+  }
+  if (fileRecord.processing_status === 'unknown') {
+    return 'Drive file processing failed';
+  }
+  if (!eventCreated) {
+    return 'Unsupported format or low-confidence file';
+  }
+  return 'Import skipped';
+}
+
+function inferDriveReplayType(fileRecord: ReturnType<typeof createDriveFileRecord>, eventCreated: boolean, needsReview: boolean): 'drive_import_needs_review' | 'drive_import_skipped' {
+  if (!eventCreated && needsReview) {
+    return 'drive_import_needs_review';
+  }
+  return 'drive_import_skipped';
 }
 
 function seedDemoEvents(): DemoSeedEvent[] {
@@ -532,6 +582,178 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
     resetDemoRuntimeState();
     return responseJson(res, { status: 'ok', message: 'demo runtime reset complete' });
+  }
+
+  if (method === 'POST' && pathname === '/api/drive/import-file') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+
+    const driveFileId = typeof payload.drive_file_id === 'string' ? payload.drive_file_id : '';
+    const fileName = typeof payload.file_name === 'string' ? payload.file_name : '';
+    const mimeType = typeof payload.mime_type === 'string' ? payload.mime_type : '';
+    const folderPath = typeof payload.folder_path === 'string' ? payload.folder_path : '';
+    const webUrl = typeof payload.web_url === 'string' ? payload.web_url : '';
+
+    if (!driveFileId || !fileName || !mimeType || !folderPath || !webUrl) {
+      return responseJson(
+        res,
+        { error: 'Drive imports require drive_file_id, file_name, mime_type, folder_path, and web_url' },
+        400
+      );
+    }
+
+    const entityId = typeof payload.entity_id === 'string' ? payload.entity_id : undefined;
+    const observedAt = typeof payload.observed_at === 'string' ? payload.observed_at : undefined;
+    const rawMetadata =
+      payload.raw_metadata && typeof payload.raw_metadata === 'object' ? (payload.raw_metadata as Record<string, unknown>) : undefined;
+
+    const fileRecord = createDriveFileRecord({
+      drive_file_id: driveFileId,
+      file_name: fileName,
+      mime_type: mimeType,
+      folder_path: folderPath,
+      web_url: webUrl,
+      entity_id: entityId,
+      observed_at: observedAt
+    });
+
+    const sourceRecord = mapDriveFileToSourceRecord(fileRecord);
+    const manifest = createManifestEntry(fileRecord);
+    let eventId: string | undefined;
+    let status: 'processed' | 'needs_review' | 'skipped' | 'failed' = 'failed';
+    let updatedManifest = manifest;
+    const canCreateEvent = shouldCreate4dataEvent(fileRecord) && Boolean(entityId);
+
+    recordReplayEvent({
+      event_type: 'drive_import_received',
+      entity_id: entityId,
+      summary: `Drive file ${driveFileId} received for import`,
+      source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+      payload: {
+        file_name: fileName,
+        mime_type: mimeType,
+        folder_path: folderPath,
+        raw_metadata: rawMetadata
+      }
+    });
+
+    try {
+      if (canCreateEvent) {
+        eventId = ingestDriveImportEvent({
+          entity_id: entityId!,
+          event_type: 'drive_file_imported',
+          origin_surface: 'drive',
+          observed_at: observedAt,
+          source_reference: `drive:${driveFileId}`,
+          file_name: fileName,
+          web_url: webUrl,
+          folder_path: folderPath,
+          folder_id: fileRecord.folder_id,
+          mime_type: mimeType,
+          drive_file_id: driveFileId,
+          source_type: 'google_drive_file',
+          processing_status: fileRecord.processing_status,
+          payload: rawMetadata,
+          title: `Drive file imported: ${fileName}`,
+          summary: `Imported ${fileName} from Google Drive into LISA`
+        });
+
+        updatedManifest = markManifestProcessed(manifest.id, {
+          source_record_id: `drive:${driveFileId}`,
+          created_4data_event_id: eventId,
+          processed_at: fileRecord.processed_at || new Date().toISOString()
+        });
+        status = 'processed';
+
+        recordReplayEvent({
+          event_type: 'drive_import_processed',
+          entity_id: entityId,
+          signal_id: eventId,
+          recommendation_id: undefined,
+          summary: `Drive file ${driveFileId} imported into LISA`,
+          source_refs: [`lisa:${eventId}`, `drive:${driveFileId}`, `manifest:${manifest.id}`],
+          payload: sourceRecord
+        });
+      } else {
+        const needsReview = fileRecord.processing_status === 'needs_review' || !entityId || fileRecord.confidence === 0;
+        const reason = getDriveImportRejectReason(fileRecord, false, Boolean(entityId));
+        if (needsReview) {
+          updatedManifest = markManifestNeedsReview(manifest.id, reason);
+          status = 'needs_review';
+          recordReplayEvent({
+            event_type: inferDriveReplayType(fileRecord, false, true),
+            entity_id: entityId,
+            summary: `Drive file ${driveFileId} requires review`,
+            source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+            payload: { reason }
+          });
+        } else {
+          updatedManifest = markManifestSkipped(manifest.id, reason);
+          status = 'skipped';
+          recordReplayEvent({
+            event_type: inferDriveReplayType(fileRecord, false, false),
+            entity_id: entityId,
+            summary: `Drive file ${driveFileId} was skipped during import`,
+            source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+            payload: { reason }
+          });
+        }
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Drive import failed';
+      updatedManifest = markManifestFailed(manifest.id, reason);
+      status = 'failed';
+      recordReplayEvent({
+        event_type: 'drive_import_failed',
+        entity_id: entityId,
+        summary: `Drive file ${driveFileId} import failed`,
+        source_refs: [`drive:${driveFileId}`, `manifest:${manifest.id}`],
+        payload: {
+          reason
+        }
+      });
+    }
+
+    return responseJson(res, {
+      status: 'ok',
+      manifest_entry: updatedManifest,
+      event_id: eventId,
+      status_hint: status,
+      source_record_id: sourceRecord.drive_file_id
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/manifest') {
+    const limit = getNumber(query.limit, 50);
+    const requestedStatus = parseDriveManifestStatus(query.status);
+    const payload =
+      requestedStatus
+        ? getManifestEntriesByStatus(requestedStatus)
+        : getRecentManifestEntries(limit);
+    return responseJson(res, {
+      manifest_entries: requestedStatus
+        ? payload.slice(0, limit)
+        : payload
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/needs-review') {
+    const limit = getNumber(query.limit, 50);
+    const entries = getManifestEntriesByStatus('needs_review');
+    return responseJson(res, { manifest_entries: entries.slice(0, limit) });
+  }
+
+  const driveManifestMatch = pathname.match(/^\/api\/drive\/manifest\/([^/]+)$/);
+  if (method === 'GET' && driveManifestMatch) {
+    const driveFileId = decodeURIComponent(driveManifestMatch[1]);
+    const entry = getManifestEntryByDriveFileId(driveFileId);
+    if (!entry) {
+      return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
+    }
+    return responseJson(res, { manifest_entry: entry });
   }
 
   if (method === 'POST' && pathname === '/api/demo/seed-tradescout-loop') {

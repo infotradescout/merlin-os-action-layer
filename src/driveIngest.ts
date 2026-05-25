@@ -69,7 +69,7 @@ export function createDriveFileRecord(input: DriveRawFileInput): DriveFileRecord
     drive_file_id: input.drive_file_id,
     file_name: input.file_name,
     mime_type: input.mime_type,
-    folder_id: input.folder_id,
+    folder_id: input.folder_id || `${normalizePath(input.folder_path).split('/').filter(Boolean).slice(-1)[0] || 'unknown-folder'}`,
     folder_path: input.folder_path,
     web_url: input.web_url,
     source_type: 'google_drive_file',

@@ -12,7 +12,12 @@ type ReplayEventType =
   | 'policy_evaluated'
   | 'recommendation_status_updated'
   | 'outcome_recorded'
-  | 'outcome_linked';
+  | 'outcome_linked'
+  | 'drive_import_received'
+  | 'drive_import_processed'
+  | 'drive_import_skipped'
+  | 'drive_import_needs_review'
+  | 'drive_import_failed';
 
 type PolicyLevel = 'read_only' | 'organize_internal' | 'draft_only' | 'approval_required' | 'blocked_high_risk';
 

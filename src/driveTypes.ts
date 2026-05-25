@@ -38,7 +38,7 @@ export interface DriveRawFileInput {
   drive_file_id: string;
   file_name: string;
   mime_type: string;
-  folder_id: string;
+  folder_id?: string;
   folder_path: string;
   web_url: string;
   entity_id?: string;

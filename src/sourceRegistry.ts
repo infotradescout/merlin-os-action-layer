@@ -61,6 +61,14 @@ const DEFAULT_SOURCE_REGISTRY: SourceSeed[] = [
     trustLevel: 0.88,
     active: true,
     aliases: ['bot_crawlability', 'bot-crawlability', 'crawlability']
+  },
+  {
+    id: 'drive',
+    name: 'Google Drive',
+    type: 'drive',
+    trustLevel: 0.75,
+    active: true,
+    aliases: ['drive', 'google_drive', 'google-drive', 'gdrive']
   }
 ];
 

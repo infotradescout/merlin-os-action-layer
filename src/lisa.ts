@@ -62,7 +62,8 @@ type SignalType =
   | 'page_not_indexable'
   | 'llm_crawl_ready'
   | 'llm_crawl_blocked'
-  | 'stale_crawl_check';
+  | 'stale_crawl_check'
+  | 'drive_file_imported';
 
 const SIGNAL_TYPES: SignalType[] = [
   'contractor_claim',
@@ -126,7 +127,8 @@ const SIGNAL_TYPES: SignalType[] = [
   'page_not_indexable',
   'llm_crawl_ready',
   'llm_crawl_blocked',
-  'stale_crawl_check'
+  'stale_crawl_check',
+  'drive_file_imported'
 ];
 
 const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
@@ -191,6 +193,10 @@ const CRAWLABILITY_SIGNAL_MAP: Record<string, SignalType> = {
   llm_crawl_ready: 'llm_crawl_ready',
   llm_crawl_blocked: 'llm_crawl_blocked',
   stale_crawl_check: 'stale_crawl_check'
+};
+
+const DRIVE_SIGNAL_MAP: Record<string, SignalType> = {
+  drive_file_imported: 'drive_file_imported'
 };
 
 type SourceType = 'drive' | 'gmail' | 'calendar' | 'stripe' | 'canva' | 'github' | 'web' | 'app' | 'manual';
@@ -262,6 +268,17 @@ interface OrchestratedActivityEvent {
   vendor_id?: string;
   order_id?: string;
   booking_id?: string;
+}
+
+interface DriveActivityEvent extends OrchestratedActivityEvent {
+  web_url?: string;
+  folder_path?: string;
+  folder_id?: string;
+  mime_type?: string;
+  drive_file_id?: string;
+  source_type?: string;
+  processing_status?: string;
+  file_name?: string;
 }
 
 interface TradeScoutActivityEvent extends OrchestratedActivityEvent {
@@ -679,6 +696,7 @@ function deriveActionType(signalType: SignalType): ActionType {
   if (signalType === 'business_claim_started' || signalType === 'business_profile_started' || signalType === 'verification_started') return 'inspect';
   if (signalType === 'parking_booking_started' || signalType === 'online_order_started' || signalType === 'event_application_started') return 'route';
   if (signalType === 'payment_failed' || signalType === 'order_failed') return 'inspect';
+  if (signalType === 'drive_file_imported') return 'update';
   if (
     signalType === 'onboarding_started' ||
     signalType === 'role_selected' ||
@@ -744,6 +762,8 @@ function inferSectionFromEventType(rawEventType: string): keyof DailyPayload['se
     case 'page_not_indexable':
     case 'llm_crawl_blocked':
       return 'needs_attention';
+    case 'drive_file_imported':
+      return 'changed';
     case 'stale_crawl_check':
       return 'stale';
     case 'booking_abandoned':
@@ -811,6 +831,7 @@ function normalizeSignalType(value?: string, surface?: string): SignalType {
   if (SIGNAL_TYPES.includes(direct as SignalType)) return direct as SignalType;
   if (direct in MEALSCOUT_SIGNAL_MAP && surface === 'mealscout') return MEALSCOUT_SIGNAL_MAP[direct];
   if (direct in CRAWLABILITY_SIGNAL_MAP && surface === 'bot_crawlability') return CRAWLABILITY_SIGNAL_MAP[direct];
+  if (direct in DRIVE_SIGNAL_MAP && surface === 'drive') return DRIVE_SIGNAL_MAP[direct];
   if (direct in TRADESCOUT_SIGNAL_MAP) return TRADESCOUT_SIGNAL_MAP[direct];
   return 'contractor_claim';
 }
@@ -840,6 +861,31 @@ function createSignalFromCrawlabilityEvent(payload: CrawlabilityActivityEvent): 
     defaultName: 'Bot Crawlability',
     signalTypeResolver: (value) => normalizeSignalType(value, 'bot_crawlability')
   });
+}
+
+function createSignalFromDriveEvent(payload: DriveActivityEvent): LISAEvent {
+  const drivePayload = payload;
+  const fileName = drivePayload.file_name || drivePayload.drive_file_id || 'Drive file';
+  const summary =
+    drivePayload.summary ||
+    `${drivePayload.entity_id} imported ${fileName} from Drive${
+      drivePayload.processing_status ? ` (${drivePayload.processing_status})` : ''
+    }`;
+  const title =
+    drivePayload.title ||
+    `Drive file imported: ${fileName}` +
+      (drivePayload.entity_id ? ` for ${drivePayload.entity_id}` : '');
+
+  return {
+    ...createSignalFromSurfaceEvent(drivePayload, {
+      signalSource: 'drive',
+      brandLane: 'MerlinOS',
+      defaultName: 'Google Drive',
+      signalTypeResolver: (value) => normalizeSignalType(value, 'drive')
+    }),
+    summary,
+    title
+  };
 }
 
 function createSignalFromSurfaceEvent(
@@ -1052,6 +1098,15 @@ export function ingestCrawlabilityEvent(payload: CrawlabilityActivityEvent): str
     sourceSurface: 'bot_crawlability',
     errorLabel: 'Crawlability',
     buildSignal: (eventPayload) => createSignalFromCrawlabilityEvent(eventPayload as CrawlabilityActivityEvent)
+  });
+}
+
+export function ingestDriveImportEvent(payload: DriveActivityEvent): string {
+  return ingestSurfaceActivityEvent(payload, {
+    originSystem: 'google_drive',
+    sourceSurface: 'drive',
+    errorLabel: 'Drive',
+    buildSignal: (eventPayload) => createSignalFromDriveEvent(eventPayload as DriveActivityEvent)
   });
 }
 
