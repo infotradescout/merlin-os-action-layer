@@ -12,7 +12,8 @@
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test --test-concurrency=1 tests/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },
   "dependencies": {
     "@types/node": "^24.10.1",
