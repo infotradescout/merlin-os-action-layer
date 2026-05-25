@@ -58,3 +58,4 @@ curl http://localhost:3030/api/replay/recent
 - Do not commit `.env` or any token values.
 - This helper reads credentials from local environment and `.env` only.
 - You can revoke tokens in Google account security settings if needed.
+- The helper requests full Drive scope (`https://www.googleapis.com/auth/drive`) so Merlin can read inbox files that were uploaded manually.

@@ -13,7 +13,7 @@ const REQUIRED = {
   GOOGLE_REDIRECT_URI: "GOOGLE_REDIRECT_URI",
 } as const;
 
-const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 
 function parseEnvFile(path = ".env"): EnvBag {
   if (!existsSync(path)) {
