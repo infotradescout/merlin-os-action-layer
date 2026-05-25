@@ -205,6 +205,23 @@
             <h2>Replay / Audit</h2>
             <ul id="replay-list" class="list"></ul>
           </div>
+          <div class="panel">
+            <h2>LISA Browser</h2>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <input
+                id="lisa-search-input"
+                style="flex: 1; background: var(--panel-soft); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 0.45rem 0.7rem;"
+                placeholder="Search LISA records"
+              />
+              <button
+                id="lisa-search-run"
+                style="background: var(--panel-soft); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 0 0.7rem;"
+              >
+                Search
+              </button>
+            </div>
+            <ul id="lisa-search-list" class="list"></ul>
+          </div>
         </section>
       </div>
 
@@ -212,6 +229,8 @@
         <h3 id="detail-title">Select a section item</h3>
         <p id="detail-summary" class="subtitle"></p>
         <div id="detail-meta" class="subtitle"></div>
+        <h3>Entity Timeline</h3>
+        <ul id="detail-timeline" class="list"></ul>
         <h3 style="margin-top: 0.8rem;">Policy</h3>
         <pre id="detail-policy">{}</pre>
         <h3>Linked Outcome</h3>
@@ -226,7 +245,8 @@
         daily: null,
         approvals: [],
         replay: [],
-        recentChanges: null
+        recentChanges: null,
+        lisaSearch: []
       };
 
       const detailPayloadByKey = new Map();
@@ -279,7 +299,32 @@
         container.appendChild(li);
       };
 
-      const showDetail = (key) => {
+      const renderTimeline = (timelineItems = []) => {
+        const container = document.getElementById('detail-timeline');
+        container.innerHTML = '';
+        if (!timelineItems.length) {
+          container.innerHTML = '<li class="item">No timeline rows.</li>';
+          return;
+        }
+
+        for (const timelineItem of timelineItems.slice(0, 15)) {
+          const row = document.createElement('li');
+          row.className = 'item';
+          const titleNode = document.createElement('div');
+          titleNode.className = 'item-title';
+          titleNode.textContent = safeText(timelineItem.title || 'Timeline row');
+          const summary = document.createElement('div');
+          summary.className = 'item-summary';
+          summary.textContent = `${formatDate(timelineItem.observed_at || timelineItem.created_at)} · ${safeText(
+            timelineItem.summary
+          )}`;
+          row.appendChild(titleNode);
+          row.appendChild(summary);
+          container.appendChild(row);
+        }
+      };
+
+      const showDetail = async (key) => {
         const item = detailPayloadByKey.get(key);
         if (!item) return;
 
@@ -312,6 +357,29 @@
         document.getElementById('detail-outcome').textContent = outcomeMatch
           ? JSON.stringify(outcomeMatch, null, 2)
           : '(none)';
+
+        if ((item.kind === 'entity' || item.entity_id) && item.entity_id) {
+          try {
+            const entityDetail = await fetchJson(`/api/lisa/entities/${encodeURIComponent(item.entity_id)}`);
+            const entityTimeline = entityDetail.timeline || [];
+            renderTimeline(entityTimeline);
+            if (entityDetail.entity && entityDetail.entity.summary) {
+              document.getElementById('detail-outcome').textContent = JSON.stringify(
+                {
+                  entity_state: entityDetail.entity.summary,
+                  state_observed_at: entityDetail.entity.observed_at,
+                  source_refs: entityDetail.source_refs
+                },
+                null,
+                2
+              );
+            }
+          } catch (error) {
+            renderTimeline([]);
+          }
+        } else {
+          renderTimeline([]);
+        }
 
         const replayList = document.getElementById('detail-replay');
         replayList.innerHTML = '';
@@ -404,6 +472,13 @@
         })), 'replay');
       };
 
+      const loadLisaBrowser = async () => {
+        const query = document.getElementById('lisa-search-input')?.value || '';
+        const payload = await fetchJson(`/api/lisa/search?q=${encodeURIComponent(query)}&limit=40`);
+        state.lisaSearch = payload.results || [];
+        renderSection('lisa-search-list', state.lisaSearch, 'lisa');
+      };
+
       const fetchJson = async (endpoint) => {
         const response = await fetch(endpoint, { cache: 'no-store' });
         if (!response.ok) {
@@ -413,8 +488,15 @@
       };
 
       async function boot() {
+        document.getElementById('lisa-search-run').addEventListener('click', loadLisaBrowser);
+        const searchInput = document.getElementById('lisa-search-input');
+        searchInput?.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            loadLisaBrowser();
+          }
+        });
         try {
-          await Promise.all([loadDaily(), loadApprovals(), loadRecentChanges(), loadReplay()]);
+          await Promise.all([loadDaily(), loadApprovals(), loadRecentChanges(), loadReplay(), loadLisaBrowser()]);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error';
           alert(`Could not load Merlin Daily UI: ${message}`);

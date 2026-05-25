@@ -8,6 +8,12 @@ import {
   getDailyPayloadForUser,
   getEntityState,
   getEntityTimeline,
+  getLisaEntities,
+  getLisaEntityRecord,
+  getLisaEventsForBrowser,
+  searchLisaBrowserEvents,
+  searchTimelineEntriesForBrowser,
+  getTimelineEntriesForBrowser,
   getRecentChanges,
   ingestCrawlabilityEvent,
   ingestTradeScoutEvent,
@@ -23,16 +29,21 @@ import {
   resetApprovalQueueForTest,
   updateApprovalStatus
 } from './approvalQueue.js';
-import { getRecentRecommendations } from './recommendations.js';
 import { getHealthPayload } from './health.js';
 import { getSearchPayload } from './search.js';
-import { getRecentReplayEvents, resetReplayForTest } from './replay.js';
-import { resetDriveManifestForTest } from './driveManifest.js';
+import {
+  getReplayEventsForEntity as getReplayEventsForEntityInServer,
+  getRecentReplayEvents,
+  resetReplayForTest
+} from './replay.js';
+import { getRecentManifestEntries, resetDriveManifestForTest } from './driveManifest.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { resetOutcomesForTest } from './outcomes.js';
+import { getRecentOutcomes } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
-import { resetRecommendationsForTest } from './recommendations.js';
-import { resetSourceRegistryForTest } from './sourceRegistry.js';
+import { getRecentRecommendations, resetRecommendationsForTest } from './recommendations.js';
+import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegistry.js';
+import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 
 type QueryBag = { [key: string]: string | undefined };
 
@@ -114,6 +125,161 @@ function isDemoModeEnabled(): boolean {
     return nodeEnv !== 'production';
   }
   return true;
+}
+
+function mapSearchText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function mapToBrowserSearchResult(input: {
+  id: string;
+  type: LisaBrowserRecordType;
+  title: string;
+  summary: string;
+  entity_id?: string;
+  source_refs?: string[];
+  created_at?: string;
+  observed_at?: string;
+  freshness?: number;
+  newness_score?: number;
+}): LisaBrowserSearchResult {
+  return {
+    id: input.id,
+    type: input.type,
+    title: input.title,
+    summary: input.summary,
+    entity_id: input.entity_id,
+    source_refs: input.source_refs || [],
+    created_at: input.created_at,
+    observed_at: input.observed_at,
+    freshness: input.freshness,
+    newness_score: input.newness_score
+  };
+}
+
+function getMatchTokens(input: string): string[] {
+  const rawTokens = (input || '')
+    .toLowerCase()
+    .split(/[^a-z0-9._:-]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const expanded = new Set<string>();
+  for (const token of rawTokens) {
+    expanded.add(token);
+    const spaceToken = token.replace(/_/g, ' ');
+    const compactToken = token.replace(/[\s._-]+/g, '');
+    const hyphenToken = token.replace(/[_\s]+/g, '-');
+    expanded.add(spaceToken);
+    expanded.add(compactToken);
+    expanded.add(hyphenToken);
+    expanded.add(spaceToken.replace(/-/g, '_'));
+  }
+
+  return Array.from(expanded);
+}
+
+function rowMatchesQuery(payload: string[], haystack: string): boolean {
+  if (!payload.length) return true;
+  const lower = haystack.toLowerCase();
+  return payload.some((token) => lower.includes(token));
+}
+
+function buildBrowserSearchCandidates(query: string, limit = 50): LisaBrowserSearchResult[] {
+  const safeLimit = Math.max(1, Math.min(100, limit));
+  const tokens = getMatchTokens(query);
+  const results: LisaBrowserSearchResult[] = [];
+  const seen = new Set<string>();
+  const take = (items: LisaBrowserSearchResult[]): void => {
+    for (const item of items) {
+      if (results.length >= safeLimit) break;
+      if (seen.has(item.id)) continue;
+      const haystack = [
+        item.id,
+        item.type,
+        item.title,
+        item.summary,
+        item.entity_id,
+        ...(item.source_refs || [])
+      ].join(' ');
+      if (!rowMatchesQuery(tokens, haystack)) continue;
+      seen.add(item.id);
+      results.push(item);
+    }
+  };
+
+  take(searchLisaBrowserEvents(query, safeLimit));
+  take(searchTimelineEntriesForBrowser(query, safeLimit));
+  take(
+    getRecentRecommendations(safeLimit)
+      .map((recommendation) =>
+        mapToBrowserSearchResult({
+          id: recommendation.id,
+          type: 'recommendation',
+          title: recommendation.title,
+          summary: recommendation.summary,
+          entity_id: recommendation.entity_id,
+          source_refs: recommendation.source_refs,
+          created_at: recommendation.created_at,
+          freshness: undefined,
+          newness_score: undefined
+        })
+      )
+  );
+  take(
+    getRecentApprovals(safeLimit).map((approval) =>
+      mapToBrowserSearchResult({
+        id: approval.id,
+        type: 'approval',
+        title: approval.title,
+        summary: approval.summary,
+        entity_id: approval.entity_id,
+        source_refs: approval.source_refs,
+        created_at: approval.created_at
+      })
+    )
+  );
+  take(
+    getRecentOutcomes(safeLimit).map((outcome) =>
+      mapToBrowserSearchResult({
+        id: outcome.id,
+        type: 'outcome',
+        title: mapSearchText(outcome.action),
+        summary: mapSearchText(outcome.result) || mapSearchText(outcome.outcome),
+        entity_id: outcome.entity_id,
+        source_refs: outcome.source_refs,
+        created_at: outcome.created_at,
+        observed_at: outcome.observed_at
+      })
+    )
+  );
+  take(
+    getRecentReplayEvents(safeLimit).map((event) =>
+      mapToBrowserSearchResult({
+        id: event.id,
+        type: 'replay',
+        title: `Replay: ${event.event_type}`,
+        summary: event.summary,
+        entity_id: event.entity_id,
+        source_refs: event.source_refs || [],
+        created_at: event.created_at
+      })
+    )
+  );
+  take(
+    getRecentManifestEntries(safeLimit).map((entry) =>
+      mapToBrowserSearchResult({
+        id: entry.id,
+        type: 'drive_manifest',
+        title: entry.file_name,
+        summary: `${entry.processing_status} for ${entry.drive_file_id}`,
+        source_refs: [`drive:${entry.drive_file_id}`],
+        created_at: entry.seen_at
+      })
+    )
+  );
+
+  return results.slice(0, safeLimit);
 }
 
 function seedDemoEvents(): DemoSeedEvent[] {
@@ -239,6 +405,72 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'GET' && pathname === '/api/search') {
     const queryString = query.q || '';
     return responseJson(res, getSearchPayload(queryString));
+  }
+
+  if (method === 'GET' && pathname === '/api/lisa/search') {
+    const queryString = query.q || '';
+    const limit = getNumber(query.limit, 20);
+    if (!queryString.trim()) {
+      return responseJson(res, { query: '', results: [] });
+    }
+    return responseJson(res, {
+      query: queryString,
+      results: buildBrowserSearchCandidates(queryString, limit)
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/lisa/events') {
+    const queryString = query.q || '';
+    const limit = getNumber(query.limit, 20);
+    const payload = queryString
+      ? searchLisaBrowserEvents(queryString, limit)
+      : getLisaEventsForBrowser(limit);
+    return responseJson(res, { events: payload });
+  }
+
+  if (method === 'GET' && pathname === '/api/lisa/entities') {
+    const limit = getNumber(query.limit, 50);
+    return responseJson(res, { entities: getLisaEntities(limit) });
+  }
+
+  const lisaEntityMatch = pathname.match(/^\/api\/lisa\/entities\/([^/]+)$/);
+  if (method === 'GET' && lisaEntityMatch) {
+    const entityId = decodeURIComponent(lisaEntityMatch[1]);
+    const entity = getLisaEntityRecord(entityId);
+    if (!entity) {
+      return responseJson(res, { error: 'Entity not found' }, 404);
+    }
+    const timeline = getEntityTimeline(entityId, getNumber(query.limit, 20));
+    const events = getLisaEventsForBrowser(200).filter((event) => event.entity_id === entity.entity_id);
+    const timelineRows = getTimelineEntriesForBrowser(200).filter((entry) => entry.entity_id === entity.entity_id);
+    const sourceRefs = Array.from(
+      new Set(
+        [
+          ...entity.source_refs,
+          ...events.flatMap((entry) => entry.source_refs),
+          ...timelineRows.flatMap((entry) => entry.source_refs)
+        ].filter((entry) => Boolean(entry))
+      )
+    );
+    return responseJson(res, {
+      entity,
+      timeline,
+      timeline_results: timelineRows,
+      source_refs: sourceRefs
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/lisa/sources') {
+    return responseJson(res, { sources: getRegisteredSources() });
+  }
+
+  if (method === 'GET' && pathname === '/api/lisa/replay') {
+    const limit = getNumber(query.limit, 20);
+    const entityId = query.entity;
+    const events = entityId
+      ? getReplayEventsForEntityInServer(entityId)
+      : getRecentReplayEvents(limit);
+    return responseJson(res, { replay_events: events.slice(0, limit) });
   }
 
   if (method === 'GET' && pathname === '/api/changes/recent') {

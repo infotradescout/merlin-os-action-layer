@@ -310,6 +310,42 @@ export interface TimelineEntry {
   newness_score: number;
 }
 
+export type LisaBrowserRecordType =
+  | 'event'
+  | 'entity'
+  | 'timeline'
+  | 'recommendation'
+  | 'approval'
+  | 'outcome'
+  | 'replay'
+  | 'drive_manifest';
+
+export interface LisaBrowserSearchResult {
+  id: string;
+  type: LisaBrowserRecordType;
+  title: string;
+  summary: string;
+  entity_id?: string;
+  source_refs: string[];
+  created_at?: string;
+  observed_at?: string;
+  freshness?: number;
+  newness_score?: number;
+}
+
+export interface LisaEntityRecord {
+  id: string;
+  type: 'entity';
+  title: string;
+  summary: string;
+  entity_id: string;
+  source_refs: string[];
+  created_at: string;
+  observed_at: string;
+  freshness?: number;
+  newness_score?: number;
+}
+
 export interface DailyChangeItem {
   id: string;
   title: string;
@@ -356,6 +392,7 @@ type EventRow = {
   review_required: number;
   recommended_action_type: string;
   recommended_action_description: string | null;
+  created_at: string;
   source_type: string;
   source_name: string;
   source_reference: string;
@@ -539,6 +576,88 @@ function toTimelineEntry(event: EventRow, now: number): TimelineEntry {
     review_required: toBoolean(event.review_required),
     truth_score: event.truth_score,
     newness_score: event.newness_score
+  };
+}
+
+function formatTextForSearch(value: string | undefined): string {
+  return value === undefined || value === null ? '' : String(value);
+}
+
+function toBrowserEventResult(event: EventRow): LisaBrowserSearchResult {
+  return {
+    id: event.id,
+    type: 'event',
+    title: event.title || `Event ${event.id}`,
+    summary: event.summary || `Signal ${event.normalized_signal_type} for ${event.entity_id}`,
+    entity_id: event.entity_id,
+    source_refs: [event.source_reference, `lisa:${event.id}`],
+    observed_at: event.observed_at,
+    created_at: event.created_at,
+    freshness: event.truth_score,
+    newness_score: event.newness_score
+  };
+}
+
+function toEntityRecord(row: { entity_id: string; state_json: string; updated_at: string }): LisaEntityRecord {
+  let state: EntityStatePayload | null = null;
+  try {
+    state = JSON.parse(row.state_json) as EntityStatePayload;
+  } catch {
+    state = null;
+  }
+
+  const stateLabel = state ? state.current_state : 'unknown';
+  const entityTitle = `Entity ${row.entity_id}`;
+  const summary = state ? `Current state: ${stateLabel} (${state.brand_lane})` : `Entity record for ${row.entity_id}`;
+  return {
+    id: row.entity_id,
+    type: 'entity',
+    title: entityTitle,
+    summary,
+    entity_id: row.entity_id,
+    source_refs: state?.source_refs || [`entity:${row.entity_id}`],
+    created_at: row.updated_at,
+    observed_at: state?.last_observed_at || row.updated_at,
+    freshness: state?.truth_score,
+    newness_score: state?.newness_score
+  };
+}
+
+interface TimelineBrowserRow {
+  id: string;
+  entity_id: string;
+  signal_id: string;
+  event_type: string;
+  title: string;
+  summary: string;
+  observed_at: string;
+  created_at: string;
+  source_json: string;
+}
+
+function toTimelineBrowserResult(row: TimelineBrowserRow): LisaBrowserSearchResult {
+  const sourceRefs = (() => {
+    try {
+      const parsed = JSON.parse(row.source_json) as { reference?: string };
+      const refs = ['lisa:' + row.id];
+      if (parsed?.reference) {
+        refs.unshift(parsed.reference);
+      }
+      return refs;
+    } catch {
+      return ['lisa:' + row.id];
+    }
+  })();
+
+  return {
+    id: row.id,
+    type: 'timeline',
+    title: row.title || `Timeline ${row.id}`,
+    summary: row.summary || `${row.event_type.replace(/_/g, ' ')} for ${row.entity_id}`,
+    entity_id: row.entity_id,
+    source_refs: sourceRefs,
+    observed_at: row.observed_at,
+    created_at: row.created_at
   };
 }
 
@@ -1229,6 +1348,119 @@ export function searchLisaSignals(query: string, limit = 20): ChangeResult {
   const results = candidates.slice(0, maxCount).map((event) => toTimelineEntry(event, now));
   const sourceRefs = Array.from(new Set(results.map((item) => item.source)));
   return { changes: results, sourceRefs };
+}
+
+export function getLisaEventsForBrowser(limit = 50): LisaBrowserSearchResult[] {
+  const safeLimit = sanitizeLimit(limit);
+  const events = fetchEvents(1000);
+  const now = Date.now();
+  return events
+    .slice(0, safeLimit)
+    .map((event) => toBrowserEventResult(event));
+}
+
+export function searchLisaBrowserEvents(query: string, limit = 50): LisaBrowserSearchResult[] {
+  const token = formatTextForSearch(query).trim().toLowerCase();
+  if (!token) return [];
+  const maxCount = sanitizeLimit(limit);
+  const rows = fetchEvents(1000);
+  const candidates = rows.filter((event) => {
+    const haystack = `${event.id} ${event.normalized_signal_type} ${event.entity_id} ${event.title ?? ''} ${event.summary ?? ''} ${event.notes ?? ''} ${
+      event.brand_lane
+    } ${event.source_name} ${event.source_type}`.toLowerCase();
+    return haystack.includes(token);
+  });
+  return candidates.slice(0, maxCount).map((event) => toBrowserEventResult(event));
+}
+
+export function getTimelineEntriesForBrowser(limit = 50): LisaBrowserSearchResult[] {
+  const safeLimit = sanitizeLimit(limit);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT
+        id,
+        entity_id,
+        signal_id,
+        event_type,
+        title,
+        summary,
+        observed_at,
+        created_at,
+        source_json
+      FROM timeline_entries
+      ORDER BY observed_at DESC, created_at DESC
+      LIMIT ?
+      `
+    )
+    .all(safeLimit) as TimelineBrowserRow[];
+  return rows.map((row) => toTimelineBrowserResult(row));
+}
+
+export function searchTimelineEntriesForBrowser(query: string, limit = 50): LisaBrowserSearchResult[] {
+  const token = formatTextForSearch(query).trim().toLowerCase();
+  if (!token) return [];
+  const maxCount = sanitizeLimit(limit);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT
+        id,
+        entity_id,
+        signal_id,
+        event_type,
+        title,
+        summary,
+        observed_at,
+        created_at,
+        source_json
+      FROM timeline_entries
+      ORDER BY observed_at DESC, created_at DESC
+      `
+    )
+    .all() as TimelineBrowserRow[];
+
+  const candidates = rows.filter((entry) => {
+    const haystack = `${entry.id} ${entry.signal_id} ${entry.event_type} ${entry.entity_id} ${entry.title} ${entry.summary}`.toLowerCase();
+    return haystack.includes(token);
+  });
+  return candidates.slice(0, maxCount).map((row) => toTimelineBrowserResult(row));
+}
+
+export function getLisaEntities(limit = 100): LisaEntityRecord[] {
+  const safeLimit = sanitizeLimit(limit);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT
+        entity_id,
+        state_json,
+        updated_at
+      FROM entity_state
+      ORDER BY updated_at DESC
+      LIMIT ?
+      `
+    )
+    .all(safeLimit) as Array<{ entity_id: string; state_json: string; updated_at: string }>;
+  return rows.map(toEntityRecord);
+}
+
+export function getLisaEntityRecord(entityId: string): LisaEntityRecord | null {
+  const resolvedEntityId = resolveCanonicalEntityId(entityId);
+  const row = getDb()
+    .prepare(
+      `
+      SELECT
+        entity_id,
+        state_json,
+        updated_at
+      FROM entity_state
+      WHERE entity_id = ?
+      `
+    )
+    .get(resolvedEntityId) as { entity_id: string; state_json: string; updated_at: string } | undefined;
+
+  return row ? toEntityRecord(row) : null;
 }
 
 export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<DailyConfig> = {}): DailyPayload {
