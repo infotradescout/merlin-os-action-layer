@@ -51,6 +51,7 @@ import {
   resetDriveManifestForTest
 } from './driveManifest.js';
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
+import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { resetOutcomesForTest } from './outcomes.js';
@@ -746,6 +747,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const discovery = await discoverManagedFolders();
       const authConfig = getDriveAuthConfig();
       const authProfile = getDriveAuthProfile(authConfig);
+      const scheduler = getDriveSchedulerStatus();
       return responseJson(res, {
         status: discovery.status,
         mode: discovery.mode,
@@ -772,6 +774,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         bootstrap_enabled: discovery.bootstrap_enabled,
         create_missing_folders: discovery.create_missing_folders,
         folder_create_allowed: discovery.folder_create_allowed,
+        scheduler_enabled: scheduler.scheduler_enabled,
+        scheduler_interval_minutes: scheduler.scheduler_interval_minutes,
+        last_scheduled_sync_at: scheduler.last_scheduled_sync_at,
+        last_scheduled_sync_result: scheduler.last_scheduled_sync_result,
         bootstrap_plan: discovery.bootstrap_plan,
         sync_mode: discovery.syncMode
       });
@@ -978,6 +984,7 @@ export function createMerlinServer(): HttpServer {
 
 export function startMerlinServer(port = Number(process.env.PORT || DEFAULT_PORT)): HttpServer {
   const server = createMerlinServer();
+  startDriveScheduler();
   server.listen(port, () => {
     console.log(`merlin-or listening on http://localhost:${port}`);
   });
