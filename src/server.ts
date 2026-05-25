@@ -49,6 +49,7 @@ import {
   markManifestSkipped,
   resetDriveManifestForTest
 } from './driveManifest.js';
+import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { resetOutcomesForTest } from './outcomes.js';
@@ -724,6 +725,36 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       status_hint: status,
       source_record_id: sourceRecord.drive_file_id
     });
+  }
+
+  if (method === 'POST' && pathname === '/api/drive/sync') {
+    try {
+      const result = await syncDriveInbox();
+      return responseJson(res, { status: result.status, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive sync failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/status') {
+    try {
+      const discovery = await discoverManagedFolders();
+      return responseJson(res, {
+        status: discovery.status,
+        mode: discovery.mode,
+        root_mode: discovery.rootMode,
+        root_folder_name: discovery.root_folder_name,
+        root_folder_id: discovery.root_folder_id,
+        reason: discovery.reason,
+        managed_folders: discovery.managed_folders,
+        bootstrap_plan: discovery.bootstrap_plan,
+        sync_mode: discovery.syncMode
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive status failed';
+      return responseJson(res, { error: message }, 500);
+    }
   }
 
   if (method === 'GET' && pathname === '/api/drive/manifest') {

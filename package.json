@@ -17,6 +17,7 @@
   "dependencies": {
     "@types/node": "^24.10.1",
     "better-sqlite3": "^12.4.2",
+    "googleapis": "^148.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "zod": "^4.1.12"
