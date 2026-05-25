@@ -363,6 +363,18 @@ export interface LisaEntityRecord {
   newness_score?: number;
 }
 
+export interface EntitySuggestionProfile {
+  entity_id: string;
+  label: string;
+  aliases: string[];
+  business_name?: string;
+  email?: string;
+  phone?: string;
+  domain?: string;
+  county?: string;
+  location?: string;
+}
+
 export interface DailyChangeItem {
   id: string;
   title: string;
@@ -1516,6 +1528,74 @@ export function getLisaEntityRecord(entityId: string): LisaEntityRecord | null {
     .get(resolvedEntityId) as { entity_id: string; state_json: string; updated_at: string } | undefined;
 
   return row ? toEntityRecord(row) : null;
+}
+
+export function getEntitySuggestionProfiles(limit = 500): EntitySuggestionProfile[] {
+  const safeLimit = sanitizeLimit(limit);
+  const entities = getLisaEntities(safeLimit);
+  const rows = getDb()
+    .prepare(
+      `
+      SELECT entity_id, payload_json
+      FROM events
+      ORDER BY observed_at DESC, created_at DESC
+      LIMIT ?
+      `
+    )
+    .all(Math.max(200, safeLimit * 10)) as Array<{ entity_id: string; payload_json: string | null }>;
+
+  const profiles = new Map<string, EntitySuggestionProfile>();
+
+  const ensureProfile = (entityId: string): EntitySuggestionProfile => {
+    const existing = profiles.get(entityId);
+    if (existing) return existing;
+    const entity = entities.find((item) => item.entity_id === entityId);
+    const next: EntitySuggestionProfile = {
+      entity_id: entityId,
+      label: entity?.title || `Entity ${entityId}`,
+      aliases: [entityId]
+    };
+    profiles.set(entityId, next);
+    return next;
+  };
+
+  for (const row of rows) {
+    if (!row.entity_id) continue;
+    const profile = ensureProfile(row.entity_id);
+    if (!row.payload_json) continue;
+    try {
+      const payload = JSON.parse(row.payload_json) as Record<string, unknown>;
+      const businessName = typeof payload.business_name === 'string' ? payload.business_name : undefined;
+      const entityName = typeof payload.entity_name === 'string' ? payload.entity_name : undefined;
+      const email = typeof payload.email === 'string' ? payload.email : undefined;
+      const phone = typeof payload.phone === 'string' ? payload.phone : typeof payload.phone_number === 'string' ? payload.phone_number : undefined;
+      const domain = typeof payload.domain === 'string' ? payload.domain : undefined;
+      const county = typeof payload.county === 'string' ? payload.county : undefined;
+      const location = typeof payload.location === 'string' ? payload.location : undefined;
+      const aliases = Array.isArray(payload.aliases) ? payload.aliases.filter((item): item is string => typeof item === 'string') : [];
+
+      if (!profile.business_name && (businessName || entityName)) {
+        profile.business_name = businessName || entityName;
+        profile.label = profile.business_name || profile.label;
+      }
+      if (!profile.email && email) profile.email = email;
+      if (!profile.phone && phone) profile.phone = phone;
+      if (!profile.domain && domain) profile.domain = domain;
+      if (!profile.county && county) profile.county = county;
+      if (!profile.location && location) profile.location = location;
+      for (const alias of aliases) {
+        if (!profile.aliases.includes(alias)) profile.aliases.push(alias);
+      }
+    } catch {
+      // Ignore malformed payloads.
+    }
+  }
+
+  for (const entity of entities) {
+    ensureProfile(entity.entity_id);
+  }
+
+  return Array.from(profiles.values()).slice(0, safeLimit);
 }
 
 export function getDailyPayloadForUser(userId = 'demo-user', options: Partial<DailyConfig> = {}): DailyPayload {

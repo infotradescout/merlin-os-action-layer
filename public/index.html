@@ -256,6 +256,8 @@
         <ul id="detail-timeline" class="list"></ul>
         <h3 style="margin-top: 0.8rem;">Policy</h3>
         <pre id="detail-policy">{}</pre>
+        <h3>Entity Suggestions</h3>
+        <ul id="detail-entity-suggestions" class="list"></ul>
         <h3>Linked Outcome</h3>
         <pre id="detail-outcome">(none)</pre>
         <h3>Replay / Audit Events</h3>
@@ -349,6 +351,33 @@
         }
       };
 
+      const renderEntitySuggestions = (suggestions = []) => {
+        const container = document.getElementById('detail-entity-suggestions');
+        container.innerHTML = '';
+        if (!suggestions.length) {
+          container.innerHTML = '<li class="item">No deterministic suggestions.</li>';
+          return;
+        }
+        for (const suggestion of suggestions) {
+          const row = document.createElement('li');
+          row.className = 'item';
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', () => {
+            const input = document.getElementById('detail-attach-entity-id');
+            input.value = suggestion.entity_id || '';
+          });
+          const titleNode = document.createElement('div');
+          titleNode.className = 'item-title';
+          titleNode.textContent = `${safeText(suggestion.label || suggestion.entity_id)} (${Math.round((suggestion.confidence || 0) * 100)}%)`;
+          const summaryNode = document.createElement('div');
+          summaryNode.className = 'item-summary';
+          summaryNode.textContent = `${safeText(suggestion.entity_id)} · ${safeText((suggestion.reasons || []).join(' | '))}`;
+          row.appendChild(titleNode);
+          row.appendChild(summaryNode);
+          container.appendChild(row);
+        }
+      };
+
       const showDetail = async (key) => {
         selectedDetailKey = key;
         const item = detailPayloadByKey.get(key);
@@ -396,6 +425,14 @@
           attachEntityButton.dataset.driveFileId = item.drive_file_id;
           attachEntityInput.style.display = 'inline-block';
           attachEntityInput.value = item.entity_id || '';
+          try {
+            const suggestionPayload = await fetchJson(
+              `/api/drive/review/${encodeURIComponent(item.drive_file_id)}/entity-suggestions`
+            );
+            renderEntitySuggestions(suggestionPayload?.suggestions || []);
+          } catch {
+            renderEntitySuggestions([]);
+          }
         } else {
           markReviewedButton.style.display = 'none';
           markReviewedButton.dataset.driveFileId = '';
@@ -403,6 +440,7 @@
           attachEntityButton.dataset.driveFileId = '';
           attachEntityInput.style.display = 'none';
           attachEntityInput.value = '';
+          renderEntitySuggestions([]);
         }
 
         document.getElementById('detail-title').textContent = title;

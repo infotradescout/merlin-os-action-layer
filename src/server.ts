@@ -57,6 +57,7 @@ import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.j
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { extractSupportedFile } from './fileExtraction.js';
+import { suggestEntitiesForDriveFile } from './entitySuggestions.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { getRecentOutcomes } from './outcomes.js';
 import { recordOutcome } from './outcomes.js';
@@ -1017,6 +1018,31 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       outcome,
       replay_event: replayEvent,
       signal_id: signalId
+    });
+  }
+
+  const driveSuggestionsMatch = pathname.match(/^\/api\/drive\/review\/([^/]+)\/entity-suggestions$/);
+  if (method === 'GET' && driveSuggestionsMatch) {
+    const driveFileId = decodeURIComponent(driveSuggestionsMatch[1]);
+    const entry = getManifestEntryByDriveFileId(driveFileId);
+    if (!entry) {
+      return responseJson(res, { error: 'Drive manifest entry not found' }, 404);
+    }
+    const suggestions = suggestEntitiesForDriveFile(driveFileId);
+    const replay = recordReplayEvent({
+      event_type: 'drive_entity_suggestions_generated',
+      entity_id: entry.entity_id,
+      signal_id: entry.id,
+      summary: `Generated ${suggestions.length} entity suggestions for drive file ${driveFileId}`,
+      source_refs: [`drive:${driveFileId}`, `manifest:${entry.id}`],
+      payload: {
+        suggestion_count: suggestions.length
+      }
+    });
+    return responseJson(res, {
+      drive_file_id: driveFileId,
+      suggestions,
+      replay_event_id: replay.id
     });
   }
 
