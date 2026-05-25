@@ -222,6 +222,10 @@
             </div>
             <ul id="lisa-search-list" class="list"></ul>
           </div>
+          <div class="panel">
+            <h2>Drive Review Queue</h2>
+            <ul id="drive-review-list" class="list"></ul>
+          </div>
         </section>
       </div>
 
@@ -246,7 +250,8 @@
         approvals: [],
         replay: [],
         recentChanges: null,
-        lisaSearch: []
+        lisaSearch: [],
+        driveNeedsReview: []
       };
 
       const detailPayloadByKey = new Map();
@@ -335,11 +340,25 @@
           ? state.replay.find((entry) => entry.outcome_id === outcomeId)
           : state.replay.find((entry) => entry.event_type === 'outcome_recorded' && entry.recommendation_id === item.recommendation_id);
 
+        let manifestEntry = null;
+        if (item.kind === 'drive_review' && item.drive_file_id) {
+          try {
+            const payload = await fetchJson(`/api/drive/manifest/${encodeURIComponent(item.drive_file_id)}`);
+            manifestEntry = payload?.manifest_entry || null;
+          } catch {
+            manifestEntry = null;
+          }
+        }
+
         const relatedReplay = state.replay.filter((entry) => {
           if (item.id && (entry.id === item.id || entry.recommendation_id === item.id || entry.outcome_id === item.id)) return true;
           if (item.recommendation_id && entry.recommendation_id === item.recommendation_id) return true;
           if (item.outcome_id && entry.outcome_id === item.outcome_id) return true;
           if (item.entity_id && entry.entity_id === item.entity_id) return true;
+          if (item.drive_file_id && Array.isArray(entry.source_refs)) {
+            const driveRef = `drive:${item.drive_file_id}`;
+            if (entry.source_refs.includes(driveRef)) return true;
+          }
           if (Array.isArray(item.source_refs) && Array.isArray(entry.source_refs)) {
             return item.source_refs.some((value) => entry.source_refs.includes(value));
           }
@@ -353,10 +372,30 @@
           · <span class="status-ok">Created:</span> ${formatDate(item.created_at)}
           · <span class="status-ok">Source:</span> ${safeText(item.source || 'n/a')}
         `;
-        document.getElementById('detail-policy').textContent = JSON.stringify(policy, null, 2);
+        const detailPolicyPayload = item.kind === 'drive_review'
+          ? {
+              drive_file_id: item.drive_file_id,
+              manifest_status: item.processing_status || item.status,
+              extraction_status: item.extraction_status,
+              review_reason: item.review_reason,
+              extracted_fields: item.extracted_fields || {},
+              source_metadata: item.source_metadata || {}
+            }
+          : policy;
+        document.getElementById('detail-policy').textContent = JSON.stringify(detailPolicyPayload, null, 2);
         document.getElementById('detail-outcome').textContent = outcomeMatch
           ? JSON.stringify(outcomeMatch, null, 2)
           : '(none)';
+        if (item.kind === 'drive_review') {
+          document.getElementById('detail-outcome').textContent = JSON.stringify(
+            {
+              manifest_entry: manifestEntry,
+              extracted_preview: item.extracted_text ? item.extracted_text.slice(0, 600) : '(none)'
+            },
+            null,
+            2
+          );
+        }
 
         if ((item.kind === 'entity' || item.entity_id) && item.entity_id) {
           try {
@@ -479,6 +518,41 @@
         renderSection('lisa-search-list', state.lisaSearch, 'lisa');
       };
 
+      const loadDriveReview = async () => {
+        const payload = await fetchJson('/api/drive/needs-review?limit=100');
+        state.driveNeedsReview = payload.manifest_entries || [];
+        const reviewItems = state.driveNeedsReview.map((entry) => ({
+          id: entry.id,
+          kind: 'drive_review',
+          drive_file_id: entry.drive_file_id,
+          title: entry.file_name,
+          summary: [
+            `status=${safeText(entry.processing_status || 'unknown')}`,
+            `extraction=${safeText(entry.extraction_status || 'unknown')}`,
+            entry.review_reason ? `reason=${entry.review_reason}` : ''
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          status: entry.processing_status,
+          entity_id: entry.entity_id,
+          source_refs: [`drive:${entry.drive_file_id}`, `manifest:${entry.id}`],
+          created_at: entry.seen_at || entry.created_at,
+          processing_status: entry.processing_status,
+          extraction_status: entry.extraction_status,
+          review_reason: entry.review_reason,
+          extracted_text: entry.extracted_text || '',
+          extracted_fields: entry.extracted_fields || {},
+          source_metadata: {
+            drive_file_id: entry.drive_file_id,
+            file_name: entry.file_name,
+            mime_type: entry.mime_type,
+            folder_path: entry.folder_path
+          }
+        }));
+
+        renderSection('drive-review-list', reviewItems, 'drive_review');
+      };
+
       const fetchJson = async (endpoint) => {
         const response = await fetch(endpoint, { cache: 'no-store' });
         if (!response.ok) {
@@ -496,7 +570,7 @@
           }
         });
         try {
-          await Promise.all([loadDaily(), loadApprovals(), loadRecentChanges(), loadReplay(), loadLisaBrowser()]);
+          await Promise.all([loadDaily(), loadApprovals(), loadRecentChanges(), loadReplay(), loadLisaBrowser(), loadDriveReview()]);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error';
           alert(`Could not load Merlin Daily UI: ${message}`);
