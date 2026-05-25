@@ -25,7 +25,44 @@ type SignalType =
   | 'pricing_viewed'
   | 'contact_cta_clicked'
   | 'claim_cta_clicked'
-  | 'onboarding_abandoned';
+  | 'onboarding_abandoned'
+  | 'restaurant_onboarded'
+  | 'host_onboarded'
+  | 'vendor_onboarded'
+  | 'event_created'
+  | 'event_application_started'
+  | 'event_application_accepted'
+  | 'parking_booking_started'
+  | 'parking_booking_completed'
+  | 'online_order_started'
+  | 'online_order_completed'
+  | 'menu_updated'
+  | 'deal_created'
+  | 'order_failed'
+  | 'payment_completed'
+  | 'payment_failed'
+  | 'booking_abandoned'
+  | 'profile_incomplete'
+  | 'crawl_check_completed'
+  | 'crawl_check_failed'
+  | 'robots_allowed'
+  | 'robots_blocked'
+  | 'sitemap_discovered'
+  | 'sitemap_missing'
+  | 'canonical_valid'
+  | 'canonical_missing'
+  | 'metadata_valid'
+  | 'metadata_missing'
+  | 'og_valid'
+  | 'og_missing'
+  | 'structured_data_valid'
+  | 'structured_data_invalid'
+  | 'http_status_changed'
+  | 'page_indexable'
+  | 'page_not_indexable'
+  | 'llm_crawl_ready'
+  | 'llm_crawl_blocked'
+  | 'stale_crawl_check';
 
 const SIGNAL_TYPES: SignalType[] = [
   'contractor_claim',
@@ -52,7 +89,44 @@ const SIGNAL_TYPES: SignalType[] = [
   'pricing_viewed',
   'contact_cta_clicked',
   'claim_cta_clicked',
-  'onboarding_abandoned'
+  'onboarding_abandoned',
+  'restaurant_onboarded',
+  'host_onboarded',
+  'vendor_onboarded',
+  'event_created',
+  'event_application_started',
+  'event_application_accepted',
+  'parking_booking_started',
+  'parking_booking_completed',
+  'online_order_started',
+  'online_order_completed',
+  'menu_updated',
+  'deal_created',
+  'payment_completed',
+  'order_failed',
+  'payment_failed',
+  'booking_abandoned',
+  'profile_incomplete',
+  'crawl_check_completed',
+  'crawl_check_failed',
+  'robots_allowed',
+  'robots_blocked',
+  'sitemap_discovered',
+  'sitemap_missing',
+  'canonical_valid',
+  'canonical_missing',
+  'metadata_valid',
+  'metadata_missing',
+  'og_valid',
+  'og_missing',
+  'structured_data_valid',
+  'structured_data_invalid',
+  'http_status_changed',
+  'page_indexable',
+  'page_not_indexable',
+  'llm_crawl_ready',
+  'llm_crawl_blocked',
+  'stale_crawl_check'
 ];
 
 const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
@@ -74,6 +148,49 @@ const TRADESCOUT_SIGNAL_MAP: Record<string, SignalType> = {
   contact_cta_clicked: 'contact_cta_clicked',
   claim_cta_clicked: 'claim_cta_clicked',
   onboarding_abandoned: 'onboarding_abandoned'
+};
+
+const MEALSCOUT_SIGNAL_MAP: Record<string, SignalType> = {
+  restaurant_onboarded: 'restaurant_onboarded',
+  host_onboarded: 'host_onboarded',
+  vendor_onboarded: 'vendor_onboarded',
+  event_created: 'event_created',
+  event_application_started: 'event_application_started',
+  event_application_accepted: 'event_application_accepted',
+  parking_booking_started: 'parking_booking_started',
+  parking_booking_completed: 'parking_booking_completed',
+  online_order_started: 'online_order_started',
+  online_order_completed: 'online_order_completed',
+  menu_updated: 'menu_updated',
+  deal_created: 'deal_created',
+  payment_completed: 'payment_completed',
+  order_failed: 'order_failed',
+  payment_failed: 'payment_failed',
+  booking_abandoned: 'booking_abandoned',
+  profile_incomplete: 'profile_incomplete'
+};
+
+const CRAWLABILITY_SIGNAL_MAP: Record<string, SignalType> = {
+  crawl_check_completed: 'crawl_check_completed',
+  crawl_check_failed: 'crawl_check_failed',
+  robots_allowed: 'robots_allowed',
+  robots_blocked: 'robots_blocked',
+  sitemap_discovered: 'sitemap_discovered',
+  sitemap_missing: 'sitemap_missing',
+  canonical_valid: 'canonical_valid',
+  canonical_missing: 'canonical_missing',
+  metadata_valid: 'metadata_valid',
+  metadata_missing: 'metadata_missing',
+  og_valid: 'og_valid',
+  og_missing: 'og_missing',
+  structured_data_valid: 'structured_data_valid',
+  structured_data_invalid: 'structured_data_invalid',
+  http_status_changed: 'http_status_changed',
+  page_indexable: 'page_indexable',
+  page_not_indexable: 'page_not_indexable',
+  llm_crawl_ready: 'llm_crawl_ready',
+  llm_crawl_blocked: 'llm_crawl_blocked',
+  stale_crawl_check: 'stale_crawl_check'
 };
 
 type SourceType = 'drive' | 'gmail' | 'calendar' | 'stripe' | 'canva' | 'github' | 'web' | 'app' | 'manual';
@@ -113,9 +230,15 @@ interface LISAEvent {
   summary?: string;
 }
 
-interface TradeScoutActivityEvent {
-  event_id?: string;
+interface OrchestratedActivityEvent {
   entity_id: string;
+  event_type?: string;
+  signal_type?: string;
+  origin_surface?: string;
+  observed_at?: string;
+  source_reference?: string;
+  payload?: Record<string, unknown>;
+  event_id?: string;
   business_name?: string;
   entity_name?: string;
   email?: string;
@@ -123,21 +246,39 @@ interface TradeScoutActivityEvent {
   phone_number?: string;
   domain?: string;
   location?: string;
+  city?: string;
   county?: string;
   aliases?: string[];
   entity_type?: string;
-  event_type?: string;
-  signal_type?: string;
-  origin_surface?: string;
-  observed_at?: string;
   truth_score?: number;
   newness_score?: number;
   recommended_action?: LISARecommendedAction;
   review_required?: boolean;
-  source_reference?: string;
   title?: string;
   summary?: string;
   notes?: string;
+  restaurant_id?: string;
+  host_id?: string;
+  vendor_id?: string;
+  order_id?: string;
+  booking_id?: string;
+}
+
+interface TradeScoutActivityEvent extends OrchestratedActivityEvent {
+  business_id?: string;
+  role?: string;
+  entry_path?: string;
+  user_id?: string;
+}
+
+interface MealScoutActivityEvent extends OrchestratedActivityEvent {
+  restaurant_name?: string;
+  host_name?: string;
+  vendor_name?: string;
+}
+
+interface CrawlabilityActivityEvent extends OrchestratedActivityEvent {
+  url?: string;
 }
 
 export interface EntityStatePayload {
@@ -222,6 +363,7 @@ type EventRow = {
   title: string | null;
   summary: string | null;
   notes: string | null;
+  payload_json: string | null;
 };
 
 type TimelineRow = {
@@ -244,6 +386,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { calculateFreshnessScore, type FreshnessResult } from './freshness.js';
+import { classifyCrawlabilityStatus, type CrawlabilityPayload } from './crawlability.js';
 import { resolveAndTrackEntity, resolveEntityIdentity } from './entityResolution.js';
 import { resolveSource, type ResolvedSource } from './sourceRegistry.js';
 import { recordReplayEvent } from './replay.js';
@@ -379,8 +522,9 @@ function toSignalDate(observedAt?: string): string {
 
 function toTimelineEntry(event: EventRow, now: number): TimelineEntry {
   const observedTime = new Date(event.observed_at).getTime();
-  const title = event.title || `${event.normalized_signal_type.replace(/_/g, ' ')} for ${event.entity_id} (TradeScout)`;
-  const summary = event.summary || `TradeScout reported: ${event.recommended_action_description || `Review ${event.normalized_signal_type.replace(/_/g, ' ')}`}`;
+  const title = event.title || `${event.normalized_signal_type.replace(/_/g, ' ')} for ${event.entity_id} (${event.brand_lane})`;
+  const summary =
+    event.summary || `${event.brand_lane} reported: ${event.recommended_action_description || `Review ${event.normalized_signal_type.replace(/_/g, ' ')}`}`;
 
   return {
     id: event.id,
@@ -414,6 +558,8 @@ function deriveActionType(signalType: SignalType): ActionType {
   if (signalType === 'host_intake' || signalType === 'vendor_activation') return 'route';
   if (signalType === 'online_order' || signalType === 'parking_booking') return 'update';
   if (signalType === 'business_claim_started' || signalType === 'business_profile_started' || signalType === 'verification_started') return 'inspect';
+  if (signalType === 'parking_booking_started' || signalType === 'online_order_started' || signalType === 'event_application_started') return 'route';
+  if (signalType === 'payment_failed' || signalType === 'order_failed') return 'inspect';
   if (
     signalType === 'onboarding_started' ||
     signalType === 'role_selected' ||
@@ -439,11 +585,50 @@ function inferSectionFromEventType(rawEventType: string): keyof DailyPayload['se
     case 'contact_cta_clicked':
     case 'claim_cta_clicked':
     case 'location_added':
+    case 'restaurant_onboarded':
+    case 'host_onboarded':
+    case 'vendor_onboarded':
+    case 'event_created':
+    case 'event_application_started':
+    case 'event_application_accepted':
+    case 'online_order_completed':
+    case 'parking_booking_completed':
+    case 'menu_updated':
+    case 'deal_created':
+    case 'payment_completed':
+    case 'robots_allowed':
+    case 'sitemap_discovered':
+    case 'canonical_valid':
+    case 'metadata_valid':
+    case 'og_valid':
+    case 'structured_data_valid':
+    case 'page_indexable':
+    case 'llm_crawl_ready':
       return 'changed';
     case 'business_profile_started':
     case 'business_claim_started':
     case 'verification_started':
+    case 'online_order_started':
+    case 'parking_booking_started':
+      return 'waiting';
+    case 'order_failed':
+    case 'payment_failed':
+    case 'profile_incomplete':
       return 'needs_attention';
+    case 'crawl_check_failed':
+    case 'robots_blocked':
+    case 'sitemap_missing':
+    case 'canonical_missing':
+    case 'metadata_missing':
+    case 'structured_data_invalid':
+    case 'http_status_changed':
+    case 'page_not_indexable':
+    case 'llm_crawl_blocked':
+      return 'needs_attention';
+    case 'stale_crawl_check':
+      return 'stale';
+    case 'booking_abandoned':
+      return 'stale';
     case 'onboarding_abandoned':
       return 'stale';
     default:
@@ -501,18 +686,55 @@ function normalizeBrandLaneForRecommendation(brandLane: string): 'tradescout' | 
     | 'system';
 }
 
-function normalizeSignalType(value?: string): SignalType {
+function normalizeSignalType(value?: string, surface?: string): SignalType {
   if (!value) return 'contractor_claim';
   const direct = value.trim().toLowerCase();
   if (SIGNAL_TYPES.includes(direct as SignalType)) return direct as SignalType;
+  if (direct in MEALSCOUT_SIGNAL_MAP && surface === 'mealscout') return MEALSCOUT_SIGNAL_MAP[direct];
+  if (direct in CRAWLABILITY_SIGNAL_MAP && surface === 'bot_crawlability') return CRAWLABILITY_SIGNAL_MAP[direct];
   if (direct in TRADESCOUT_SIGNAL_MAP) return TRADESCOUT_SIGNAL_MAP[direct];
   return 'contractor_claim';
 }
 
 function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISAEvent {
+  return createSignalFromSurfaceEvent(payload, {
+    signalSource: 'tradescout',
+    brandLane: 'TradeScout',
+    defaultName: 'TradeScout',
+    signalTypeResolver: (value) => normalizeSignalType(value, 'tradescout')
+  });
+}
+
+function createSignalFromMealScoutEvent(payload: MealScoutActivityEvent): LISAEvent {
+  return createSignalFromSurfaceEvent(payload, {
+    signalSource: 'mealscout',
+    brandLane: 'MealScout',
+    defaultName: 'MealScout',
+    signalTypeResolver: (value) => normalizeSignalType(value, 'mealscout')
+  });
+}
+
+function createSignalFromCrawlabilityEvent(payload: CrawlabilityActivityEvent): LISAEvent {
+  return createSignalFromSurfaceEvent(payload, {
+    signalSource: 'bot_crawlability',
+    brandLane: 'LISA',
+    defaultName: 'Bot Crawlability',
+    signalTypeResolver: (value) => normalizeSignalType(value, 'bot_crawlability')
+  });
+}
+
+function createSignalFromSurfaceEvent(
+  payload: OrchestratedActivityEvent,
+  context: {
+    signalSource: string;
+    brandLane: BrandLane;
+    defaultName: string;
+    signalTypeResolver: (value: string) => SignalType;
+  }
+): LISAEvent {
   const observedAt = toSignalDate(payload.observed_at);
-  const rawSignalType = payload.signal_type ?? payload.event_type;
-  const signalType = normalizeSignalType(rawSignalType);
+  const rawSignalType = payload.signal_type ?? payload.event_type ?? 'contractor_claim';
+  const signalType = context.signalTypeResolver(rawSignalType);
   const signalId = payload.event_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const resolvedSource = resolveSource({
     sourceReference: payload.source_reference,
@@ -523,8 +745,9 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
     trustLevel: resolvedSource.trustLevel,
     nowMs: Date.now()
   });
-  const title = payload.title || `TradeScout ${signalType.replace(/_/g, ' ')}: ${payload.entity_id}`;
-  const summary = payload.summary || `${payload.entity_id} had a TradeScout activity of ${signalType.replace(/_/g, ' ')}`;
+  const sourceLabel = resolvedSource.name || context.defaultName || context.signalSource;
+  const title = payload.title || `${sourceLabel} ${signalType.replace(/_/g, ' ')}: ${payload.entity_id}`;
+  const summary = payload.summary || `${payload.entity_id} had a ${sourceLabel} activity of ${signalType.replace(/_/g, ' ')}`;
   const action =
     payload.recommended_action ??
     { type: deriveActionType(signalType), description: `Review ${signalType.replace(/_/g, ' ')}` };
@@ -533,7 +756,7 @@ function createSignalFromTradeScoutEvent(payload: TradeScoutActivityEvent): LISA
   return {
     signal_id: signalId,
     source,
-    brand_lane: 'TradeScout',
+    brand_lane: context.brandLane,
     signal_type: signalType,
     entity: {
       type: payload.entity_type || 'entity',
@@ -561,6 +784,21 @@ function asLISASource(source: ResolvedSource): LISASource {
 function classifyEventForDaily(event: EventRow, now: number): keyof DailyPayload['sections'] | 'ignore' {
   const mappedSection = inferSectionFromEventType(event.event_type);
   if (mappedSection) return mappedSection;
+
+  if (event.event_type === 'crawl_check_completed' && event.payload_json) {
+    try {
+      const payload = JSON.parse(event.payload_json) as CrawlabilityPayload;
+      const crawlSection = classifyCrawlabilityStatus({
+        event_type: event.event_type,
+        payload
+      });
+      if (crawlSection !== 'ignore') {
+        return crawlSection;
+      }
+    } catch {
+      return 'ignore';
+    }
+  }
 
   const ageHours = (now - new Date(event.observed_at).getTime()) / ONE_HOUR;
   if (Boolean(event.review_required)) return 'needs_attention';
@@ -625,7 +863,8 @@ function fetchEventById(eventId: string): EventRow | null {
         e.brand_lane,
         e.title,
         e.summary,
-        e.notes
+        e.notes,
+        e.payload_json
       FROM events e
       WHERE e.id = ?;
       `
@@ -656,7 +895,8 @@ function fetchEvents(limit: number): EventRow[] {
         e.brand_lane,
         e.title,
         e.summary,
-        e.notes
+        e.notes,
+        e.payload_json
       FROM events e
       ORDER BY e.observed_at DESC, e.created_at DESC
       LIMIT ?;
@@ -670,8 +910,42 @@ function fetchEntityStateRow(entityId: string): { state_json: string } | undefin
 }
 
 export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string {
+  return ingestSurfaceActivityEvent(payload, {
+    originSystem: 'tradescout',
+    sourceSurface: 'tradescout',
+    errorLabel: 'TradeScout',
+    buildSignal: (eventPayload) => createSignalFromTradeScoutEvent(eventPayload as TradeScoutActivityEvent)
+  });
+}
+
+export function ingestMealScoutEvent(payload: MealScoutActivityEvent): string {
+  return ingestSurfaceActivityEvent(payload, {
+    originSystem: 'mealscout',
+    sourceSurface: 'mealscout',
+    errorLabel: 'MealScout',
+    buildSignal: (eventPayload) => createSignalFromMealScoutEvent(eventPayload as MealScoutActivityEvent)
+  });
+}
+
+export function ingestCrawlabilityEvent(payload: CrawlabilityActivityEvent): string {
+  return ingestSurfaceActivityEvent(payload, {
+    originSystem: 'bot_crawlability',
+    sourceSurface: 'bot_crawlability',
+    errorLabel: 'Crawlability',
+    buildSignal: (eventPayload) => createSignalFromCrawlabilityEvent(eventPayload as CrawlabilityActivityEvent)
+  });
+}
+
+type IngestSurfaceContext = {
+  originSystem: string;
+  sourceSurface: string;
+  errorLabel: string;
+  buildSignal: (payload: OrchestratedActivityEvent) => LISAEvent;
+};
+
+function ingestSurfaceActivityEvent(payload: OrchestratedActivityEvent, context: IngestSurfaceContext): string {
   if (!payload.entity_id || !String(payload.entity_id).trim()) {
-    throw new Error('TradeScout events require entity_id');
+    throw new Error(`${context.errorLabel} events require entity_id`);
   }
 
   const resolved = resolveAndTrackEntity({
@@ -691,13 +965,14 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     entity_id: resolved.canonical_entity_id
   };
 
-  const event = createSignalFromTradeScoutEvent(normalizedPayload);
+  const event = context.buildSignal(normalizedPayload);
   const now = new Date().toISOString();
   const dbInstance = getDb();
+  const sourceLabel = event.source.name || context.originSystem;
   const eventRow = {
     id: event.signal_id,
-    origin_system: 'tradescout',
-    origin_surface: payload.origin_surface || 'tradescout',
+    origin_system: context.originSystem,
+    origin_surface: payload.origin_surface || context.sourceSurface,
     entity_id: event.entity.id_or_name,
     event_type: payload.event_type || payload.signal_type || event.signal_type,
     normalized_signal_type: event.signal_type,
@@ -725,8 +1000,8 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     entity_id: event.entity.id_or_name,
     signal_id: event.signal_id,
     event_type: event.signal_type,
-    title: event.title ?? `TradeScout ${event.signal_type.replace(/_/g, ' ')}`,
-    summary: event.summary ?? `${event.entity.id_or_name} had a TradeScout activity of ${event.signal_type.replace(/_/g, ' ')}`,
+    title: event.title ?? `${sourceLabel} ${event.signal_type.replace(/_/g, ' ')}`,
+    summary: event.summary ?? `${event.entity.id_or_name} had a ${sourceLabel} activity of ${event.signal_type.replace(/_/g, ' ')}`,
     observed_at: event.observed_at,
     created_at: now,
     source_json: JSON.stringify(event.source),
@@ -736,7 +1011,7 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     brand_lane: event.brand_lane
   };
 
-  const state = buildEntityStateFromEvent({ ...eventRow, source_type: 'app', source_name: 'TradeScout', notes: event.notes || null } as unknown as EventRow);
+  const state = buildEntityStateFromEvent({ ...eventRow, source_type: event.source.type, source_name: sourceLabel, notes: event.notes || null } as unknown as EventRow);
   const upsertState = dbInstance.prepare(`
     INSERT INTO entity_state (entity_id, state_json, updated_at)
     VALUES (@entity_id, @state_json, @updated_at)
@@ -842,10 +1117,10 @@ export function ingestTradeScoutEvent(payload: TradeScoutActivityEvent): string 
     event_type: 'event_ingested',
     entity_id: event.entity.id_or_name,
     signal_id: event.signal_id,
-    summary: `TradeScout event ${event.signal_id} ingested for ${event.entity.id_or_name}`,
+    summary: `${sourceLabel} event ${event.signal_id} ingested for ${event.entity.id_or_name}`,
     source_refs: [event.source.reference, `lisa:${event.signal_id}`],
     payload: {
-      origin_system: 'tradescout',
+      origin_system: context.originSystem,
       event_type: eventRow.event_type,
       normalized_signal_type: eventRow.normalized_signal_type,
       origin_surface: eventRow.origin_surface
@@ -907,8 +1182,9 @@ export function getEntityTimeline(entityId: string, limit = 20): TimelineEntry[]
     .all(resolvedEntityId, safeLimit) as TimelineRow[];
   const now = Date.now();
   return rows.map((row) => {
-    const title = row.title || `${row.event_type.replace(/_/g, ' ')} for ${row.entity_id} (TradeScout)`;
-    const summary = row.summary || `TradeScout reported: ${row.event_type.replace(/_/g, ' ')}`;
+    const entitySource = row.brand_lane || 'system';
+    const title = row.title || `${entitySource} ${row.event_type.replace(/_/g, ' ')} for ${row.entity_id}`;
+    const summary = row.summary || `${String(entitySource)} reported ${row.event_type.replace(/_/g, ' ')}`;
     const sourceJson = JSON.parse(row.source_json) as LISASource;
     return {
       id: row.id,

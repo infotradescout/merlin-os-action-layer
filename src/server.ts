@@ -9,7 +9,9 @@ import {
   getEntityState,
   getEntityTimeline,
   getRecentChanges,
+  ingestCrawlabilityEvent,
   ingestTradeScoutEvent,
+  ingestMealScoutEvent,
   resetLisaStore
 } from './lisa.js';
 import {
@@ -26,6 +28,7 @@ import { getHealthPayload } from './health.js';
 import { getSearchPayload } from './search.js';
 import { getRecentReplayEvents, resetReplayForTest } from './replay.js';
 import { resetDriveManifestForTest } from './driveManifest.js';
+import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { resetOutcomesForTest } from './outcomes.js';
 import { resetEntityResolutionForTest } from './entityResolution.js';
 import { resetRecommendationsForTest } from './recommendations.js';
@@ -368,6 +371,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       entity_id?: string;
       event_type?: string;
       signal_type?: string;
+      source_reference?: string;
       [key: string]: unknown;
     };
     if (!payload.entity_id) {
@@ -380,9 +384,66 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const signalId = ingestTradeScoutEvent({
       ...payload,
       entity_id: payload.entity_id,
-      event_type: payload.signal_type ?? payload.event_type
+      event_type: payload.signal_type ?? payload.event_type ?? 'contractor_claim'
     });
     return responseJson(res, { status: 'ok', signal_id: signalId, event_id: signalId });
+  }
+
+  if (method === 'POST' && pathname === '/api/events/mealscout') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const entityId = typeof payload.entity_id === 'string' ? payload.entity_id : undefined;
+    const eventType = typeof payload.event_type === 'string' ? payload.event_type : undefined;
+    const signalType = typeof payload.signal_type === 'string' ? payload.signal_type : undefined;
+    const sourceReference = typeof payload.source_reference === 'string' ? payload.source_reference : undefined;
+    if (!entityId) {
+      return responseJson(
+        res,
+        { error: 'MealScout events require entity_id' },
+        400
+      );
+    }
+    const signalId = ingestMealScoutEvent({
+      ...payload,
+      entity_id: entityId,
+      origin_surface: 'mealscout',
+      source_reference: sourceReference || `mealscout:${entityId}`,
+      event_type: signalType ?? eventType ?? 'contractor_claim'
+    });
+    return responseJson(res, { status: 'ok', signal_id: signalId, event_id: signalId });
+  }
+
+  if (method === 'POST' && pathname === '/api/events/crawlability') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as CrawlabilityEventInput;
+    try {
+      if (!payload || !payload.event_type) {
+        return responseJson(
+          res,
+          { error: 'Crawlability events require event_type' },
+          400
+        );
+      }
+      const normalizedEvent = createCrawlabilityEvent(payload);
+      if (!normalizedEvent.entity_id) {
+        return responseJson(
+          res,
+          { error: 'Crawlability events require a valid URL or entity_id' },
+          400
+        );
+      }
+      const signalId = ingestCrawlabilityEvent(normalizedEvent);
+      return responseJson(res, { status: 'ok', signal_id: signalId, event_id: signalId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to process crawlability event';
+      return responseJson(res, { error: message }, 400);
+    }
   }
 
   if (method === 'GET' && pathname === '/api/events/tradescout') {

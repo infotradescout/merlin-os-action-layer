@@ -51,8 +51,16 @@ const DEFAULT_SOURCE_REGISTRY: SourceSeed[] = [
     name: 'MealScout',
     type: 'app',
     trustLevel: 0.95,
-    active: false,
+    active: true,
     aliases: ['mealscout', 'meal-scout', 'ms']
+  },
+  {
+    id: 'bot_crawlability',
+    name: 'Bot Crawlability',
+    type: 'web',
+    trustLevel: 0.88,
+    active: true,
+    aliases: ['bot_crawlability', 'bot-crawlability', 'crawlability']
   }
 ];
 
