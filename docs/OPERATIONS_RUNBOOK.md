@@ -84,3 +84,10 @@ Attribution behavior:
 - If none is present, `decidedBy` is `unknown`.
 - Client-submitted `decided_by` is not the authority.
 - Header-based attribution assumes trusted infrastructure strips spoofed external headers before injection.
+
+### 7) v2.10 auth-context adapter note
+
+Attribution lookup is centralized in [src/operatorIdentity.ts](/d:/AAATraderCorner/TradeScout/merlin-os-action-layer/src/operatorIdentity.ts) so future session identity can plug in without changing review-queue safety logic.
+
+- This does not introduce a new auth system or roles.
+- Resolution order and fallback behavior are unchanged.
