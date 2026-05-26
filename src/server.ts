@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server as HttpServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { sep, resolve } from 'node:path';
 import { URL } from 'node:url';
 import { DEFAULT_PORT } from './constants.js';
 import {
@@ -132,6 +132,33 @@ function getNumber(value: string | undefined, fallback = 20): number {
   if (!value) return fallback;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const PUBLIC_DIR = resolve(process.cwd(), 'public');
+
+function getPublicMimeType(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (extension === 'js') return 'application/javascript';
+  if (extension === 'css') return 'text/css';
+  return 'text/html';
+}
+
+function servePublicFile(res: ServerResponse, fileName: string): boolean {
+  const publicPath = resolve(PUBLIC_DIR, fileName);
+  const normalizedDir = PUBLIC_DIR.endsWith(sep) ? PUBLIC_DIR : `${PUBLIC_DIR}${sep}`;
+  if (!publicPath.startsWith(normalizedDir)) {
+    return false;
+  }
+  if (!existsSync(publicPath)) return false;
+  try {
+    const contents = readFileSync(publicPath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', getPublicMimeType(fileName));
+    res.end(contents);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function serveUiIndex(res: ServerResponse): boolean {
@@ -866,6 +893,18 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const message = error instanceof Error ? error.message : 'Drive reconciliation failed';
       return responseJson(res, { error: message }, 500);
     }
+  }
+
+  if (method === 'GET' && pathname === '/admin/drive-review-queue-client.js') {
+    const served = servePublicFile(res, 'drive-review-queue-client.js');
+    if (served) return;
+    return responseJson(res, { error: 'Drive review queue client not found' }, 404);
+  }
+
+  if (method === 'GET' && pathname === '/admin/drive-review-queue') {
+    const served = servePublicFile(res, 'drive-review-queue.html');
+    if (served) return;
+    return responseJson(res, { error: 'Drive review queue panel not found' }, 404);
   }
 
   if (method === 'GET' && pathname === '/api/drive/review-queue') {

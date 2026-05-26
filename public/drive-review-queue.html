@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drive Review Queue</title>
+    <style>
+      :root {
+        --bg: #0b1021;
+        --panel: #121a35;
+        --panel-soft: #1a2240;
+        --text: #ecf2ff;
+        --muted: #96a4cc;
+        --line: #27305f;
+        --accent: #4faaff;
+        --warning: #f6bf4d;
+        --critical: #ff6b6b;
+        --safe: #5fe3b8;
+        --open: #6ea8ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 15% 10%, #1f2a59, var(--bg) 55%);
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+
+      h1, h2, h3 {
+        margin: 0;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: baseline;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 1rem;
+        margin-top: 0.9rem;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.85rem;
+      }
+
+      .strip {
+        border-left: 4px solid var(--accent);
+        padding-left: 0.65rem;
+        margin: 0.65rem 0;
+      }
+
+      .strip.warning {
+        border-left-color: var(--warning);
+      }
+
+      .strip.blocked {
+        border-left-color: var(--critical);
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+        margin-top: 0.5rem;
+      }
+
+      .summary-card {
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.6rem;
+      }
+
+      .summary-label {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+      }
+
+      .summary-value {
+        font-size: 1.3rem;
+        margin-top: 0.25rem;
+      }
+
+      .list {
+        list-style: none;
+        margin: 0.55rem 0 0;
+        padding: 0;
+        max-height: 360px;
+        overflow: auto;
+      }
+
+      .item {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 0.55rem;
+        margin: 0.35rem 0;
+        cursor: pointer;
+      }
+
+      .item:hover {
+        border-color: var(--accent);
+      }
+
+      .item-title {
+        font-weight: 600;
+      }
+
+      .item-summary {
+        color: var(--muted);
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+      }
+
+      .tag {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.08rem 0.45rem;
+        margin-right: 0.35rem;
+        margin-top: 0.35rem;
+        font-size: 0.73rem;
+        color: var(--muted);
+      }
+
+      .tag.critical {
+        border-color: rgba(255, 107, 107, 0.5);
+        color: var(--critical);
+      }
+
+      .tag.warning {
+        border-color: rgba(246, 191, 77, 0.4);
+        color: var(--warning);
+      }
+
+      .tag.info {
+        border-color: rgba(110, 168, 255, 0.35);
+        color: var(--open);
+      }
+
+      .decision-actions {
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 0.6rem;
+      }
+
+      .decision-actions button {
+        border: 1px solid var(--line);
+        background: var(--panel-soft);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 0.5rem 0.7rem;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .decision-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .decision-actions button.active {
+        border-color: var(--accent);
+      }
+
+      .muted-note {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .muted-note strong {
+        color: var(--warning);
+      }
+
+      textarea {
+        width: 100%;
+        background: var(--panel-soft);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 3.6rem;
+        resize: vertical;
+        margin-top: 0.45rem;
+        padding: 0.4rem 0.55rem;
+      }
+
+      .inline-link {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .inline-link:hover {
+        text-decoration: underline;
+      }
+
+      code {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top">
+        <div>
+          <h1>Drive Review Queue</h1>
+          <p class="subtitle">Operational inbox for reconciliation signals</p>
+        </div>
+        <div class="subtitle">Read-only mode · No Drive changes will be made</div>
+      </div>
+
+      <section class="panel">
+        <h2>Auth Health Strip</h2>
+        <div id="auth-strip" class="strip">Loading Drive auth health...</div>
+      </section>
+
+      <section class="panel">
+        <h2>Reconciliation Summary</h2>
+        <div id="summary-meta" class="subtitle">Loading reconciliation summary...</div>
+        <div class="summary" id="summary-grid"></div>
+      </section>
+
+      <div class="layout">
+        <section class="panel">
+          <h2>Review Queue Inbox</h2>
+          <ul id="queue-list" class="list">
+            <li class="item">No items yet.</li>
+          </ul>
+          <p class="subtitle">Open drift items in sequence. Decide manually when ready.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Queue Item Detail</h2>
+          <div id="detail-status" class="muted-note">Select a drift item to review.</div>
+          <div id="detail-content" style="display:none;">
+            <h3 id="detail-title">-</h3>
+            <div class="subtitle" id="detail-meta"></div>
+            <p id="detail-recommended" class="subtitle"></p>
+            <div id="detail-summary" class="muted-note"></div>
+
+            <h3 style="margin-top: 0.75rem;">Decision</h3>
+            <textarea id="decision-note" placeholder="Add optional note"></textarea>
+            <div class="decision-actions">
+              <button data-decision="acknowledged">Acknowledge</button>
+              <button data-decision="needs_manual_review">Needs manual review</button>
+              <button data-decision="defer">Defer</button>
+              <button data-decision="resolved_externally">Mark externally resolved</button>
+              <button data-decision="false_positive">Mark false positive</button>
+            </div>
+            <p class="muted-note">
+              Last workflow note: <span id="last-decision">none</span>
+            </p>
+            <p id="auth-warning" class="muted-note"></p>
+          </div>
+          <p class="subtitle">
+            <a class="inline-link" href="/">Back to main Merlin Daily</a>
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="/admin/drive-review-queue-client.js"></script>
+    <script type="module">
+      import { createDriveReviewQueueClient } from '/admin/drive-review-queue-client.js';
+
+      const state = {
+        authReady: false,
+        queue: null,
+        selectedItemId: null,
+        loading: false,
+        canDecide: false
+      };
+
+      const client = createDriveReviewQueueClient();
+
+      const severityOrder = {
+        critical: 0,
+        warning: 1,
+        info: 2
+      };
+
+      const safeText = (value) => (value === undefined || value === null ? '' : String(value));
+
+      const setAuthStrip = (isReady, status, configured, reason = '') => {
+        const strip = document.getElementById('auth-strip');
+        const warning = document.getElementById('auth-warning');
+        if (isReady && configured) {
+          strip.className = 'strip';
+          strip.textContent = `Auth health: ready (configured=${configured})`;
+          state.canDecide = true;
+          warning.textContent = '';
+        } else {
+          strip.className = 'strip blocked';
+          strip.textContent = `Auth health: ${status} (${reason || 'reasons require safe review mode'})`;
+          state.canDecide = false;
+          warning.textContent = 'Decision actions are blocked because auth is unhealthy.';
+        }
+      };
+
+      const formatSeverityTag = (severity) => {
+        const tag = document.createElement('span');
+        tag.className = `tag ${severity}`;
+        tag.textContent = `severity:${severity}`;
+        return tag;
+      };
+
+      const renderSummary = (payload) => {
+        const summary = document.getElementById('summary-grid');
+        const summaryMeta = document.getElementById('summary-meta');
+        summaryMeta.textContent = `mode: ${payload.mode} · checked: ${payload.checkedAt}`;
+        summary.innerHTML = '';
+        const values = [
+          { label: 'checked', value: payload.summary?.checked ?? 0 },
+          { label: 'drift', value: payload.summary?.driftCount ?? 0 },
+          { label: 'critical', value: payload.summary?.blockingCount ?? 0 },
+          { label: 'warning', value: payload.summary?.warningCount ?? 0 }
+        ];
+        for (const item of values) {
+          const node = document.createElement('div');
+          node.className = 'summary-card';
+          const label = document.createElement('div');
+          label.className = 'summary-label';
+          label.textContent = item.label;
+          const value = document.createElement('div');
+          value.className = 'summary-value';
+          value.textContent = String(item.value);
+          node.appendChild(label);
+          node.appendChild(value);
+          summary.appendChild(node);
+        }
+      };
+
+      const renderQueue = (items) => {
+        const container = document.getElementById('queue-list');
+        container.innerHTML = '';
+        if (!Array.isArray(items) || items.length === 0) {
+          container.innerHTML = '<li class="item">No drift items detected.</li>';
+          return;
+        }
+        const ordered = [...items].sort((left, right) => {
+          const leftRank = severityOrder[left.severity] ?? 2;
+          const rightRank = severityOrder[right.severity] ?? 2;
+          if (leftRank !== rightRank) return leftRank - rightRank;
+          return new Date(right.detectedAt).getTime() - new Date(left.detectedAt).getTime();
+        });
+
+        for (const item of ordered) {
+          const row = document.createElement('li');
+          row.className = 'item';
+          row.dataset.itemId = item.id;
+          row.addEventListener('click', () => openItem(item.id));
+          const title = document.createElement('div');
+          title.className = 'item-title';
+          title.textContent = safeText(item.title);
+          const summary = document.createElement('div');
+          summary.className = 'item-summary';
+          summary.textContent = `${safeText(item.type)} · ${safeText(item.driveFileId || item.driveFolderId || 'no folder id')}`;
+          const status = document.createElement('div');
+          const sev = document.createElement('span');
+          sev.className = `tag ${item.severity}`;
+          sev.textContent = item.severity;
+          const statusTag = document.createElement('span');
+          statusTag.className = 'tag';
+          statusTag.textContent = item.status;
+          const rec = document.createElement('span');
+          rec.className = 'tag';
+          rec.textContent = item.recommendedHumanAction ? 'action needed' : 'no action';
+          row.appendChild(title);
+          row.appendChild(summary);
+          const chips = document.createElement('div');
+          chips.appendChild(sev);
+          chips.appendChild(statusTag);
+          chips.appendChild(rec);
+          row.appendChild(chips);
+          container.appendChild(row);
+        }
+      };
+
+      const updateDecisionState = () => {
+        const buttons = document.querySelectorAll('.decision-actions button[data-decision]');
+        for (const button of buttons) {
+          const b = /** @type {HTMLButtonElement} */ (button);
+          b.disabled = !state.canDecide || !state.selectedItemId || state.loading;
+        }
+      };
+
+      const renderDetail = (item) => {
+        const detailStatus = document.getElementById('detail-status');
+        const detailContent = document.getElementById('detail-content');
+        const title = document.getElementById('detail-title');
+        const meta = document.getElementById('detail-meta');
+        const summary = document.getElementById('detail-summary');
+        const recommend = document.getElementById('detail-recommended');
+        const last = document.getElementById('last-decision');
+
+        detailContent.style.display = 'none';
+        if (!item) {
+          detailStatus.textContent = 'Selected item not found.';
+          last.textContent = 'none';
+          return;
+        }
+        detailStatus.textContent = '';
+        detailContent.style.display = 'block';
+        title.textContent = `${safeText(item.type)} · ${safeText(item.severity)} · ${safeText(item.status)}`;
+        meta.textContent = [
+          `id: ${safeText(item.id)}`,
+          `detected: ${safeText(item.observedAt)}`,
+          `source: ${safeText(item.source)}`
+        ].join(' · ');
+        summary.textContent = safeText(item.summary);
+        recommend.textContent = `Recommended human action: ${safeText(item.recommendedHumanAction)}`;
+        if (item.lastDecision) {
+          const note = item.lastDecision.note ? ` · note: ${item.lastDecision.note}` : '';
+          last.textContent = `${safeText(item.lastDecision.decision)} by ${safeText(item.lastDecision.decidedBy || 'anonymous')} at ${safeText(item.lastDecision.decidedAt)}${note}`;
+        } else {
+          last.textContent = 'none';
+        }
+        updateDecisionState();
+      };
+
+      const openItem = async (itemId) => {
+        state.selectedItemId = itemId;
+        const match = state.queue?.items?.find((entry) => entry.id === itemId);
+        if (match) {
+          renderDetail(match);
+          return;
+        }
+        const details = await client.getReviewQueueItem(itemId);
+        renderDetail(details.item);
+      };
+
+      const applyDecision = async (event) => {
+        const decision = event.currentTarget?.dataset?.decision;
+        if (!state.canDecide || !state.selectedItemId) return;
+        if (!decision) return;
+        state.loading = true;
+        updateDecisionState();
+        const note = document.getElementById('decision-note').value.trim();
+        try {
+          const result = await client.postDecision(state.selectedItemId, decision, note || undefined, 'operator');
+          const updated = result.item;
+          const updatedAt = updated?.decidedAt || null;
+          if (updated && state.queue?.items) {
+            state.queue.items = state.queue.items.map((entry) => (entry.id === updated.id ? updated : entry));
+            renderQueue(state.queue.items);
+            renderDetail(updated);
+            if (updatedAt) {
+              document.getElementById('last-decision').textContent = `updated ${updatedAt}`;
+            }
+          }
+          document.getElementById('decision-note').value = '';
+          const refreshed = await client.getReviewQueue();
+          state.queue = refreshed;
+          renderSummary(refreshed);
+          renderQueue(refreshed.items || []);
+          if (state.selectedItemId) {
+            const current = refreshed.items?.find((entry) => entry.id === state.selectedItemId);
+            if (current) renderDetail(current);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Request failed';
+          alert(message);
+        } finally {
+          state.loading = false;
+          updateDecisionState();
+        }
+      };
+
+      const hydrate = async () => {
+        try {
+          const [health, queue] = await Promise.all([client.getAuthHealth(), client.getReviewQueue()]);
+          state.queue = queue;
+          setAuthStrip(health.auth.ready, health.status, health.auth.configured, health.auth.reason || '');
+          renderSummary(queue);
+          renderQueue(queue.items || []);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to load panel data';
+          alert(message);
+        }
+      };
+
+      const wire = () => {
+        for (const button of document.querySelectorAll('.decision-actions button[data-decision]')) {
+          button.addEventListener('click', (event) => {
+            void applyDecision(event);
+          });
+        }
+      };
+
+      hydrate();
+      wire();
+    </script>
+  </body>
+</html>
