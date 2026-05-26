@@ -121,6 +121,24 @@ If no trusted source exists, `decidedBy` falls back to `unknown`.
 Client-submitted `decided_by` is not treated as the authority.
 Header-based attribution is intended for trusted internal or proxy-injected identity only.
 
+## v2.10 auth-context adapter addendum
+
+Attribution resolution is centralized in [src/operatorIdentity.ts](/d:/AAATraderCorner/TradeScout/merlin-os-action-layer/src/operatorIdentity.ts).
+
+- `resolveOperatorIdentity(req)` returns:
+  - `decidedBy`
+  - `source` (`trusted_header`, `env`, `unknown`)
+- Resolution order is unchanged:
+  - `x-operator-id`
+  - `x-operator-email`
+  - `x-user-id`
+  - `x-user-email`
+  - `x-forwarded-user`
+  - `MERLIN_OPERATOR_ID`
+  - `unknown`
+- This is not a new auth system.
+- Client-submitted `decided_by` remains ignored as identity authority.
+
 ## Runbook (operator flow)
 
 1. Start with:
