@@ -458,7 +458,7 @@ test('decision endpoint records workflow metadata without Drive mutation', async
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.item.status, 'resolved_externally');
   assert.equal(response.body.item.lastDecision?.decision, 'resolved_externally');
-  assert.equal(response.body.item.lastDecision?.decidedBy, 'qa-review');
+  assert.equal(response.body.item.lastDecision?.decidedBy, 'unknown');
   assert.equal(response.body.item.lastDecision?.note, 'Reviewed manually outside Merlin');
   assert.equal(Array.isArray(response.body.item.decisionHistory), true);
   assert.equal(response.body.item.decisionHistory?.length, 1);
@@ -559,10 +559,66 @@ test('review queue decision history persists across store restart', async () => 
   assert.equal(historyResponse.body.history.length, 1);
   assert.equal(historyResponse.body.history[0].decision, 'defer');
   assert.equal(historyResponse.body.history[0].note, 'Needs follow-up');
-  assert.equal(historyResponse.body.history[0].decidedBy, 'persist-checker');
+  assert.equal(historyResponse.body.history[0].decidedBy, 'unknown');
   assert.equal(historyResponse.body.history[0].source, 'drive_review_queue');
   assert.equal(historyResponse.body.history[0].mutationAllowed, false);
   assert.equal(mockDriveMoveFileCalls, 0);
+});
+
+test('server-side operator identity header overrides client-submitted decided_by', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-operator-001',
+      file_name: 'operator.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-operator-001',
+      observed_at: '2026-05-25T16:15:00.000Z'
+    })
+  });
+  setMockDriveFileInFolder('review-queue-operator-001', '01_Processed', 'operator.txt');
+  const itemId = await readReviewQueueItemIdByDriveFileId('review-queue-operator-001');
+
+  const response = await requestJson<{
+    status: 'ok';
+    item: { lastDecision?: { decidedBy?: string } };
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/decision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-operator-email': 'ops@tradescout.local'
+    },
+    body: JSON.stringify({
+      decision: 'acknowledged',
+      decided_by: 'client-should-not-win',
+      note: 'Operator attribution test'
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.item.lastDecision?.decidedBy, 'ops@tradescout.local');
+
+  const history = await requestJson<{
+    status: 'ok';
+    history: Array<{ decidedBy?: string }>;
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/history`);
+  assert.equal(history.status, 200);
+  assert.equal(history.body.history.at(-1)?.decidedBy, 'ops@tradescout.local');
+
+  const audit = await requestJson<{
+    status: 'ok';
+    records: Array<{ itemId: string; decidedBy?: string }>;
+  }>('/api/drive/review-queue/audit?limit=20');
+  const auditRecord = audit.body.records.find((record) => record.itemId === itemId);
+  assert.equal(auditRecord?.decidedBy, 'ops@tradescout.local');
+
+  const auditExport = await requestJson<{
+    status: 'ok';
+    records: Array<{ itemId: string; decidedBy?: string }>;
+  }>('/api/drive/review-queue/audit/export.json?limit=20');
+  const exportRecord = auditExport.body.records.find((record) => record.itemId === itemId);
+  assert.equal(exportRecord?.decidedBy, 'ops@tradescout.local');
 });
 
 test('decision endpoint blocks with auth unhealthy and does not call mutation helpers', async () => {

@@ -77,3 +77,10 @@ Expected:
 - `mutationAllowed` remains `false`.
 - History/audit records contain workflow metadata only (`decision`, `note`, `decidedAt`, `decidedBy`, `source`).
 - No remediation behavior is exposed.
+
+Attribution behavior:
+
+- Server resolves `decidedBy` from trusted context (`x-operator-id`, `x-operator-email`, `x-user-id`, `x-user-email`, `x-forwarded-user`, or `MERLIN_OPERATOR_ID`).
+- If none is present, `decidedBy` is `unknown`.
+- Client-submitted `decided_by` is not the authority.
+- Header-based attribution assumes trusted infrastructure strips spoofed external headers before injection.

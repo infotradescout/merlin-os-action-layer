@@ -116,6 +116,37 @@ function parseBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
+function readHeaderValue(req: IncomingMessage, headerName: string): string | undefined {
+  const raw = req.headers[headerName.toLowerCase()];
+  if (typeof raw === 'string') {
+    const value = raw.trim();
+    return value || undefined;
+  }
+  if (Array.isArray(raw) && raw.length > 0) {
+    const value = raw[0]?.trim();
+    return value || undefined;
+  }
+  return undefined;
+}
+
+function resolveOperatorIdentity(req: IncomingMessage): string {
+  // Attribution headers are trusted only when injected by internal infrastructure
+  // (for example, an auth proxy that strips user-supplied spoofed headers).
+  // This endpoint never trusts client-submitted decided_by as identity authority.
+  const candidates = [
+    readHeaderValue(req, 'x-operator-id'),
+    readHeaderValue(req, 'x-operator-email'),
+    readHeaderValue(req, 'x-user-id'),
+    readHeaderValue(req, 'x-user-email'),
+    readHeaderValue(req, 'x-forwarded-user'),
+    process.env.MERLIN_OPERATOR_ID?.trim()
+  ];
+  for (const candidate of candidates) {
+    if (candidate) return candidate;
+  }
+  return 'unknown';
+}
+
 export function responseJson(res: ServerResponse, payload: unknown, status = 200): void {
   const body = JSON.stringify(payload);
   res.statusCode = status;
@@ -1022,7 +1053,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       return responseJson(res, { error: 'Unsupported decision' }, 400);
     }
 
-    const decidedBy = typeof payload.decided_by === 'string' ? payload.decided_by.trim() : undefined;
+    const decidedBy = resolveOperatorIdentity(req);
     const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
     const updated = await decideDriveReviewQueueItem(itemId, decision as DriveReviewQueueDecision, note, decidedBy);
     return responseJson(
