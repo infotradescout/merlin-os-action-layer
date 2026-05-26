@@ -895,13 +895,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
   }
 
-  if (method === 'GET' && pathname === '/admin/drive-review-queue-client.js') {
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/drive-review-queue-client.js') {
     const served = servePublicFile(res, 'drive-review-queue-client.js');
     if (served) return;
     return responseJson(res, { error: 'Drive review queue client not found' }, 404);
   }
 
-  if (method === 'GET' && pathname === '/admin/drive-review-queue') {
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/drive-review-queue') {
     const served = servePublicFile(res, 'drive-review-queue.html');
     if (served) return;
     return responseJson(res, { error: 'Drive review queue panel not found' }, 404);
