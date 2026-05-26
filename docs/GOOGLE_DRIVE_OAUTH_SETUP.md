@@ -61,3 +61,73 @@ curl http://localhost:3030/api/replay/recent
 - This helper reads credentials from local environment and `.env` only.
 - You can revoke tokens in Google account security settings if needed.
 - The helper requests full Drive scope (`https://www.googleapis.com/auth/drive`) so Merlin can read inbox files that were uploaded manually.
+
+## Drive safety checks (v2.4)
+
+Run Drive work only through the environment-loaded launcher:
+
+```bash
+npm run dev:or
+```
+
+Health check:
+
+```bash
+curl -s http://localhost:3030/api/drive/auth-health
+```
+
+Expected healthy response:
+
+```json
+{
+  "status": "ready",
+  "auth": {
+    "ready": true,
+    "configured": true
+  },
+  "managedFolders": {
+    "ready": true,
+    "missing": []
+  }
+}
+```
+
+Read-only drift check:
+
+```bash
+curl -s http://localhost:3030/api/drive/reconciliation
+```
+
+Expected read-only envelope includes:
+
+```json
+{
+  "status": "ok",
+  "mode": "read_only",
+  "summary": {
+    "checked": 0,
+    "driftCount": 0,
+    "blockingCount": 0,
+    "warningCount": 0
+  },
+  "drift": []
+}
+```
+
+Auth-unhealthy mutation behavior:
+
+- `POST /api/drive/review/:drive_file_id/route`
+- `POST /api/drive/sync`
+
+Both endpoints return:
+
+```json
+{
+  "error": "Drive auth unhealthy",
+  "reason": "OAuth credentials are incomplete"
+}
+```
+
+They do not move Drive files, mutate manifest state, run sync fallback, or continue silently.
+
+v2.4 is audit-safe and read-only by default for reconciliation; no auto-remediation is added yet.
