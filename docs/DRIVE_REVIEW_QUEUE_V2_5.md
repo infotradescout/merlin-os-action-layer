@@ -106,6 +106,21 @@ Decision records are persisted as workflow metadata only with:
 
 No Drive file movement, Drive remediation, or manifest mutation is performed by these APIs.
 
+## v2.9 attribution addendum
+
+Decision attribution uses existing request or environment context only:
+
+- `x-operator-id`
+- `x-operator-email`
+- `x-user-id`
+- `x-user-email`
+- `x-forwarded-user`
+- `MERLIN_OPERATOR_ID`
+
+If no trusted source exists, `decidedBy` falls back to `unknown`.
+Client-submitted `decided_by` is not treated as the authority.
+Header-based attribution is intended for trusted internal or proxy-injected identity only.
+
 ## Runbook (operator flow)
 
 1. Start with:
