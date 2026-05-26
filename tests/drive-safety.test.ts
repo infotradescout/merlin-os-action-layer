@@ -31,27 +31,56 @@ const { closeOutcomesStore } = await import('../src/outcomes.ts');
 let server: Server;
 let baseUrl: string;
 
+const managedDriveFolders = new Map<string, string>([
+  ['Merlin OR Storage', 'folder-root'],
+  ['00_Inbox', 'folder-inbox'],
+  ['01_Processed', 'folder-processed'],
+  ['02_Needs_Review', 'folder-needs-review'],
+  ['03_Archived_Sources', 'folder-archived'],
+  ['04_Entity_Files', 'folder-entity-files'],
+  ['05_Exports', 'folder-exports'],
+  ['06_Audit', 'folder-audit'],
+  ['07_System', 'folder-system']
+]);
+
+const mockDriveFilesByFolderId = new Map<string, Array<{ file_name: string; drive_file_id: string; mime_type: string; folder_id: string; web_url: string }>>();
+
+function clearMockDriveFiles(): void {
+  for (const folderId of managedDriveFolders.values()) {
+    mockDriveFilesByFolderId.set(folderId, []);
+  }
+}
+
+function setMockDriveFileInFolder(
+  fileId: string,
+  folderAlias: string,
+  fileName: string,
+  mimeType = 'text/plain'
+): void {
+  const folderId = managedDriveFolders.get(folderAlias);
+  if (!folderId) return;
+  const existing = mockDriveFilesByFolderId.get(folderId) ?? [];
+  existing.push({
+    file_name: fileName,
+    drive_file_id: fileId,
+    mime_type: mimeType,
+    folder_id: folderId,
+    web_url: `https://drive.google.com/file/d/${fileId}`
+  });
+  mockDriveFilesByFolderId.set(folderId, existing);
+}
+
 function createDriveHealthMockClient(): void {
-  const folders = new Map<string, string>([
-    ['Merlin OR Storage', 'folder-root'],
-    ['00_Inbox', 'folder-inbox'],
-    ['01_Processed', 'folder-processed'],
-    ['02_Needs_Review', 'folder-needs-review'],
-    ['03_Archived_Sources', 'folder-archived'],
-    ['04_Entity_Files', 'folder-entity-files'],
-    ['05_Exports', 'folder-exports'],
-    ['06_Audit', 'folder-audit'],
-    ['07_System', 'folder-system']
-  ]);
+  clearMockDriveFiles();
 
   setDriveClientFactory(() => ({
-    async listFilesInFolder() {
-      return [];
+    async listFilesInFolder(folderId) {
+      return mockDriveFilesByFolderId.get(folderId) ?? [];
     },
     async getFileMetadata(fileId) {
       return {
         drive_file_id: fileId,
-        file_name: 'x.txt',
+        file_name: `file-${fileId}.txt`,
         mime_type: 'text/plain',
         folder_id: 'folder-needs-review',
         web_url: `https://drive.google.com/file/d/${fileId}`
@@ -64,23 +93,26 @@ function createDriveHealthMockClient(): void {
       return true;
     },
     async findFolderByName(name) {
-      const id = folders.get(name);
+      const id = managedDriveFolders.get(name);
       if (!id) return undefined;
       return { id, name };
     },
     async listFoldersByName(name, parentFolderId) {
       if (parentFolderId === 'root' && name === 'Merlin OR Storage') {
-        return [{ id: 'folder-root', name }];
+        return [{ id: managedDriveFolders.get('Merlin OR Storage')!, name }];
       }
-      const folderId = folders.get(name);
-      if (!folderId || parentFolderId !== 'folder-root') {
+      const folderId = managedDriveFolders.get(name);
+      if (!folderId || parentFolderId !== managedDriveFolders.get('Merlin OR Storage')) {
         return [];
       }
       return [{ id: folderId, name }];
     },
-    async createFolderIfMissing(name, parentFolderId) {
-      const id = folders.get(name) || `folder-${name.toLowerCase()}`;
-      folders.set(name, id);
+    async createFolderIfMissing(name) {
+      const id = managedDriveFolders.get(name) || `folder-${name.toLowerCase()}`;
+      managedDriveFolders.set(name, id);
+      if (!mockDriveFilesByFolderId.has(id)) {
+        mockDriveFilesByFolderId.set(id, []);
+      }
       return { id, name };
     }
   }));
@@ -175,4 +207,74 @@ test('emits drive_auth_health_checked replay event', async () => {
     replay.body.replay_events.some((event) => event.event_type === 'drive_auth_health_checked'),
     true
   );
+});
+
+test('returns read-only reconciliation envelope', async () => {
+  const response = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    checkedAt: string;
+    summary: { checked: number; driftCount: number; blockingCount: number; warningCount: number };
+    drift: Array<{ drive_file_id: string; type: string }>;
+  }>('/api/drive/reconciliation');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mode, 'read_only');
+  assert.equal(response.body.summary.driftCount, 0);
+  assert.equal(response.body.drift.length, 0);
+});
+
+test('detects wrong_folder drift from manifest and Drive mismatch', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'recon-wrong-folder-001',
+      file_name: 'needs_review.pdf',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/recon-wrong-folder-001',
+      observed_at: '2026-05-25T16:00:00.000Z'
+    })
+  });
+
+  setMockDriveFileInFolder('recon-wrong-folder-001', '01_Processed', 'needs_review.pdf');
+  const response = await requestJson<{ drift: Array<{ drive_file_id: string; type: string }> }>(
+    '/api/drive/reconciliation'
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.drift.some((drift) => drift.drive_file_id === 'recon-wrong-folder-001'), true);
+  assert.equal(response.body.drift.some((drift) => drift.type === 'wrong_folder'), true);
+});
+
+test('detects missing_drive_file drift and keeps manifest stable', async () => {
+  const before = await requestJson<{ manifest_entry: { folder_path: string } }>(
+    '/api/drive/import-file',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        drive_file_id: 'recon-missing-drive-001',
+        file_name: 'missing.txt',
+        mime_type: 'text/plain',
+        folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+        web_url: 'https://drive.google.com/file/d/recon-missing-drive-001',
+        observed_at: '2026-05-25T16:01:00.000Z'
+      })
+    }
+  );
+  assert.equal(before.status, 200);
+
+  const response = await requestJson<{ drift: Array<{ drive_file_id: string; type: string }> }>(
+    '/api/drive/reconciliation'
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.body.drift.some((drift) => drift.drive_file_id === 'recon-missing-drive-001'), true);
+  assert.equal(response.body.drift.some((drift) => drift.type === 'missing_drive_file'), true);
+
+  const manifest = await requestJson<{ manifest_entry: { folder_path: string; processing_status: string } }>(
+    '/api/drive/manifest/recon-missing-drive-001'
+  );
+  assert.equal(manifest.status, 200);
+  assert.equal(manifest.body.manifest_entry.folder_path, 'Merlin OR Storage/02_Needs_Review/2026-05');
 });

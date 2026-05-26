@@ -39,7 +39,7 @@ import {
   resetReplayForTest
 } from './replay.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
-import { getDriveAuthHealth } from './driveSafety.js';
+import { getDriveAuthHealth, runDriveReconciliation } from './driveSafety.js';
 import {
   attachManifestToEntity,
   createManifestEntry,
@@ -835,6 +835,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       return responseJson(res, health);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Drive auth health check failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/reconciliation') {
+    try {
+      const reconciliation = await runDriveReconciliation();
+      return responseJson(res, reconciliation);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive reconciliation failed';
       return responseJson(res, { error: message }, 500);
     }
   }
