@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server as HttpServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { sep, resolve } from 'node:path';
 import { URL } from 'node:url';
 import { DEFAULT_PORT } from './constants.js';
 import {
@@ -45,6 +45,12 @@ import {
   getDriveAuthHealth,
   runDriveReconciliation
 } from './driveSafety.js';
+import {
+  decideDriveReviewQueueItem,
+  getDriveReviewQueueItem,
+  runDriveReviewQueue,
+  type DriveReviewQueueDecision
+} from './driveReviewQueue.js';
 import {
   attachManifestToEntity,
   createManifestEntry,
@@ -126,6 +132,33 @@ function getNumber(value: string | undefined, fallback = 20): number {
   if (!value) return fallback;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const PUBLIC_DIR = resolve(process.cwd(), 'public');
+
+function getPublicMimeType(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (extension === 'js') return 'application/javascript';
+  if (extension === 'css') return 'text/css';
+  return 'text/html';
+}
+
+function servePublicFile(res: ServerResponse, fileName: string): boolean {
+  const publicPath = resolve(PUBLIC_DIR, fileName);
+  const normalizedDir = PUBLIC_DIR.endsWith(sep) ? PUBLIC_DIR : `${PUBLIC_DIR}${sep}`;
+  if (!publicPath.startsWith(normalizedDir)) {
+    return false;
+  }
+  if (!existsSync(publicPath)) return false;
+  try {
+    const contents = readFileSync(publicPath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', getPublicMimeType(fileName));
+    res.end(contents);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function serveUiIndex(res: ServerResponse): boolean {
@@ -860,6 +893,96 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const message = error instanceof Error ? error.message : 'Drive reconciliation failed';
       return responseJson(res, { error: message }, 500);
     }
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/drive-review-queue-client.js') {
+    const served = servePublicFile(res, 'drive-review-queue-client.js');
+    if (served) return;
+    return responseJson(res, { error: 'Drive review queue client not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/drive-review-queue') {
+    const served = servePublicFile(res, 'drive-review-queue.html');
+    if (served) return;
+    return responseJson(res, { error: 'Drive review queue panel not found' }, 404);
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/review-queue') {
+    try {
+      const queue = await runDriveReviewQueue();
+      return responseJson(res, queue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive review queue failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  const driveReviewQueueMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)$/);
+  if (method === 'GET' && driveReviewQueueMatch) {
+    const itemId = decodeURIComponent(driveReviewQueueMatch[1]);
+    const item = await getDriveReviewQueueItem(itemId);
+    if (!item) {
+      return responseJson(res, { error: 'Review queue item not found' }, 404);
+    }
+    return responseJson(res, {
+      status: 'ok',
+      mode: 'read_only',
+      mutationAllowed: false,
+      item
+    });
+  }
+
+  const reviewQueueDecisionMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)\/decision$/);
+  if (method === 'POST' && reviewQueueDecisionMatch) {
+    const itemId = decodeURIComponent(reviewQueueDecisionMatch[1]);
+    const queueHealth = await assertDriveHealthForMutation('drive_review_queue_decision', undefined);
+    if (!queueHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(queueHealth.health, 'drive_review_queue_decision'),
+        409
+      );
+    }
+
+    const item = await getDriveReviewQueueItem(itemId);
+    if (!item) {
+      return responseJson(res, { error: 'Review queue item not found' }, 404);
+    }
+
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const decision = typeof payload.decision === 'string' ? payload.decision.trim() : '';
+    if (!decision) {
+      return responseJson(res, { error: 'decision is required' }, 400);
+    }
+
+    const allowedDecisions: DriveReviewQueueDecision[] = [
+      'acknowledged',
+      'needs_manual_review',
+      'false_positive',
+      'defer',
+      'resolved_externally'
+    ];
+    if (!allowedDecisions.includes(decision as DriveReviewQueueDecision)) {
+      return responseJson(res, { error: 'Unsupported decision' }, 400);
+    }
+
+    const decidedBy = typeof payload.decided_by === 'string' ? payload.decided_by.trim() : undefined;
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    const updated = await decideDriveReviewQueueItem(itemId, decision as DriveReviewQueueDecision, note, decidedBy);
+    return responseJson(
+      res,
+      {
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        item: updated
+      },
+      updated ? 200 : 404
+    );
   }
 
   if (method === 'GET' && pathname === '/api/drive/status') {

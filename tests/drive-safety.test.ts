@@ -24,6 +24,7 @@ const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
 const { resetReplayForTest, closeReplayStore } = await import('../src/replay.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 const { resetDriveSafetyStoreForTest } = await import('../src/driveSafetyStore.ts');
+const { resetDriveReviewQueueForTest } = await import('../src/driveReviewQueue.ts');
 const { closeLisaStore } = await import('../src/lisa.ts');
 const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
 const { closeRecommendationsStore } = await import('../src/recommendations.ts');
@@ -31,6 +32,7 @@ const { closeOutcomesStore } = await import('../src/outcomes.ts');
 
 let server: Server;
 let baseUrl: string;
+let mockDriveMoveFileCalls = 0;
 
 const managedDriveFolders = new Map<string, string>([
   ['Merlin OR Storage', 'folder-root'],
@@ -91,6 +93,7 @@ function createDriveHealthMockClient(): void {
       return 'mock';
     },
     async moveFileToFolder() {
+      mockDriveMoveFileCalls += 1;
       return true;
     },
     async findFolderByName(name) {
@@ -128,6 +131,24 @@ async function requestJson<T>(path: string, init: RequestInit = {}): Promise<{ s
   return { status: response.status, body };
 }
 
+async function readReviewQueueItemIdByDriveFileId(driveFileId: string): Promise<string> {
+  const response = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    checkedAt: string;
+    summary: { itemCount: number };
+    items: Array<{ id: string; status: string; manifestPath?: string; summary: string; type?: string }>;
+  }>('/api/drive/review-queue');
+  assert.equal(response.status, 200);
+  const item = response.body.items.find((entry) => {
+    const decoded = Buffer.from(entry.id, 'base64url').toString('utf8');
+    return decoded.startsWith(`${driveFileId}|`) || entry.summary.includes(driveFileId);
+  });
+  assert.ok(item);
+  return item.id;
+}
+
 before(async () => {
   server = createMerlinServer();
   createDriveHealthMockClient();
@@ -160,6 +181,8 @@ beforeEach(async () => {
   createDriveHealthMockClient();
   resetReplayForTest();
   resetDriveSafetyStoreForTest();
+  resetDriveReviewQueueForTest();
+  mockDriveMoveFileCalls = 0;
   process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
   await requestJson('/api/demo/reset', { method: 'POST' });
 });
@@ -332,4 +355,145 @@ test('emits separate drift events for different drift instances', async () => {
   const replay = await requestJson<{ replay_events: Array<{ event_type: string }> }>('/api/replay/recent?limit=50');
   const driftDetectedEvents = replay.body.replay_events.filter((event) => event.event_type === 'drive_drift_detected');
   assert.equal(driftDetectedEvents.length, 2);
+});
+
+test('review queue returns read-only envelope', async () => {
+  const response = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    checkedAt: string;
+    summary: { itemCount: number; openCount: number };
+    items: Array<{ id: string }>;
+  }>('/api/drive/review-queue');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mode, 'read_only');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(typeof response.body.checkedAt, 'string');
+  assert.equal(response.body.summary.itemCount, response.body.items.length);
+});
+
+test('review queue maps reconciliation drift into queue items', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-mismatch-001',
+      file_name: 'mismatch.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-mismatch-001',
+      observed_at: '2026-05-25T16:10:00.000Z'
+    })
+  });
+  setMockDriveFileInFolder('review-queue-mismatch-001', '01_Processed', 'mismatch.txt');
+
+  const response = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    items: Array<{
+      id: string;
+      type: 'missing_folder' | 'unexpected_folder' | 'permission_drift' | 'manifest_mismatch' | 'unknown';
+      status: 'open' | 'acknowledged' | 'deferred' | 'resolved_externally' | 'false_positive';
+      source: 'drive_reconciliation';
+      readOnly: true;
+      severity: 'info' | 'warning' | 'critical';
+      recommendedHumanAction: string;
+      summary: string;
+    }>;
+  }>('/api/drive/review-queue');
+  assert.equal(response.status, 200);
+  const mapped = response.body.items.find((item) => item.summary.includes('review-queue-mismatch-001'));
+  assert.ok(mapped);
+  assert.equal(mapped.type, 'manifest_mismatch');
+  assert.equal(mapped.source, 'drive_reconciliation');
+  assert.equal(mapped.readOnly, true);
+  assert.equal(typeof mapped.recommendedHumanAction, 'string');
+});
+
+test('decision endpoint records workflow metadata without Drive mutation', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-decision-001',
+      file_name: 'decision.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-decision-001',
+      observed_at: '2026-05-25T16:11:00.000Z'
+    })
+  });
+  setMockDriveFileInFolder('review-queue-decision-001', '01_Processed', 'decision.txt');
+  const itemId = await readReviewQueueItemIdByDriveFileId('review-queue-decision-001');
+
+  const manifestBefore = await requestJson<{ manifest_entry: { folder_path: string } }>(
+    '/api/drive/manifest/review-queue-decision-001'
+  );
+  assert.equal(manifestBefore.status, 200);
+
+  const response = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    item: { status: string; lastDecision?: { decision: string; note?: string; decidedAt: string; decidedBy?: string } };
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/decision`, {
+    method: 'POST',
+    body: JSON.stringify({
+      decision: 'resolved_externally',
+      decided_by: 'qa-review',
+      note: 'Reviewed manually outside Merlin'
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.mode, 'read_only');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.item.status, 'resolved_externally');
+  assert.equal(response.body.item.lastDecision?.decision, 'resolved_externally');
+  assert.equal(response.body.item.lastDecision?.decidedBy, 'qa-review');
+  assert.equal(response.body.item.lastDecision?.note, 'Reviewed manually outside Merlin');
+
+  const manifestAfter = await requestJson<{ manifest_entry: { folder_path: string } }>(
+    '/api/drive/manifest/review-queue-decision-001'
+  );
+  assert.equal(manifestAfter.status, 200);
+  assert.equal(manifestAfter.body.manifest_entry.folder_path, manifestBefore.body.manifest_entry.folder_path);
+  assert.equal(mockDriveMoveFileCalls, 0);
+});
+
+test('decision endpoint blocks with auth unhealthy and does not call mutation helpers', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-auth-block-001',
+      file_name: 'auth-block.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-auth-block-001',
+      observed_at: '2026-05-25T16:12:00.000Z'
+    })
+  });
+  setMockDriveFileInFolder('review-queue-auth-block-001', '01_Processed', 'auth-block.txt');
+  const itemId = await readReviewQueueItemIdByDriveFileId('review-queue-auth-block-001');
+
+  process.env.GOOGLE_REFRESH_TOKEN = '';
+  const response = await requestJson<{
+    error: string;
+    reason: string;
+    auth: { ready: boolean; configured: boolean; checkedAt: string };
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/decision`, {
+    method: 'POST',
+    body: JSON.stringify({
+      decision: 'acknowledged',
+      note: 'Should not apply'
+    })
+  });
+
+  assert.equal(response.status, 409);
+  assert.equal(response.body.error, 'Drive auth unhealthy');
+  assert.equal(response.body.auth.ready, false);
+  assert.equal(response.body.reason, 'OAuth credentials are incomplete');
+  assert.equal(mockDriveMoveFileCalls, 0);
 });
