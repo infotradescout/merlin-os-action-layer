@@ -40,6 +40,12 @@ import {
 } from './replay.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
 import {
+  assertDriveHealthForMutation,
+  buildDriveAuthUnhealthyPayload,
+  getDriveAuthHealth,
+  runDriveReconciliation
+} from './driveSafety.js';
+import {
   attachManifestToEntity,
   createManifestEntry,
   getManifestEntriesByStatus,
@@ -806,11 +812,52 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
 
   if (method === 'POST' && pathname === '/api/drive/sync') {
+    const syncHealth = await assertDriveHealthForMutation('drive_sync');
+    if (!syncHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(syncHealth.health, 'drive_sync'),
+        409
+      );
+    }
     try {
       const result = await syncDriveInbox();
       return responseJson(res, { status: result.status, result });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Drive sync failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/auth-health') {
+    try {
+      const health = await getDriveAuthHealth();
+      recordReplayEvent({
+        event_type: 'drive_auth_health_checked',
+        summary: `Drive auth health checked: ${health.status}`,
+        source_refs: ['system:drive_auth_health'],
+        payload: {
+          status: health.status,
+          auth: {
+            ready: health.auth.ready,
+            configured: health.auth.configured
+          },
+          managedFoldersReady: health.managedFolders.ready
+        }
+      });
+      return responseJson(res, health);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive auth health check failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/reconciliation') {
+    try {
+      const reconciliation = await runDriveReconciliation();
+      return responseJson(res, reconciliation);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive reconciliation failed';
       return responseJson(res, { error: message }, 500);
     }
   }
@@ -1070,6 +1117,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const requestEntityId = typeof payload.entity_id === 'string' ? payload.entity_id.trim() : undefined;
     if (!isRouteTarget(target)) {
       return responseJson(res, { error: 'target must be processed, entity_files, or archive' }, 400);
+    }
+
+    const mutationHealth = await assertDriveHealthForMutation('drive_route', driveFileId);
+    if (!mutationHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(mutationHealth.health, 'drive_route', driveFileId),
+        409
+      );
     }
 
     const authConfig = getDriveAuthConfig();

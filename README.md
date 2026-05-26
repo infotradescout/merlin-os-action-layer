@@ -129,7 +129,7 @@ That launcher explicitly loads `.env` before booting the OR service.
 Validate readiness:
 
 ```bash
-curl -s http://localhost:3030/api/drive/status
+curl -s http://localhost:3030/api/drive/auth-health
 ```
 
 Expected OAuth-ready response includes:
@@ -138,7 +138,47 @@ Expected OAuth-ready response includes:
 {
   "status": "ready",
   "auth": {
+    "ready": true,
+    "configured": true
+  },
+  "managedFolders": {
     "ready": true
+  }
+}
+```
+
+For safety validation, also review reconciliation and auth-blocking behavior:
+
+```bash
+curl -s http://localhost:3030/api/drive/reconciliation
+```
+
+Expected read-only envelope:
+
+```json
+{
+  "status": "ok",
+  "mode": "read_only",
+  "summary": {
+    "checked": 0,
+    "driftCount": 0,
+    "blockingCount": 0,
+    "warningCount": 0
+  },
+  "drift": []
+}
+```
+
+When Drive auth is unhealthy, route/sync mutations return:
+
+```text
+409
+{
+  "error": "Drive auth unhealthy",
+  "reason": "OAuth credentials are incomplete",
+  "auth": {
+    "ready": false,
+    "configured": false
   }
 }
 ```

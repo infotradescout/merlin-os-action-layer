@@ -3,6 +3,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { before, after, beforeEach, test } from 'node:test';
+import type { AddressInfo } from 'node:net';
+import type { Server } from 'node:http';
 import type { DriveClient } from '../src/driveClient.ts';
 
 import { createDriveFileRecord } from '../src/driveIngest.ts';
@@ -32,6 +34,10 @@ const { closeApprovalQueueStore, resetApprovalQueueForTest } = await import('../
 const { discoverManagedFolders, importDriveFile, routeImportedFile, syncDriveInbox } = await import('../src/driveSync.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 const { createDriveBootstrapPlan } = await import('../src/driveManager.ts');
+const { createMerlinServer } = await import('../src/server.ts');
+
+let server: Server;
+let baseUrl: string;
 
 type FolderRecord = {
   id: string;
@@ -186,6 +192,30 @@ function createSyncFolders(): FolderRecord[] {
   return folders;
 }
 
+before(async () => {
+  server = createMerlinServer();
+  await new Promise<void>((resolveStart, reject) => {
+    server.listen(0, () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        reject(new Error('Server did not bind to a numeric port'));
+        return;
+      }
+      baseUrl = `http://127.0.0.1:${(address as AddressInfo).port}`;
+      resolveStart();
+    });
+  });
+});
+
+async function requestJson<T>(path: string, init: RequestInit = {}): Promise<{ status: number; body: T }> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init
+  });
+  const body = (await response.json()) as T;
+  return { status: response.status, body };
+}
+
 beforeEach(() => {
   resetLisaStore();
   resetDriveManifestForTest();
@@ -193,9 +223,11 @@ beforeEach(() => {
   resetRecommendationsForTest();
   resetOutcomesForTest();
   resetApprovalQueueForTest();
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
 });
 
 after(async () => {
+  await new Promise<void>((resolveStop) => server.close(() => resolveStop()));
   closeLisaStore();
   closeDriveManifestStore();
   closeReplayStore();
@@ -430,4 +462,58 @@ test('routeImportedFile returns expected behavior for supported and unsupported 
 
   assert.equal(routeImportedFile(withEntity).route, 'processed');
   assert.equal(routeImportedFile(unsupported).route === 'needs_review' || routeImportedFile(unsupported).route === 'skipped', true);
+});
+
+test('POST /api/drive/sync returns 409 when auth is unhealthy', async () => {
+  process.env.GOOGLE_REFRESH_TOKEN = '';
+  const beforeSeen = getManifestEntriesByStatus('seen');
+  const beforeCount = beforeSeen.length;
+  const { client } = createMockDriveClient(createSyncFolders(), [
+    {
+      id: 'sync-unhealthy-file-001',
+      name: 'invoice.pdf',
+      mimeType: 'application/pdf',
+      modifiedTime: '2026-05-24T14:06:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/sync-unhealthy-file-001',
+      parents: ['inbox']
+    }
+  ]);
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{ error: string; reason?: string }>('/api/drive/sync', { method: 'POST' });
+  assert.equal(response.status, 409);
+  assert.equal(response.body.error, 'Drive auth unhealthy');
+  assert.equal(response.body.reason, 'OAuth credentials are incomplete');
+
+  const afterSeen = getManifestEntriesByStatus('seen');
+  assert.equal(afterSeen.length, beforeCount);
+  assert.equal(mockClientCalls.moved.length, 0);
+
+  const replay = getRecentReplayEvents(20);
+  assert.equal(replay.some((event) => event.event_type === 'drive_auth_unhealthy'), true);
+});
+
+test('POST /api/drive/sync healthy auth executes sync endpoint behavior', async () => {
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+  const { client } = createMockDriveClient(createSyncFolders(), [
+    {
+      id: 'sync-healthy-file-001',
+      name: 'invoice.pdf',
+      mimeType: 'application/pdf',
+      modifiedTime: '2026-05-24T14:07:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/sync-healthy-file-001',
+      parents: ['inbox'],
+      entity_id: 'business-sync-route'
+    }
+  ]);
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{ status: string; result: { status: string; manifest_updates: number } }>(
+    '/api/drive/sync',
+    { method: 'POST' }
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.result.status, 'ok');
+  assert.equal(response.body.result.manifest_updates >= 1, true);
 });
