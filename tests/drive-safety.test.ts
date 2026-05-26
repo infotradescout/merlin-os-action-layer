@@ -23,6 +23,7 @@ const { createMerlinServer } = await import('../src/server.ts');
 const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
 const { resetReplayForTest, closeReplayStore } = await import('../src/replay.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
+const { resetDriveSafetyStoreForTest } = await import('../src/driveSafetyStore.ts');
 const { closeLisaStore } = await import('../src/lisa.ts');
 const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
 const { closeRecommendationsStore } = await import('../src/recommendations.ts');
@@ -158,6 +159,7 @@ after(async () => {
 beforeEach(async () => {
   createDriveHealthMockClient();
   resetReplayForTest();
+  resetDriveSafetyStoreForTest();
   process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
   await requestJson('/api/demo/reset', { method: 'POST' });
 });
@@ -277,4 +279,57 @@ test('detects missing_drive_file drift and keeps manifest stable', async () => {
   );
   assert.equal(manifest.status, 200);
   assert.equal(manifest.body.manifest_entry.folder_path, 'Merlin OR Storage/02_Needs_Review/2026-05');
+});
+
+test('emits a deduped drive_drift_detected event for repeated drift checks', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'recon-dedup-001',
+      file_name: 'dedupe.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/recon-dedup-001',
+      observed_at: '2026-05-25T16:02:00.000Z'
+    })
+  });
+
+  setMockDriveFileInFolder('recon-dedup-001', '01_Processed', 'dedupe.txt');
+  await requestJson('/api/drive/reconciliation');
+  await requestJson('/api/drive/reconciliation');
+
+  const replay = await requestJson<{ replay_events: Array<{ event_type: string; summary: string }> }>(
+    '/api/replay/recent?limit=50'
+  );
+  const driftDetectedEvents = replay.body.replay_events.filter(
+    (event) => event.event_type === 'drive_drift_detected' && event.summary.includes('recon-dedup-001')
+  );
+  assert.equal(driftDetectedEvents.length, 1);
+});
+
+test('emits separate drift events for different drift instances', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'recon-missing-for-separate-event',
+      file_name: 'missing-drift.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/recon-missing-for-separate-event',
+      observed_at: '2026-05-25T16:03:00.000Z'
+    })
+  });
+
+  setMockDriveFileInFolder('recon-drive-only-001', '01_Processed', 'orphan.txt');
+
+  const response = await requestJson<{ drift: Array<{ drive_file_id: string; type: string }> }>(
+    '/api/drive/reconciliation'
+  );
+  assert.equal(response.status, 200);
+  assert.equal(response.body.drift.some((item) => item.drive_file_id === 'recon-missing-for-separate-event'), true);
+  assert.equal(response.body.drift.some((item) => item.drive_file_id === 'recon-drive-only-001'), true);
+
+  const replay = await requestJson<{ replay_events: Array<{ event_type: string }> }>('/api/replay/recent?limit=50');
+  const driftDetectedEvents = replay.body.replay_events.filter((event) => event.event_type === 'drive_drift_detected');
+  assert.equal(driftDetectedEvents.length, 2);
 });

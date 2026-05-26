@@ -3,6 +3,7 @@ import { discoverManagedFolders } from './driveSync.js';
 import { getDriveClient } from './driveClient.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
 import { getRecentManifestEntries } from './driveManifest.js';
+import { emitDriveDriftDetectedReplayEvent } from './driveSafetyStore.js';
 
 export interface DriveAuthHealthAuth {
   ready: boolean;
@@ -145,6 +146,17 @@ function toReconciliationDrift(
   };
 }
 
+function recordDriftReplayEvent(drift: DriveReconciliationDrift, mode: 'read_only'): void {
+  emitDriveDriftDetectedReplayEvent({
+    drive_file_id: drift.drive_file_id,
+    type: drift.type,
+    mode,
+    expectedFolderPath: drift.expected.folder_path || '',
+    actualFolderPath: drift.actual.folder_path || '',
+    message: drift.message
+  });
+}
+
 function getDriveFoldersIndex(managedFolders: Record<string, FolderIdentity>): {
   byId: Map<string, FolderAlias>;
   byAlias: Map<FolderAlias, string>;
@@ -248,6 +260,7 @@ export async function runDriveReconciliation(): Promise<DriveReconciliationRespo
           `Drive file ${fileId} is missing from observed managed folders`
         )
       );
+      recordDriftReplayEvent(drift[drift.length - 1], 'read_only');
       continue;
     }
 
@@ -262,6 +275,7 @@ export async function runDriveReconciliation(): Promise<DriveReconciliationRespo
           `Drive file ${fileId} is in an unknown managed folder`
         )
       );
+      recordDriftReplayEvent(drift[drift.length - 1], 'read_only');
       continue;
     }
 
@@ -277,6 +291,7 @@ export async function runDriveReconciliation(): Promise<DriveReconciliationRespo
           `Manifest folder path does not match Drive location for ${fileId}`
         )
       );
+      recordDriftReplayEvent(drift[drift.length - 1], 'read_only');
     }
   }
 
@@ -291,6 +306,7 @@ export async function runDriveReconciliation(): Promise<DriveReconciliationRespo
           `Drive file ${fileId} has no manifest entry`
         )
       );
+      recordDriftReplayEvent(drift[drift.length - 1], 'read_only');
     }
   }
 
@@ -305,6 +321,7 @@ export async function runDriveReconciliation(): Promise<DriveReconciliationRespo
           `Drive file ${fileId} has duplicate manifest entries`
         )
       );
+      recordDriftReplayEvent(drift[drift.length - 1], 'read_only');
     }
   }
 
