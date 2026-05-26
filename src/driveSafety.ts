@@ -4,6 +4,7 @@ import { getDriveClient } from './driveClient.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
 import { getRecentManifestEntries } from './driveManifest.js';
 import { emitDriveDriftDetectedReplayEvent } from './driveSafetyStore.js';
+import { recordReplayEvent } from './replay.js';
 
 export interface DriveAuthHealthAuth {
   ready: boolean;
@@ -21,6 +22,62 @@ export interface DriveAuthHealthResponse {
   status: 'ready' | 'disabled';
   auth: DriveAuthHealthAuth;
   managedFolders: DriveAuthHealthManagedFolders;
+}
+
+export interface DriveHealthBlocker {
+  ok: true;
+  health: DriveAuthHealthResponse;
+}
+
+export interface DriveHealthBlock {
+  ok: false;
+  health: DriveAuthHealthResponse;
+}
+
+export type DriveMutationHealthCheck = DriveHealthBlocker | DriveHealthBlock;
+
+export function buildDriveAuthUnhealthyPayload(
+  health: DriveAuthHealthResponse,
+  action: string,
+  driveFileId?: string
+): { error: string; reason: string; auth: Omit<DriveAuthHealthAuth, 'reason'> & { checkedAt: string } } {
+  return {
+    error: 'Drive auth unhealthy',
+    reason: health.auth.reason || 'Drive auth is not ready',
+    auth: {
+      ready: health.auth.ready,
+      configured: health.auth.configured,
+      checkedAt: health.auth.checkedAt
+    }
+  };
+}
+
+export async function assertDriveHealthForMutation(action: string, driveFileId?: string): Promise<DriveMutationHealthCheck> {
+  const health = await getDriveAuthHealth();
+  if (health.status === 'ready' && health.auth.ready && health.managedFolders.ready) {
+    return {
+      ok: true,
+      health
+    };
+  }
+
+  const eventPayload = {
+    action,
+    drive_file_id: driveFileId,
+    reason: health.auth.reason || undefined,
+    checked_at: health.auth.checkedAt
+  };
+  recordReplayEvent({
+    event_type: 'drive_auth_unhealthy' as Parameters<typeof recordReplayEvent>[0]['event_type'],
+    summary: `Drive auth unhealthy for ${action}`,
+    source_refs: [driveFileId ? `drive:${driveFileId}` : 'system:drive_auth_unhealthy'],
+    payload: eventPayload
+  });
+
+  return {
+    ok: false,
+    health
+  };
 }
 
 export type DriveDriftType =

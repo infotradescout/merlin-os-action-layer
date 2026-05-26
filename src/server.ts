@@ -39,7 +39,12 @@ import {
   resetReplayForTest
 } from './replay.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
-import { getDriveAuthHealth, runDriveReconciliation } from './driveSafety.js';
+import {
+  assertDriveHealthForMutation,
+  buildDriveAuthUnhealthyPayload,
+  getDriveAuthHealth,
+  runDriveReconciliation
+} from './driveSafety.js';
 import {
   attachManifestToEntity,
   createManifestEntry,
@@ -807,6 +812,14 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
 
   if (method === 'POST' && pathname === '/api/drive/sync') {
+    const syncHealth = await assertDriveHealthForMutation('drive_sync');
+    if (!syncHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(syncHealth.health, 'drive_sync'),
+        409
+      );
+    }
     try {
       const result = await syncDriveInbox();
       return responseJson(res, { status: result.status, result });
@@ -1104,6 +1117,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const requestEntityId = typeof payload.entity_id === 'string' ? payload.entity_id.trim() : undefined;
     if (!isRouteTarget(target)) {
       return responseJson(res, { error: 'target must be processed, entity_files, or archive' }, 400);
+    }
+
+    const mutationHealth = await assertDriveHealthForMutation('drive_route', driveFileId);
+    if (!mutationHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(mutationHealth.health, 'drive_route', driveFileId),
+        409
+      );
     }
 
     const authConfig = getDriveAuthConfig();

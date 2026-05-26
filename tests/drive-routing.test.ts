@@ -139,6 +139,7 @@ after(async () => {
 beforeEach(async () => {
   moves.length = 0;
   await requestJson('/api/demo/reset', { method: 'POST' });
+  process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
 });
 
@@ -211,13 +212,14 @@ test('blocked Drive status prevents route', async () => {
   assert.equal(before.status, 200);
   const beforeStatus = before.body.manifest_entry.processing_status;
   const beforePath = before.body.manifest_entry.folder_path;
-  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'false';
+  process.env.GOOGLE_REFRESH_TOKEN = '';
   const routed = await requestJson<{ error: string; reason?: string }>('/api/drive/review/route-005/route', {
     method: 'POST',
     body: JSON.stringify({ target: 'processed' })
   });
   assert.equal(routed.status, 409);
-  assert.equal(routed.body.error, 'Drive routing unavailable');
+  assert.equal(routed.body.error, 'Drive auth unhealthy');
+  assert.equal(routed.body.reason, 'OAuth credentials are incomplete');
 
   const after = await requestJson<{ manifest_entry: { processing_status: string; folder_path: string } }>(
     '/api/drive/manifest/route-005'
@@ -226,6 +228,36 @@ test('blocked Drive status prevents route', async () => {
   assert.equal(after.body.manifest_entry.processing_status, beforeStatus);
   assert.equal(after.body.manifest_entry.folder_path, beforePath);
   assert.equal(moves.some((move) => move.fileId === 'route-005'), false);
+});
+
+test('does not mutate manifest and emits drive_auth_unhealthy for blocked auth route', async () => {
+  await seedReviewFile('route-007', { entity_id: 'business_route_blocked_event' });
+  const before = await requestJson<{ manifest_entry: { processing_status: string; folder_path: string } }>(
+    '/api/drive/manifest/route-007'
+  );
+  assert.equal(before.status, 200);
+  process.env.GOOGLE_REFRESH_TOKEN = '';
+
+  const routed = await requestJson<{ error: string; reason?: string }>('/api/drive/review/route-007/route', {
+    method: 'POST',
+    body: JSON.stringify({ target: 'processed' })
+  });
+  assert.equal(routed.status, 409);
+
+  const after = await requestJson<{ manifest_entry: { processing_status: string; folder_path: string } }>(
+    '/api/drive/manifest/route-007'
+  );
+  assert.equal(after.status, 200);
+  assert.equal(after.body.manifest_entry.processing_status, before.body.manifest_entry.processing_status);
+  assert.equal(after.body.manifest_entry.folder_path, before.body.manifest_entry.folder_path);
+  assert.equal(moves.length, 0);
+
+  const replay = await requestJson<{ replay_events: Array<{ event_type: string }> }>('/api/replay/recent?limit=40');
+  assert.equal(replay.status, 200);
+  assert.equal(
+    replay.body.replay_events.some((event) => event.event_type === 'drive_auth_unhealthy'),
+    true
+  );
 });
 
 test('route records outcome and replay and has no delete behavior', async () => {
