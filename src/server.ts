@@ -39,6 +39,7 @@ import {
   resetReplayForTest
 } from './replay.js';
 import { getDriveAuthConfig, getDriveAuthProfile } from './driveAuth.js';
+import { getDriveAuthHealth } from './driveSafety.js';
 import {
   attachManifestToEntity,
   createManifestEntry,
@@ -811,6 +812,29 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       return responseJson(res, { status: result.status, result });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Drive sync failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/auth-health') {
+    try {
+      const health = await getDriveAuthHealth();
+      recordReplayEvent({
+        event_type: 'drive_auth_health_checked',
+        summary: `Drive auth health checked: ${health.status}`,
+        source_refs: ['system:drive_auth_health'],
+        payload: {
+          status: health.status,
+          auth: {
+            ready: health.auth.ready,
+            configured: health.auth.configured
+          },
+          managedFoldersReady: health.managedFolders.ready
+        }
+      });
+      return responseJson(res, health);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive auth health check failed';
       return responseJson(res, { error: message }, 500);
     }
   }
