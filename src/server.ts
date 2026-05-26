@@ -46,8 +46,12 @@ import {
   runDriveReconciliation
 } from './driveSafety.js';
 import {
+  closeDriveReviewQueuePersistence,
   decideDriveReviewQueueItem,
+  getDriveReviewQueueAuditTrail,
   getDriveReviewQueueItem,
+  getDriveReviewQueueItemHistory,
+  resetDriveReviewQueueForTest,
   runDriveReviewQueue,
   type DriveReviewQueueDecision
 } from './driveReviewQueue.js';
@@ -464,6 +468,7 @@ function resetDemoRuntimeState(): void {
   resetEntityResolutionForTest();
   resetSourceRegistryForTest();
   resetDriveManifestForTest();
+  resetDriveReviewQueueForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -917,6 +922,17 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
   }
 
+  if (method === 'GET' && pathname === '/api/drive/review-queue/audit') {
+    const limit = getNumber(query.limit, 200);
+    const records = getDriveReviewQueueAuditTrail(limit);
+    return responseJson(res, {
+      status: 'ok',
+      mode: 'read_only',
+      mutationAllowed: false,
+      records
+    });
+  }
+
   const driveReviewQueueMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)$/);
   if (method === 'GET' && driveReviewQueueMatch) {
     const itemId = decodeURIComponent(driveReviewQueueMatch[1]);
@@ -929,6 +945,23 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       mode: 'read_only',
       mutationAllowed: false,
       item
+    });
+  }
+
+  const driveReviewQueueHistoryMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)\/history$/);
+  if (method === 'GET' && driveReviewQueueHistoryMatch) {
+    const itemId = decodeURIComponent(driveReviewQueueHistoryMatch[1]);
+    const item = await getDriveReviewQueueItem(itemId);
+    if (!item) {
+      return responseJson(res, { error: 'Review queue item not found' }, 404);
+    }
+    const history = getDriveReviewQueueItemHistory(itemId);
+    return responseJson(res, {
+      status: 'ok',
+      mode: 'read_only',
+      mutationAllowed: false,
+      itemId,
+      history
     });
   }
 
@@ -1506,7 +1539,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 };
 
 export function createMerlinServer(): HttpServer {
-  return createServer(createMerlinHandler);
+  const server = createServer(createMerlinHandler);
+  server.on('close', () => {
+    closeDriveReviewQueuePersistence();
+  });
+  return server;
 }
 
 export function startMerlinServer(port = Number(process.env.PORT || DEFAULT_PORT)): HttpServer {

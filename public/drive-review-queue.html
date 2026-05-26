@@ -242,6 +242,14 @@
         <div class="summary" id="summary-grid"></div>
       </section>
 
+      <section class="panel">
+        <h2>Decision Audit Trail</h2>
+        <p class="subtitle">Workflow metadata only · mutation allowed: false</p>
+        <ul id="audit-list" class="list">
+          <li class="item">No audit records yet.</li>
+        </ul>
+      </section>
+
       <div class="layout">
         <section class="panel">
           <h2>Review Queue Inbox</h2>
@@ -306,6 +314,29 @@
       };
 
       const safeText = (value) => (value === undefined || value === null ? '' : String(value));
+
+      const renderAudit = (records) => {
+        const container = document.getElementById('audit-list');
+        container.innerHTML = '';
+        if (!Array.isArray(records) || records.length === 0) {
+          container.innerHTML = '<li class="item">No audit records yet.</li>';
+          return;
+        }
+        for (const record of records) {
+          const row = document.createElement('li');
+          row.className = 'item';
+          const title = document.createElement('div');
+          title.className = 'item-title';
+          title.textContent = `${safeText(record.decision)} · ${safeText(record.itemId)}`;
+          const summary = document.createElement('div');
+          summary.className = 'item-summary';
+          const note = record.note ? ` · note: ${safeText(record.note)}` : '';
+          summary.textContent = `${safeText(record.decidedAt)} · by ${safeText(record.decidedBy || 'anonymous')} · mutationAllowed:false${note}`;
+          row.appendChild(title);
+          row.appendChild(summary);
+          container.appendChild(row);
+        }
+      };
 
       const setAuthStrip = (isReady, status, configured, reason = '') => {
         const strip = document.getElementById('auth-strip');
@@ -410,7 +441,7 @@
         }
       };
 
-      const renderDetail = (item) => {
+      const renderDetail = (item, historyOverride) => {
         const detailStatus = document.getElementById('detail-status');
         const detailContent = document.getElementById('detail-content');
         const title = document.getElementById('detail-title');
@@ -443,7 +474,9 @@
         } else {
           last.textContent = 'none';
         }
-        const history = Array.isArray(item.decisionHistory) ? item.decisionHistory : [];
+        const history = Array.isArray(historyOverride)
+          ? historyOverride
+          : (Array.isArray(item.decisionHistory) ? item.decisionHistory : []);
         historyList.innerHTML = '';
         if (!history.length) {
           historyList.innerHTML = '<li class="item">No decisions recorded.</li>';
@@ -469,12 +502,14 @@
       const openItem = async (itemId) => {
         state.selectedItemId = itemId;
         const match = state.queue?.items?.find((entry) => entry.id === itemId);
+        const historyPayload = await client.getReviewQueueItemHistory(itemId);
+        const history = historyPayload?.history || [];
         if (match) {
-          renderDetail(match);
+          renderDetail(match, history);
           return;
         }
         const details = await client.getReviewQueueItem(itemId);
-        renderDetail(details.item);
+        renderDetail(details.item, history);
       };
 
       const applyDecision = async (event) => {
@@ -498,12 +533,17 @@
           }
           document.getElementById('decision-note').value = '';
           const refreshed = await client.getReviewQueue();
+          const audit = await client.getReviewQueueAudit(100);
           state.queue = refreshed;
           renderSummary(refreshed);
           renderQueue(refreshed.items || []);
+          renderAudit(audit.records || []);
           if (state.selectedItemId) {
             const current = refreshed.items?.find((entry) => entry.id === state.selectedItemId);
-            if (current) renderDetail(current);
+            if (current) {
+              const historyPayload = await client.getReviewQueueItemHistory(state.selectedItemId);
+              renderDetail(current, historyPayload?.history || []);
+            }
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Request failed';
@@ -516,11 +556,16 @@
 
       const hydrate = async () => {
         try {
-          const [health, queue] = await Promise.all([client.getAuthHealth(), client.getReviewQueue()]);
+          const [health, queue, audit] = await Promise.all([
+            client.getAuthHealth(),
+            client.getReviewQueue(),
+            client.getReviewQueueAudit(100)
+          ]);
           state.queue = queue;
           setAuthStrip(health.auth.ready, health.status, health.auth.configured, health.auth.reason || '');
           renderSummary(queue);
           renderQueue(queue.items || []);
+          renderAudit(audit.records || []);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unable to load panel data';
           alert(message);

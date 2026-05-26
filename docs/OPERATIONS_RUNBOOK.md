@@ -60,3 +60,19 @@ Coverage includes:
 - Decision post with metadata-only payload.
 - Post-decision UI update and decision-history visibility.
 - No remediation wording in the admin inbox surface.
+
+### 6) v2.7 persistence + audit checks
+
+Verify decision history persistence and audit visibility:
+
+```bash
+curl -s http://localhost:3030/api/drive/review-queue/:itemId/history
+curl -s "http://localhost:3030/api/drive/review-queue/audit?limit=100"
+```
+
+Expected:
+
+- `mode` remains `read_only`.
+- `mutationAllowed` remains `false`.
+- History/audit records contain workflow metadata only (`decision`, `note`, `decidedAt`, `decidedBy`, `source`).
+- No remediation behavior is exposed.

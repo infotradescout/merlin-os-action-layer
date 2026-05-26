@@ -91,6 +91,20 @@ v2.6 still forbids:
 - Manifest mutation from queue decisions.
 - Fix/repair/sync/create/delete/auto-resolve operator actions.
 
+## v2.7 persistence and audit addendum
+
+v2.7 adds durable review decision history and audit surfaces:
+
+- `GET /api/drive/review-queue/:itemId/history`
+- `GET /api/drive/review-queue/audit`
+
+Decision records are persisted as workflow metadata only with:
+
+- `source: "drive_review_queue"`
+- `mutationAllowed: false`
+
+No Drive file movement, Drive remediation, or manifest mutation is performed by these APIs.
+
 ## Runbook (operator flow)
 
 1. Start with:

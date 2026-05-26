@@ -1,4 +1,12 @@
 import { runDriveReconciliation, type DriveReconciliationDrift } from './driveSafety.js';
+import {
+  closeDriveReviewQueueStore,
+  getDriveReviewQueueAudit,
+  getDriveReviewQueueDecisionHistory,
+  recordDriveReviewQueueDecision,
+  resetDriveReviewQueueStoreForTest,
+  type DriveReviewQueueDecisionRecord
+} from './driveReviewQueueStore.js';
 
 export type DriveReviewQueueItemType =
   | 'missing_folder'
@@ -28,6 +36,8 @@ export interface DriveReviewQueueDecisionNote {
   note?: string;
   decidedAt: string;
   decidedBy?: string;
+  source?: 'drive_review_queue';
+  mutationAllowed?: false;
 }
 
 export interface DriveReviewQueueItem {
@@ -63,12 +73,6 @@ export interface DriveReviewQueueResponse {
   checkedAt: string;
   summary: DriveReviewQueueSummary;
   items: DriveReviewQueueItem[];
-}
-
-interface DecisionRecord {
-  status: DriveReviewQueueStatus;
-  lastDecision: DriveReviewQueueDecisionNote;
-  history: DriveReviewQueueDecisionNote[];
 }
 
 function makeQueueItemId(drift: DriveReconciliationDrift): string {
@@ -150,14 +154,25 @@ function toSummary(items: DriveReviewQueueItem[]): DriveReviewQueueSummary {
   return summary;
 }
 
-const queueDecisionStore = new Map<string, DecisionRecord>();
+function toDecisionNote(record: DriveReviewQueueDecisionRecord): DriveReviewQueueDecisionNote {
+  return {
+    decision: record.decision,
+    note: record.note,
+    decidedAt: record.decidedAt,
+    decidedBy: record.decidedBy,
+    source: record.source,
+    mutationAllowed: record.mutationAllowed
+  };
+}
 
 function buildQueueItem(drift: DriveReconciliationDrift): DriveReviewQueueItem {
   const type = mapDriftToItemType(drift.type);
   const severity = mapSeverity(drift.severity);
   const itemId = makeQueueItemId(drift);
-  const status = queueDecisionStore.get(itemId)?.status || 'open';
-  const decision = queueDecisionStore.get(itemId);
+  const historyRecords = getDriveReviewQueueDecisionHistory(itemId, 200);
+  const decisionHistory = historyRecords.map(toDecisionNote);
+  const lastDecision = decisionHistory.at(-1);
+  const status = lastDecision ? mapDecisionToStatus(lastDecision.decision) : 'open';
 
   return {
     id: itemId,
@@ -171,8 +186,8 @@ function buildQueueItem(drift: DriveReconciliationDrift): DriveReviewQueueItem {
     source: 'drive_reconciliation',
     readOnly: true,
     recommendedHumanAction: recommendedAction(type),
-    lastDecision: decision?.lastDecision,
-    decisionHistory: decision?.history || []
+    lastDecision,
+    decisionHistory
   };
 }
 
@@ -206,31 +221,44 @@ export async function decideDriveReviewQueueItem(
   }
 
   const updatedStatus = mapDecisionToStatus(decision);
-  const lastDecision: DriveReviewQueueDecisionNote = {
+  const recorded = recordDriveReviewQueueDecision({
+    itemId,
     decision,
     note,
-    decidedAt: new Date().toISOString(),
     decidedBy
-  };
-
-  queueDecisionStore.set(itemId, {
-    status: updatedStatus,
-    lastDecision,
-    history: [...(queueDecisionStore.get(itemId)?.history || []), lastDecision]
   });
+  const lastDecision = toDecisionNote(recorded);
+  const decisionHistory = getDriveReviewQueueDecisionHistory(itemId, 200).map(toDecisionNote);
 
   return {
     ...existing,
     status: updatedStatus,
     lastDecision,
-    decisionHistory: [...(queueDecisionStore.get(itemId)?.history || [])]
+    decisionHistory
   };
 }
 
 export function getDriveReviewQueueDecision(itemId: string): DriveReviewQueueDecisionNote | undefined {
-  return queueDecisionStore.get(itemId)?.lastDecision;
+  const history = getDriveReviewQueueDecisionHistory(itemId, 1);
+  const last = history.at(-1);
+  return last ? toDecisionNote(last) : undefined;
+}
+
+export function getDriveReviewQueueItemHistory(itemId: string): DriveReviewQueueDecisionNote[] {
+  return getDriveReviewQueueDecisionHistory(itemId, 500).map(toDecisionNote);
+}
+
+export function getDriveReviewQueueAuditTrail(limit = 200): Array<DriveReviewQueueDecisionNote & { itemId: string }> {
+  return getDriveReviewQueueAudit(limit).map((record) => ({
+    ...toDecisionNote(record),
+    itemId: record.itemId
+  }));
 }
 
 export function resetDriveReviewQueueForTest(): void {
-  queueDecisionStore.clear();
+  resetDriveReviewQueueStoreForTest();
+}
+
+export function closeDriveReviewQueuePersistence(): void {
+  closeDriveReviewQueueStore();
 }
