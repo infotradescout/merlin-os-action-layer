@@ -41,7 +41,9 @@ GOOGLE_REDIRECT_URI=http://127.0.0.1:8765
 6. Run the smoke test:
    - `npm run check`
    - `npm run test`
-   - `npm run dev`
+   - `npm run dev:or`
+
+This ensures Drive OAuth credentials are loaded before server startup.
 
 Then call:
 

@@ -115,3 +115,32 @@ merlin-os-action-layer/
 ## Current status
 
 This repo is the technical home for the action layer. Google Drive remains the business source of truth.
+
+## Merlin OR OAuth-ready local startup
+
+For Drive/OAuth work, start the service with:
+
+```bash
+npm run dev:or
+```
+
+That launcher explicitly loads `.env` before booting the OR service.
+
+Validate readiness:
+
+```bash
+curl -s http://localhost:3030/api/drive/status
+```
+
+Expected OAuth-ready response includes:
+
+```json
+{
+  "status": "ready",
+  "auth": {
+    "ready": true
+  }
+}
+```
+
+Use `npm run dev` for workflows that do not require Google Drive OAuth integration.
