@@ -46,6 +46,12 @@ import {
   runDriveReconciliation
 } from './driveSafety.js';
 import {
+  decideDriveReviewQueueItem,
+  getDriveReviewQueueItem,
+  runDriveReviewQueue,
+  type DriveReviewQueueDecision
+} from './driveReviewQueue.js';
+import {
   attachManifestToEntity,
   createManifestEntry,
   getManifestEntriesByStatus,
@@ -860,6 +866,84 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const message = error instanceof Error ? error.message : 'Drive reconciliation failed';
       return responseJson(res, { error: message }, 500);
     }
+  }
+
+  if (method === 'GET' && pathname === '/api/drive/review-queue') {
+    try {
+      const queue = await runDriveReviewQueue();
+      return responseJson(res, queue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive review queue failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  const driveReviewQueueMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)$/);
+  if (method === 'GET' && driveReviewQueueMatch) {
+    const itemId = decodeURIComponent(driveReviewQueueMatch[1]);
+    const item = await getDriveReviewQueueItem(itemId);
+    if (!item) {
+      return responseJson(res, { error: 'Review queue item not found' }, 404);
+    }
+    return responseJson(res, {
+      status: 'ok',
+      mode: 'read_only',
+      mutationAllowed: false,
+      item
+    });
+  }
+
+  const reviewQueueDecisionMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)\/decision$/);
+  if (method === 'POST' && reviewQueueDecisionMatch) {
+    const itemId = decodeURIComponent(reviewQueueDecisionMatch[1]);
+    const queueHealth = await assertDriveHealthForMutation('drive_review_queue_decision', undefined);
+    if (!queueHealth.ok) {
+      return responseJson(
+        res,
+        buildDriveAuthUnhealthyPayload(queueHealth.health, 'drive_review_queue_decision'),
+        409
+      );
+    }
+
+    const item = await getDriveReviewQueueItem(itemId);
+    if (!item) {
+      return responseJson(res, { error: 'Review queue item not found' }, 404);
+    }
+
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const decision = typeof payload.decision === 'string' ? payload.decision.trim() : '';
+    if (!decision) {
+      return responseJson(res, { error: 'decision is required' }, 400);
+    }
+
+    const allowedDecisions: DriveReviewQueueDecision[] = [
+      'acknowledged',
+      'needs_manual_review',
+      'false_positive',
+      'defer',
+      'resolved_externally'
+    ];
+    if (!allowedDecisions.includes(decision as DriveReviewQueueDecision)) {
+      return responseJson(res, { error: 'Unsupported decision' }, 400);
+    }
+
+    const decidedBy = typeof payload.decided_by === 'string' ? payload.decided_by.trim() : undefined;
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    const updated = await decideDriveReviewQueueItem(itemId, decision as DriveReviewQueueDecision, note, decidedBy);
+    return responseJson(
+      res,
+      {
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        item: updated
+      },
+      updated ? 200 : 404
+    );
   }
 
   if (method === 'GET' && pathname === '/api/drive/status') {
