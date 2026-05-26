@@ -87,6 +87,7 @@ test('admin review queue page renders operational inbox envelope', async () => {
   assert.ok(response.body.includes('Mark externally resolved'));
   assert.ok(response.body.includes('Mark false positive'));
   assert.ok(response.body.includes('Defer'));
+  assert.ok(response.body.includes('Decision History'));
 });
 
 test('admin review queue page does not expose remediation commands', async () => {

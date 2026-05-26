@@ -437,7 +437,11 @@ test('decision endpoint records workflow metadata without Drive mutation', async
     status: 'ok';
     mode: 'read_only';
     mutationAllowed: false;
-    item: { status: string; lastDecision?: { decision: string; note?: string; decidedAt: string; decidedBy?: string } };
+    item: {
+      status: string;
+      lastDecision?: { decision: string; note?: string; decidedAt: string; decidedBy?: string };
+      decisionHistory?: Array<{ decision: string; note?: string; decidedAt: string; decidedBy?: string }>;
+    };
   }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/decision`, {
     method: 'POST',
     body: JSON.stringify({
@@ -454,6 +458,9 @@ test('decision endpoint records workflow metadata without Drive mutation', async
   assert.equal(response.body.item.lastDecision?.decision, 'resolved_externally');
   assert.equal(response.body.item.lastDecision?.decidedBy, 'qa-review');
   assert.equal(response.body.item.lastDecision?.note, 'Reviewed manually outside Merlin');
+  assert.equal(Array.isArray(response.body.item.decisionHistory), true);
+  assert.equal(response.body.item.decisionHistory?.length, 1);
+  assert.equal(response.body.item.decisionHistory?.[0]?.decision, 'resolved_externally');
 
   const manifestAfter = await requestJson<{ manifest_entry: { folder_path: string } }>(
     '/api/drive/manifest/review-queue-decision-001'

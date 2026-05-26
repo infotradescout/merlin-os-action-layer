@@ -272,6 +272,10 @@
             <p class="muted-note">
               Last workflow note: <span id="last-decision">none</span>
             </p>
+            <h3 style="margin-top: 0.75rem;">Decision History</h3>
+            <ul id="decision-history" class="list">
+              <li class="item">No decisions recorded.</li>
+            </ul>
             <p id="auth-warning" class="muted-note"></p>
           </div>
           <p class="subtitle">
@@ -414,11 +418,13 @@
         const summary = document.getElementById('detail-summary');
         const recommend = document.getElementById('detail-recommended');
         const last = document.getElementById('last-decision');
+        const historyList = document.getElementById('decision-history');
 
         detailContent.style.display = 'none';
         if (!item) {
           detailStatus.textContent = 'Selected item not found.';
           last.textContent = 'none';
+          historyList.innerHTML = '<li class="item">No decisions recorded.</li>';
           return;
         }
         detailStatus.textContent = '';
@@ -436,6 +442,26 @@
           last.textContent = `${safeText(item.lastDecision.decision)} by ${safeText(item.lastDecision.decidedBy || 'anonymous')} at ${safeText(item.lastDecision.decidedAt)}${note}`;
         } else {
           last.textContent = 'none';
+        }
+        const history = Array.isArray(item.decisionHistory) ? item.decisionHistory : [];
+        historyList.innerHTML = '';
+        if (!history.length) {
+          historyList.innerHTML = '<li class="item">No decisions recorded.</li>';
+        } else {
+          for (const entry of [...history].reverse()) {
+            const row = document.createElement('li');
+            row.className = 'item';
+            const titleNode = document.createElement('div');
+            titleNode.className = 'item-title';
+            titleNode.textContent = `${safeText(entry.decision)} by ${safeText(entry.decidedBy || 'anonymous')}`;
+            const summaryNode = document.createElement('div');
+            summaryNode.className = 'item-summary';
+            const note = entry.note ? ` · note: ${safeText(entry.note)}` : '';
+            summaryNode.textContent = `${safeText(entry.decidedAt)}${note}`;
+            row.appendChild(titleNode);
+            row.appendChild(summaryNode);
+            historyList.appendChild(row);
+          }
         }
         updateDecisionState();
       };

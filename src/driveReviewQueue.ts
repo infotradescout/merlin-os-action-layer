@@ -44,6 +44,7 @@ export interface DriveReviewQueueItem {
   readOnly: true;
   recommendedHumanAction: string;
   lastDecision?: DriveReviewQueueDecisionNote;
+  decisionHistory?: DriveReviewQueueDecisionNote[];
 }
 
 export interface DriveReviewQueueSummary {
@@ -67,6 +68,7 @@ export interface DriveReviewQueueResponse {
 interface DecisionRecord {
   status: DriveReviewQueueStatus;
   lastDecision: DriveReviewQueueDecisionNote;
+  history: DriveReviewQueueDecisionNote[];
 }
 
 function makeQueueItemId(drift: DriveReconciliationDrift): string {
@@ -169,7 +171,8 @@ function buildQueueItem(drift: DriveReconciliationDrift): DriveReviewQueueItem {
     source: 'drive_reconciliation',
     readOnly: true,
     recommendedHumanAction: recommendedAction(type),
-    lastDecision: decision?.lastDecision
+    lastDecision: decision?.lastDecision,
+    decisionHistory: decision?.history || []
   };
 }
 
@@ -212,13 +215,15 @@ export async function decideDriveReviewQueueItem(
 
   queueDecisionStore.set(itemId, {
     status: updatedStatus,
-    lastDecision
+    lastDecision,
+    history: [...(queueDecisionStore.get(itemId)?.history || []), lastDecision]
   });
 
   return {
     ...existing,
     status: updatedStatus,
-    lastDecision
+    lastDecision,
+    decisionHistory: [...(queueDecisionStore.get(itemId)?.history || [])]
   };
 }
 
