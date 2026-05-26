@@ -97,6 +97,7 @@ v2.7 adds durable review decision history and audit surfaces:
 
 - `GET /api/drive/review-queue/:itemId/history`
 - `GET /api/drive/review-queue/audit`
+- `GET /api/drive/review-queue/audit/export.json`
 
 Decision records are persisted as workflow metadata only with:
 

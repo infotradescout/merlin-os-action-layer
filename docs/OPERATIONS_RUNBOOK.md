@@ -68,6 +68,7 @@ Verify decision history persistence and audit visibility:
 ```bash
 curl -s http://localhost:3030/api/drive/review-queue/:itemId/history
 curl -s "http://localhost:3030/api/drive/review-queue/audit?limit=100"
+curl -s "http://localhost:3030/api/drive/review-queue/audit/export.json?limit=100"
 ```
 
 Expected:

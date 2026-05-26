@@ -933,6 +933,25 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     });
   }
 
+  if (method === 'GET' && pathname === '/api/drive/review-queue/audit/export.json') {
+    const limit = getNumber(query.limit, 1000);
+    const records = getDriveReviewQueueAuditTrail(limit);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Disposition', 'attachment; filename="drive-review-queue-audit.json"');
+    res.end(
+      JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        exportedAt: new Date().toISOString(),
+        records
+      })
+    );
+    return;
+  }
+
   const driveReviewQueueMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)$/);
   if (method === 'GET' && driveReviewQueueMatch) {
     const itemId = decodeURIComponent(driveReviewQueueMatch[1]);

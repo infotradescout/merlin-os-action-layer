@@ -51,6 +51,9 @@ export function createDriveReviewQueueClient({ baseUrl = '' } = {}) {
     getReviewQueueAudit(limit = 200) {
       return requestJson(endpoint(`/api/drive/review-queue/audit?limit=${encodeURIComponent(String(limit))}`));
     },
+    getReviewQueueAuditExport(limit = 1000) {
+      return requestJson(endpoint(`/api/drive/review-queue/audit/export.json?limit=${encodeURIComponent(String(limit))}`));
+    },
     postDecision(itemId, decision, note, decidedBy) {
       if (!DRIVE_REVIEW_DECISIONS.includes(decision)) {
         throw new Error(`Unsupported decision: ${decision}`);
