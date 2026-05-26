@@ -79,6 +79,7 @@ test('admin review queue page renders operational inbox envelope', async () => {
   assert.ok(response.body.includes('Drive Review Queue'));
   assert.ok(response.body.includes('Auth Health Strip'));
   assert.ok(response.body.includes('Reconciliation Summary'));
+  assert.ok(response.body.includes('Decision Audit Trail'));
   assert.ok(response.body.includes('Review Queue Inbox'));
   assert.ok(response.body.includes('No Drive changes will be made'));
   assert.ok(response.body.includes('Queue Item Detail'));
@@ -190,6 +191,56 @@ test('drive review queue client can post decision metadata only', async () => {
         });
       }
 
+      if (target.endsWith('/api/drive/review-queue/file-queue-001/history')) {
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mode: 'read_only',
+            mutationAllowed: false,
+            itemId: 'file-queue-001',
+            history: [
+              {
+                decision: 'acknowledged',
+                note: 'looks okay',
+                decidedAt: baseDate,
+                decidedBy: 'operator-a',
+                source: 'drive_review_queue',
+                mutationAllowed: false
+              }
+            ]
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+          }
+        );
+      }
+
+      if (target.includes('/api/drive/review-queue/audit')) {
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mode: 'read_only',
+            mutationAllowed: false,
+            records: [
+              {
+                itemId: 'file-queue-001',
+                decision: 'acknowledged',
+                note: 'looks okay',
+                decidedAt: baseDate,
+                decidedBy: 'operator-a',
+                source: 'drive_review_queue',
+                mutationAllowed: false
+              }
+            ]
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+          }
+        );
+      }
+
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
@@ -209,6 +260,19 @@ test('drive review queue client can post decision metadata only', async () => {
     assert.equal(body.note, 'looks okay');
     assert.equal(body.decided_by, 'operator-a');
     assert.equal(body.target === undefined, true);
+
+    const history = await client.getReviewQueueItemHistory('file-queue-001');
+    assert.equal(history.status, 'ok');
+    assert.equal(history.mode, 'read_only');
+    assert.equal(history.mutationAllowed, false);
+    assert.equal(history.history?.[0]?.source, 'drive_review_queue');
+    assert.equal(history.history?.[0]?.mutationAllowed, false);
+
+    const audit = await client.getReviewQueueAudit(10);
+    assert.equal(audit.status, 'ok');
+    assert.equal(audit.mode, 'read_only');
+    assert.equal(audit.mutationAllowed, false);
+    assert.equal(audit.records?.[0]?.itemId, 'file-queue-001');
   } finally {
     globalThis.fetch = originalFetch;
   }

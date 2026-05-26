@@ -45,6 +45,12 @@ export function createDriveReviewQueueClient({ baseUrl = '' } = {}) {
     getReviewQueueItem(itemId) {
       return requestJson(endpoint(`/api/drive/review-queue/${encodeURIComponent(itemId)}`));
     },
+    getReviewQueueItemHistory(itemId) {
+      return requestJson(endpoint(`/api/drive/review-queue/${encodeURIComponent(itemId)}/history`));
+    },
+    getReviewQueueAudit(limit = 200) {
+      return requestJson(endpoint(`/api/drive/review-queue/audit?limit=${encodeURIComponent(String(limit))}`));
+    },
     postDecision(itemId, decision, note, decidedBy) {
       if (!DRIVE_REVIEW_DECISIONS.includes(decision)) {
         throw new Error(`Unsupported decision: ${decision}`);

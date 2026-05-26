@@ -29,6 +29,7 @@ const { closeLisaStore } = await import('../src/lisa.ts');
 const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
 const { closeRecommendationsStore } = await import('../src/recommendations.ts');
 const { closeOutcomesStore } = await import('../src/outcomes.ts');
+const { closeDriveReviewQueueStore, initializeDriveReviewQueueStore } = await import('../src/driveReviewQueueStore.ts');
 
 let server: Server;
 let baseUrl: string;
@@ -174,6 +175,7 @@ after(async () => {
   closeReplayStore();
   closeApprovalQueueStore();
   closeOutcomesStore();
+  closeDriveReviewQueueStore();
   rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -461,12 +463,89 @@ test('decision endpoint records workflow metadata without Drive mutation', async
   assert.equal(Array.isArray(response.body.item.decisionHistory), true);
   assert.equal(response.body.item.decisionHistory?.length, 1);
   assert.equal(response.body.item.decisionHistory?.[0]?.decision, 'resolved_externally');
+  assert.equal(response.body.item.decisionHistory?.[0]?.source, 'drive_review_queue');
+  assert.equal(response.body.item.decisionHistory?.[0]?.mutationAllowed, false);
+
+  const historyResponse = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    itemId: string;
+    history: Array<{ decision: string; source: string; mutationAllowed: boolean }>;
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/history`);
+  assert.equal(historyResponse.status, 200);
+  assert.equal(historyResponse.body.mode, 'read_only');
+  assert.equal(historyResponse.body.mutationAllowed, false);
+  assert.equal(historyResponse.body.history.length, 1);
+  assert.equal(historyResponse.body.history[0].decision, 'resolved_externally');
+  assert.equal(historyResponse.body.history[0].source, 'drive_review_queue');
+  assert.equal(historyResponse.body.history[0].mutationAllowed, false);
+
+  const auditResponse = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    records: Array<{ itemId: string; decision: string; source: string; mutationAllowed: boolean }>;
+  }>('/api/drive/review-queue/audit?limit=20');
+  assert.equal(auditResponse.status, 200);
+  assert.equal(auditResponse.body.mode, 'read_only');
+  assert.equal(auditResponse.body.mutationAllowed, false);
+  assert.equal(auditResponse.body.records.some((record) => record.itemId === itemId), true);
+  const audited = auditResponse.body.records.find((record) => record.itemId === itemId);
+  assert.equal(audited?.decision, 'resolved_externally');
+  assert.equal(audited?.source, 'drive_review_queue');
+  assert.equal(audited?.mutationAllowed, false);
 
   const manifestAfter = await requestJson<{ manifest_entry: { folder_path: string } }>(
     '/api/drive/manifest/review-queue-decision-001'
   );
   assert.equal(manifestAfter.status, 200);
   assert.equal(manifestAfter.body.manifest_entry.folder_path, manifestBefore.body.manifest_entry.folder_path);
+  assert.equal(mockDriveMoveFileCalls, 0);
+});
+
+test('review queue decision history persists across store restart', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-persist-001',
+      file_name: 'persist.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-persist-001',
+      observed_at: '2026-05-25T16:13:00.000Z'
+    })
+  });
+  setMockDriveFileInFolder('review-queue-persist-001', '01_Processed', 'persist.txt');
+  const itemId = await readReviewQueueItemIdByDriveFileId('review-queue-persist-001');
+
+  const firstDecision = await requestJson<{ status: 'ok' }>(
+    `/api/drive/review-queue/${encodeURIComponent(itemId)}/decision`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        decision: 'defer',
+        decided_by: 'persist-checker',
+        note: 'Needs follow-up'
+      })
+    }
+  );
+  assert.equal(firstDecision.status, 200);
+
+  closeDriveReviewQueueStore();
+  initializeDriveReviewQueueStore(process.env.MERLIN_DB_PATH);
+
+  const historyResponse = await requestJson<{
+    status: 'ok';
+    history: Array<{ decision: string; note?: string; decidedBy?: string; source: string; mutationAllowed: boolean }>;
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemId)}/history`);
+  assert.equal(historyResponse.status, 200);
+  assert.equal(historyResponse.body.history.length, 1);
+  assert.equal(historyResponse.body.history[0].decision, 'defer');
+  assert.equal(historyResponse.body.history[0].note, 'Needs follow-up');
+  assert.equal(historyResponse.body.history[0].decidedBy, 'persist-checker');
+  assert.equal(historyResponse.body.history[0].source, 'drive_review_queue');
+  assert.equal(historyResponse.body.history[0].mutationAllowed, false);
   assert.equal(mockDriveMoveFileCalls, 0);
 });
 

@@ -87,6 +87,64 @@ test('admin review queue runtime interaction remains read-only', async ({ page }
     });
   });
 
+  await page.route('**/api/drive/review-queue/audit**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        records: [
+          {
+            itemId,
+            decision: 'needs_manual_review',
+            note: 'Initial triage',
+            decidedAt: '2026-05-25T00:00:00.000Z',
+            decidedBy: 'operator-0',
+            source: 'drive_review_queue',
+            mutationAllowed: false
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route(`**/api/drive/review-queue/${itemId}/history`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        itemId,
+        history: [
+          {
+            decision: 'needs_manual_review',
+            note: 'Initial triage',
+            decidedAt: '2026-05-25T00:00:00.000Z',
+            decidedBy: 'operator-0',
+            source: 'drive_review_queue',
+            mutationAllowed: false
+          },
+          ...(decisions.at(-1)
+            ? [
+                {
+                  decision: decisions.at(-1)?.decision,
+                  note: decisions.at(-1)?.note,
+                  decidedAt: baseDate,
+                  decidedBy: decisions.at(-1)?.decided_by,
+                  source: 'drive_review_queue',
+                  mutationAllowed: false
+                }
+              ]
+            : [])
+        ]
+      })
+    });
+  });
+
   await page.route(`**/api/drive/review-queue/${itemId}/decision`, async (route) => {
     const body = route.request().postDataJSON() as { decision: string; note?: string; decided_by?: string };
     decisions.push(body);
@@ -189,6 +247,7 @@ test('admin review queue runtime interaction remains read-only', async ({ page }
 
   await expect(page.locator('#last-decision')).toContainText('acknowledged');
   await expect(page.locator('#decision-history')).toContainText('acknowledged');
+  await expect(page.locator('#audit-list')).toContainText('mutationAllowed:false');
 
   const bodyText = (await page.locator('body').innerText()).toLowerCase();
   expect(bodyText).not.toMatch(/\bfix\b/);
@@ -272,6 +331,18 @@ test('queue inbox renders severity priority ordering critical warning info', asy
       })
     });
   });
+  await page.route('**/api/drive/review-queue/audit**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        records: []
+      })
+    });
+  });
 
   await page.goto('/admin/drive-review-queue');
   const queueRows = page.locator('#queue-list .item');
@@ -329,6 +400,31 @@ test('auth unhealthy state disables decisions and prevents decision post', async
             recommendedHumanAction: 'Review'
           }
         ]
+      })
+    });
+  });
+  await page.route('**/api/drive/review-queue/audit**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        records: []
+      })
+    });
+  });
+  await page.route(`**/api/drive/review-queue/${itemId}/history`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        itemId,
+        history: []
       })
     });
   });
