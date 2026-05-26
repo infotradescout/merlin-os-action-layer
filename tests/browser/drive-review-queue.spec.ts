@@ -477,3 +477,49 @@ test('merlin daily includes internal admin navigation link to drive review queue
   await expect(link).toBeVisible();
   await expect(link).toContainText('Open admin operational inbox');
 });
+
+test('audit export endpoint returns metadata-only records', async ({ page }) => {
+  const baseDate = '2026-05-26T00:00:00.000Z';
+  await page.route('**/api/drive/review-queue/audit/export.json**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        mode: 'read_only',
+        mutationAllowed: false,
+        exportedAt: baseDate,
+        records: [
+          {
+            itemId: 'export-item-001',
+            decision: 'acknowledged',
+            note: 'Audit export test',
+            decidedAt: baseDate,
+            decidedBy: 'operator-x',
+            source: 'drive_review_queue',
+            mutationAllowed: false
+          }
+        ]
+      })
+    });
+  });
+
+  const response = await page.request.get('/api/drive/review-queue/audit/export.json?limit=10');
+  expect(response.status()).toBe(200);
+  const payload = (await response.json()) as {
+    status: string;
+    mode: string;
+    mutationAllowed: boolean;
+    records: Array<Record<string, unknown>>;
+  };
+  expect(payload.status).toBe('ok');
+  expect(payload.mode).toBe('read_only');
+  expect(payload.mutationAllowed).toBe(false);
+  expect(Array.isArray(payload.records)).toBe(true);
+  if (payload.records.length > 0) {
+    expect(payload.records[0].source).toBe('drive_review_queue');
+    expect(payload.records[0].mutationAllowed).toBe(false);
+    expect(payload.records[0].target).toBeUndefined();
+  }
+  expect(JSON.stringify(payload).toLowerCase()).not.toMatch(/\bfix\b|\brepair\b|\bauto-resolve\b/);
+});

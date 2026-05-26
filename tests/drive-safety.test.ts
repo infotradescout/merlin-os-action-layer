@@ -496,6 +496,22 @@ test('decision endpoint records workflow metadata without Drive mutation', async
   assert.equal(audited?.source, 'drive_review_queue');
   assert.equal(audited?.mutationAllowed, false);
 
+  const exportResponse = await requestJson<{
+    status: 'ok';
+    mode: 'read_only';
+    mutationAllowed: false;
+    exportedAt: string;
+    records: Array<{ itemId: string; decision: string; source: string; mutationAllowed: boolean }>;
+  }>('/api/drive/review-queue/audit/export.json?limit=20');
+  assert.equal(exportResponse.status, 200);
+  assert.equal(exportResponse.body.mode, 'read_only');
+  assert.equal(exportResponse.body.mutationAllowed, false);
+  assert.equal(typeof exportResponse.body.exportedAt, 'string');
+  assert.equal(exportResponse.body.records.some((record) => record.itemId === itemId), true);
+  const exported = exportResponse.body.records.find((record) => record.itemId === itemId);
+  assert.equal(exported?.source, 'drive_review_queue');
+  assert.equal(exported?.mutationAllowed, false);
+
   const manifestAfter = await requestJson<{ manifest_entry: { folder_path: string } }>(
     '/api/drive/manifest/review-queue-decision-001'
   );

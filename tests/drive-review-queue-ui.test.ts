@@ -216,6 +216,32 @@ test('drive review queue client can post decision metadata only', async () => {
         );
       }
 
+      if (target.includes('/api/drive/review-queue/audit/export.json')) {
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mode: 'read_only',
+            mutationAllowed: false,
+            exportedAt: baseDate,
+            records: [
+              {
+                itemId: 'file-queue-001',
+                decision: 'acknowledged',
+                note: 'looks okay',
+                decidedAt: baseDate,
+                decidedBy: 'operator-a',
+                source: 'drive_review_queue',
+                mutationAllowed: false
+              }
+            ]
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' }
+          }
+        );
+      }
+
       if (target.includes('/api/drive/review-queue/audit')) {
         return new Response(
           JSON.stringify({
@@ -273,6 +299,13 @@ test('drive review queue client can post decision metadata only', async () => {
     assert.equal(audit.mode, 'read_only');
     assert.equal(audit.mutationAllowed, false);
     assert.equal(audit.records?.[0]?.itemId, 'file-queue-001');
+
+    const exportPayload = await client.getReviewQueueAuditExport(10);
+    assert.equal(exportPayload.status, 'ok');
+    assert.equal(exportPayload.mode, 'read_only');
+    assert.equal(exportPayload.mutationAllowed, false);
+    assert.equal(exportPayload.records?.[0]?.source, 'drive_review_queue');
+    assert.equal(exportPayload.records?.[0]?.mutationAllowed, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
