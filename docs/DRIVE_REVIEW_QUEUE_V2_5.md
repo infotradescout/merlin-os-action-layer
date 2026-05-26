@@ -71,6 +71,26 @@ Expected: `mutationAllowed` is false on queue payloads.
 - Permission remediation.
 - Drive folder repair or sync-trigger shortcuts from the queue UI.
 
+## v2.6 runtime hardening addendum
+
+v2.6 keeps all v2.5 guarantees intact and adds runtime-proof coverage:
+
+- Browser interaction coverage for `/admin/drive-review-queue`.
+- Decision history visibility in the queue item detail panel.
+- Internal admin navigation access from Merlin Daily.
+
+Validation command:
+
+```bash
+npm run test:browser
+```
+
+v2.6 still forbids:
+
+- Drive remediation actions.
+- Manifest mutation from queue decisions.
+- Fix/repair/sync/create/delete/auto-resolve operator actions.
+
 ## Runbook (operator flow)
 
 1. Start with:

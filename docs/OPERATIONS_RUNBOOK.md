@@ -43,3 +43,20 @@ curl -s -X POST http://localhost:3030/api/drive/review-queue/:itemId/decision \
 - Folder repair or Drive mutation from queue decisions.
 - Browser DOM/Playwright harness.
 - Main app navigation wiring.
+
+### 5) v2.6 runtime hardening checks
+
+Browser-level queue interaction is now covered with:
+
+```bash
+npm run test:browser
+```
+
+Coverage includes:
+
+- `/admin/drive-review-queue` route load.
+- Auth strip and reconciliation summary rendering.
+- Queue item selection and detail display.
+- Decision post with metadata-only payload.
+- Post-decision UI update and decision-history visibility.
+- No remediation wording in the admin inbox surface.
