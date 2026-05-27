@@ -113,3 +113,23 @@ Query rules:
 - Unknown query params are rejected with `400`.
 
 This layer remains read-only and does not introduce remediation or mutation behavior.
+
+### 9) v2.12 export evidence metadata
+
+Hardened export now includes provenance metadata for filtered evidence packs:
+
+```bash
+curl -s "http://localhost:3030/api/drive/review-queue/audit/export.json?requestId=<requestId>&decidedBy=ops@tradescout.local&decision=acknowledged&from=2026-05-01T00:00:00.000Z&to=2026-05-26T23:59:59.999Z&limit=25"
+```
+
+Expected export fields:
+
+- `generatedAt` (ISO timestamp)
+- `recordCount` (bounded result count)
+- `filterSummary` (normalized requestId/decidedBy/decision/from/to/limit)
+- `ordering: "decidedAt_desc"`
+- `sourceEndpoint: "/api/drive/review-queue/audit/export.json"`
+- `mode: "read_only"`
+- `mutationAllowed: false`
+
+`exportedAt` is preserved for compatibility and equals `generatedAt`.

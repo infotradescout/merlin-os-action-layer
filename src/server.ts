@@ -105,6 +105,15 @@ type ReviewQueueQueryFilters = {
   limit: number;
 };
 
+type ReviewQueueFilterSummary = {
+  requestId: string | null;
+  decidedBy: string | null;
+  decision: ReviewQueueDecisionLiteral | null;
+  from: string | null;
+  to: string | null;
+  limit: number;
+};
+
 type DemoSeedEvent = {
   entity_id: string;
   event_type: string;
@@ -244,6 +253,17 @@ function parseReviewQueueQueryFilters(
       to,
       limit
     }
+  };
+}
+
+function buildReviewQueueFilterSummary(filters: ReviewQueueQueryFilters): ReviewQueueFilterSummary {
+  return {
+    requestId: filters.requestId ?? null,
+    decidedBy: filters.decidedBy ?? null,
+    decision: filters.decision ?? null,
+    from: filters.from ?? null,
+    to: filters.to ?? null,
+    limit: filters.limit
   };
 }
 
@@ -1050,7 +1070,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (parsed.error) {
       return responseJson(res, { error: parsed.error }, 400);
     }
-    const records = getDriveReviewQueueAuditTrail(parsed.filters);
+    const filters = parsed.filters as ReviewQueueQueryFilters;
+    const records = getDriveReviewQueueAuditTrail(filters);
+    const generatedAt = new Date().toISOString();
+    const filterSummary = buildReviewQueueFilterSummary(filters);
+    const recordCount = records.length;
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
@@ -1060,7 +1084,12 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         status: 'ok',
         mode: 'read_only',
         mutationAllowed: false,
-        exportedAt: new Date().toISOString(),
+        exportedAt: generatedAt,
+        generatedAt,
+        recordCount,
+        filterSummary,
+        ordering: 'decidedAt_desc',
+        sourceEndpoint: '/api/drive/review-queue/audit/export.json',
         records
       })
     );
