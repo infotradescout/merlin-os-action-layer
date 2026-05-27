@@ -84,6 +84,25 @@ import { getRecentRecommendations, resetRecommendationsForTest } from './recomme
 import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegistry.js';
 import { loadEnvFromDotFile } from './env.js';
 import { resolveOperatorIdentity } from './operatorIdentity.js';
+import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
+import {
+  addMealScoutScreenshotEvidence,
+  approveMealScoutDraft,
+  createMealScoutBatch,
+  createNewDraftFromCluster,
+  getMealScoutBatch,
+  getMealScoutBatchDrafts,
+  getMealScoutClusterMatches,
+  getMealScoutDraft,
+  getMealScoutDraftProposedChanges,
+  linkClusterToExistingTruck,
+  mergeDraftIntoCluster,
+  moveEvidenceToCluster,
+  publishMealScoutDraft,
+  rejectMealScoutDraft,
+  resetMealScoutProfileImportForTest,
+  splitDraftByEvidence
+} from './mealscoutProfileImport.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 
 loadEnvFromDotFile();
@@ -603,6 +622,7 @@ function resetDemoRuntimeState(): void {
   resetSourceRegistryForTest();
   resetDriveManifestForTest();
   resetDriveReviewQueueForTest();
+  resetMealScoutProfileImportForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -1101,6 +1121,196 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     return;
   }
 
+  if (method === 'POST' && pathname === '/api/mealscout/profile-import/batches') {
+    const batch = createMealScoutBatch();
+    return responseJson(res, { status: 'ok', batch }, 201);
+  }
+
+  const batchScreenshotsMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)\/screenshots$/);
+  if (method === 'POST' && batchScreenshotsMatch) {
+    const batchId = decodeURIComponent(batchScreenshotsMatch[1]);
+    const batch = getMealScoutBatch(batchId);
+    if (!batch) return responseJson(res, { error: 'Batch not found' }, 404);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const fileName = typeof payload.fileName === 'string' ? payload.fileName.trim() : '';
+    if (!fileName) return responseJson(res, { error: 'fileName is required' }, 400);
+    const evidence = addMealScoutScreenshotEvidence({
+      batchId,
+      fileName,
+      imageStorageKey: typeof payload.imageStorageKey === 'string' ? payload.imageStorageKey : undefined,
+      rawExtractedText: typeof payload.rawExtractedText === 'string' ? payload.rawExtractedText : undefined,
+      detectedEntityHints:
+        typeof payload.detectedEntityHints === 'object' && payload.detectedEntityHints !== null
+          ? (payload.detectedEntityHints as Record<string, string>)
+          : undefined,
+      extractedFacts:
+        Array.isArray(payload.extractedFacts)
+          ? payload.extractedFacts
+              .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+              .map((item) => ({
+                field: typeof item.field === 'string' ? item.field : '',
+                value: typeof item.value === 'string' ? item.value : '',
+                confidence: typeof item.confidence === 'number' ? item.confidence : undefined,
+                evidenceText: typeof item.evidenceText === 'string' ? item.evidenceText : undefined
+              }))
+              .filter((item) => item.field && item.value)
+          : undefined
+    });
+    return responseJson(res, { status: 'ok', evidence }, 201);
+  }
+
+  const batchDetailMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)$/);
+  if (method === 'GET' && batchDetailMatch) {
+    const batchId = decodeURIComponent(batchDetailMatch[1]);
+    const batch = getMealScoutBatch(batchId);
+    if (!batch) return responseJson(res, { error: 'Batch not found' }, 404);
+    return responseJson(res, { status: 'ok', batch });
+  }
+
+  const batchDraftsMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)\/drafts$/);
+  if (method === 'GET' && batchDraftsMatch) {
+    const batchId = decodeURIComponent(batchDraftsMatch[1]);
+    const batch = getMealScoutBatch(batchId);
+    if (!batch) return responseJson(res, { error: 'Batch not found' }, 404);
+    const draftList = getMealScoutBatchDrafts(batchId);
+    return responseJson(res, { status: 'ok', drafts: draftList });
+  }
+
+  const clusterMatches = pathname.match(/^\/api\/mealscout\/profile-import\/clusters\/([^/]+)\/matches$/);
+  if (method === 'GET' && clusterMatches) {
+    const clusterId = decodeURIComponent(clusterMatches[1]);
+    const matches = getMealScoutClusterMatches(clusterId);
+    if (!matches) return responseJson(res, { error: 'Cluster not found' }, 404);
+    return responseJson(res, { status: 'ok', matches });
+  }
+
+  const linkCluster = pathname.match(/^\/api\/mealscout\/profile-import\/clusters\/([^/]+)\/link-existing$/);
+  if (method === 'POST' && linkCluster) {
+    const clusterId = decodeURIComponent(linkCluster[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const truckId = typeof payload.truckId === 'string' ? payload.truckId.trim() : '';
+    if (!truckId) return responseJson(res, { error: 'truckId is required' }, 400);
+    const draft = linkClusterToExistingTruck(clusterId, truckId);
+    if (!draft) return responseJson(res, { error: 'Cluster or truck not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const createFromCluster = pathname.match(/^\/api\/mealscout\/profile-import\/clusters\/([^/]+)\/create-new-draft$/);
+  if (method === 'POST' && createFromCluster) {
+    const clusterId = decodeURIComponent(createFromCluster[1]);
+    const draft = createNewDraftFromCluster(clusterId);
+    if (!draft) return responseJson(res, { error: 'Cluster not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const draftDetail = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)$/);
+  if (method === 'GET' && draftDetail) {
+    const draftId = decodeURIComponent(draftDetail[1]);
+    const draft = getMealScoutDraft(draftId);
+    if (!draft) return responseJson(res, { error: 'Draft not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const proposedChangesMatch = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/proposed-changes$/);
+  if (method === 'GET' && proposedChangesMatch) {
+    const draftId = decodeURIComponent(proposedChangesMatch[1]);
+    const proposed = getMealScoutDraftProposedChanges(draftId);
+    if (!proposed) return responseJson(res, { error: 'Draft not found' }, 404);
+    return responseJson(res, { status: 'ok', proposed });
+  }
+
+  const approveDraft = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/approve$/);
+  if (method === 'POST' && approveDraft) {
+    const draftId = decodeURIComponent(approveDraft[1]);
+    const draft = approveMealScoutDraft(draftId);
+    if (!draft) return responseJson(res, { error: 'Draft not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const approveUpdates = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/approve-updates$/);
+  if (method === 'POST' && approveUpdates) {
+    const draftId = decodeURIComponent(approveUpdates[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = (body || {}) as Record<string, unknown>;
+    const draft = approveMealScoutDraft(draftId, {
+      menuDeferred: Boolean(payload.menuDeferred)
+    });
+    if (!draft) return responseJson(res, { error: 'Draft not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const rejectDraft = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/reject$/);
+  if (method === 'POST' && rejectDraft) {
+    const draftId = decodeURIComponent(rejectDraft[1]);
+    const draft = rejectMealScoutDraft(draftId);
+    if (!draft) return responseJson(res, { error: 'Draft not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const publishDraft = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/publish$/);
+  if (method === 'POST' && publishDraft) {
+    const draftId = decodeURIComponent(publishDraft[1]);
+    const draft = publishMealScoutDraft(draftId);
+    if (!draft) return responseJson(res, { error: 'Draft must be approved before publish' }, 409);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const moveEvidence = pathname.match(/^\/api\/mealscout\/profile-import\/evidence\/([^/]+)\/move$/);
+  if (method === 'POST' && moveEvidence) {
+    const evidenceId = decodeURIComponent(moveEvidence[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const clusterId = typeof payload.clusterId === 'string' ? payload.clusterId.trim() : '';
+    if (!clusterId) return responseJson(res, { error: 'clusterId is required' }, 400);
+    const draft = moveEvidenceToCluster(evidenceId, clusterId);
+    if (!draft) return responseJson(res, { error: 'Evidence or cluster not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const mergeDraft = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/merge$/);
+  if (method === 'POST' && mergeDraft) {
+    const draftId = decodeURIComponent(mergeDraft[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const fromClusterId = typeof payload.fromClusterId === 'string' ? payload.fromClusterId.trim() : '';
+    if (!fromClusterId) return responseJson(res, { error: 'fromClusterId is required' }, 400);
+    const draft = mergeDraftIntoCluster(draftId, fromClusterId);
+    if (!draft) return responseJson(res, { error: 'Draft or cluster not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
+  const splitDraft = pathname.match(/^\/api\/mealscout\/profile-import\/drafts\/([^/]+)\/split$/);
+  if (method === 'POST' && splitDraft) {
+    const draftId = decodeURIComponent(splitDraft[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = body as Record<string, unknown>;
+    const evidenceId = typeof payload.evidenceId === 'string' ? payload.evidenceId.trim() : '';
+    if (!evidenceId) return responseJson(res, { error: 'evidenceId is required' }, 400);
+    const draft = splitDraftByEvidence(draftId, evidenceId);
+    if (!draft) return responseJson(res, { error: 'Draft or evidence not found' }, 404);
+    return responseJson(res, { status: 'ok', draft });
+  }
+
   const driveReviewQueueMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)$/);
   if (method === 'GET' && driveReviewQueueMatch) {
     const itemId = decodeURIComponent(driveReviewQueueMatch[1]);
@@ -1231,6 +1441,17 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Drive status failed';
+      return responseJson(res, { error: message }, 500);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/folders') {
+    try {
+      const createMissing = query.create === 'true';
+      const discovery = await discoverMealScoutIntakeFolders({ createMissing });
+      return responseJson(res, discovery, discovery.status === 'ready' ? 200 : discovery.status === 'disabled' ? 503 : 409);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'MealScout intake folder discovery failed';
       return responseJson(res, { error: message }, 500);
     }
   }
