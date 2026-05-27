@@ -1,5 +1,9 @@
 # Operations Runbook
 
+Canonical audit ledger:
+
+- [Review Queue Audit Ledger (v2.13)](/d:/AAATraderCorner/TradeScout/merlin-os-action-layer/docs/REVIEW_QUEUE_AUDIT_LEDGER.md)
+
 ## Drive operation safety and review
 
 This runbook captures v2.4 + v2.5 run checks used for operational handoff.

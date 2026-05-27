@@ -1,5 +1,9 @@
 # Drive Review Queue (v2.5)
 
+Canonical release ledger:
+
+- [Review Queue Audit Ledger (v2.13)](/d:/AAATraderCorner/TradeScout/merlin-os-action-layer/docs/REVIEW_QUEUE_AUDIT_LEDGER.md)
+
 ## Purpose
 
 v2.5 converts Drive reconciliation signals into an operational review workflow for operators.
