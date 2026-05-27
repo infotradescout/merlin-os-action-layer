@@ -170,6 +170,30 @@ Safety remains unchanged:
 - No queue mutation behavior is added.
 - No Drive or manifest mutation paths are added.
 
+## v2.12 export hardening and evidence metadata addendum
+
+`GET /api/drive/review-queue/audit/export.json` now includes an evidence metadata envelope for filtered exports:
+
+- `generatedAt` (ISO timestamp)
+- `recordCount` (number of returned records)
+- `filterSummary` (normalized applied filters)
+- `ordering` (`decidedAt_desc`)
+- `sourceEndpoint` (`/api/drive/review-queue/audit/export.json`)
+
+`exportedAt` remains for compatibility and mirrors `generatedAt`.
+
+Example envelope fields:
+
+- `mode: "read_only"`
+- `mutationAllowed: false`
+- `filterSummary.limit` bounded by v2.11 query controls
+
+This remains metadata-only export behavior:
+
+- no queue mutation
+- no Drive or manifest mutation
+- no remediation authority
+
 ## Runbook (operator flow)
 
 1. Start with:

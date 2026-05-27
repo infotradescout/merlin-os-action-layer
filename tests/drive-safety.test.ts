@@ -501,12 +501,29 @@ test('decision endpoint records workflow metadata without Drive mutation', async
     mode: 'read_only';
     mutationAllowed: false;
     exportedAt: string;
+    generatedAt: string;
+    recordCount: number;
+    filterSummary: {
+      requestId: string | null;
+      decidedBy: string | null;
+      decision: string | null;
+      from: string | null;
+      to: string | null;
+      limit: number;
+    };
+    ordering: string;
+    sourceEndpoint: string;
     records: Array<{ itemId: string; decision: string; source: string; mutationAllowed: boolean }>;
   }>('/api/drive/review-queue/audit/export.json?limit=20');
   assert.equal(exportResponse.status, 200);
   assert.equal(exportResponse.body.mode, 'read_only');
   assert.equal(exportResponse.body.mutationAllowed, false);
   assert.equal(typeof exportResponse.body.exportedAt, 'string');
+  assert.equal(typeof exportResponse.body.generatedAt, 'string');
+  assert.equal(exportResponse.body.recordCount, exportResponse.body.records.length);
+  assert.equal(exportResponse.body.filterSummary.limit, 20);
+  assert.equal(exportResponse.body.ordering, 'decidedAt_desc');
+  assert.equal(exportResponse.body.sourceEndpoint, '/api/drive/review-queue/audit/export.json');
   assert.equal(exportResponse.body.records.some((record) => record.itemId === itemId), true);
   const exported = exportResponse.body.records.find((record) => record.itemId === itemId);
   assert.equal(exported?.source, 'drive_review_queue');
@@ -716,6 +733,39 @@ test('audit/history query filters support requestId, decidedBy, decision, from/t
   assert.equal(byRange.body.records.every((record) => record.decidedAt === atA), true);
   assert.equal(byRange.body.records.some((record) => record.requestId === reqA), true);
   assert.equal(byRange.body.records.some((record) => record.requestId === reqB), false);
+
+  const exportWithFilters = await requestJson<{
+    status: 'ok';
+    mutationAllowed: false;
+    generatedAt: string;
+    recordCount: number;
+    filterSummary: {
+      requestId: string | null;
+      decidedBy: string | null;
+      decision: string | null;
+      from: string | null;
+      to: string | null;
+      limit: number;
+    };
+    ordering: string;
+    sourceEndpoint: string;
+    records: Array<{ requestId?: string; decision: string; decidedBy?: string }>;
+  }>(
+    `/api/drive/review-queue/audit/export.json?requestId=${encodeURIComponent(reqA!)}&decidedBy=${encodeURIComponent('auditor-a@tradescout.local')}&decision=acknowledged&from=${encodeURIComponent(atA!)}&to=${encodeURIComponent(atA!)}&limit=1`
+  );
+  assert.equal(exportWithFilters.status, 200);
+  assert.equal(typeof exportWithFilters.body.generatedAt, 'string');
+  assert.equal(exportWithFilters.body.recordCount, 1);
+  assert.equal(exportWithFilters.body.filterSummary.requestId, reqA);
+  assert.equal(exportWithFilters.body.filterSummary.decidedBy, 'auditor-a@tradescout.local');
+  assert.equal(exportWithFilters.body.filterSummary.decision, 'acknowledged');
+  assert.equal(exportWithFilters.body.filterSummary.from, atA);
+  assert.equal(exportWithFilters.body.filterSummary.to, atA);
+  assert.equal(exportWithFilters.body.filterSummary.limit, 1);
+  assert.equal(exportWithFilters.body.ordering, 'decidedAt_desc');
+  assert.equal(exportWithFilters.body.sourceEndpoint, '/api/drive/review-queue/audit/export.json');
+  assert.equal(exportWithFilters.body.records.length, 1);
+  assert.equal(exportWithFilters.body.records[0].requestId, reqA);
 
   const historyFiltered = await requestJson<{
     status: 'ok';
