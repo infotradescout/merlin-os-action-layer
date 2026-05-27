@@ -621,6 +621,153 @@ test('server-side operator identity header overrides client-submitted decided_by
   assert.equal(exportRecord?.decidedBy, 'ops@tradescout.local');
 });
 
+test('audit/history query filters support requestId, decidedBy, decision, from/to, and limit', async () => {
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-filter-001',
+      file_name: 'filter-a.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-filter-001',
+      observed_at: '2026-05-25T16:20:00.000Z'
+    })
+  });
+  await requestJson('/api/drive/import-file', {
+    method: 'POST',
+    body: JSON.stringify({
+      drive_file_id: 'review-queue-filter-002',
+      file_name: 'filter-b.txt',
+      mime_type: 'text/plain',
+      folder_path: 'Merlin OR Storage/02_Needs_Review/2026-05',
+      web_url: 'https://drive.google.com/file/d/review-queue-filter-002',
+      observed_at: '2026-05-25T16:20:01.000Z'
+    })
+  });
+
+  setMockDriveFileInFolder('review-queue-filter-001', '01_Processed', 'filter-a.txt');
+  setMockDriveFileInFolder('review-queue-filter-002', '01_Processed', 'filter-b.txt');
+  const itemA = await readReviewQueueItemIdByDriveFileId('review-queue-filter-001');
+  const itemB = await readReviewQueueItemIdByDriveFileId('review-queue-filter-002');
+
+  const decisionA = await requestJson<{
+    status: 'ok';
+    item: { lastDecision?: { requestId?: string; decidedAt: string; decidedBy?: string; decision: string } };
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemA)}/decision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-operator-email': 'auditor-a@tradescout.local'
+    },
+    body: JSON.stringify({ decision: 'acknowledged', note: 'A-note' })
+  });
+  assert.equal(decisionA.status, 200);
+  const reqA = decisionA.body.item.lastDecision?.requestId;
+  const atA = decisionA.body.item.lastDecision?.decidedAt;
+  assert.ok(reqA);
+  assert.ok(atA);
+
+  const decisionB = await requestJson<{
+    status: 'ok';
+    item: { lastDecision?: { requestId?: string; decidedAt: string; decidedBy?: string; decision: string } };
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemB)}/decision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-operator-email': 'auditor-b@tradescout.local'
+    },
+    body: JSON.stringify({ decision: 'defer', note: 'B-note' })
+  });
+  assert.equal(decisionB.status, 200);
+  const reqB = decisionB.body.item.lastDecision?.requestId;
+  const atB = decisionB.body.item.lastDecision?.decidedAt;
+  assert.ok(reqB);
+  assert.ok(atB);
+
+  const byRequest = await requestJson<{
+    status: 'ok';
+    records: Array<{ requestId?: string }>;
+  }>(`/api/drive/review-queue/audit?requestId=${encodeURIComponent(reqA!)}`);
+  assert.equal(byRequest.status, 200);
+  assert.equal(byRequest.body.records.length, 1);
+  assert.equal(byRequest.body.records[0].requestId, reqA);
+
+  const byDecidedBy = await requestJson<{
+    status: 'ok';
+    records: Array<{ decidedBy?: string }>;
+  }>(`/api/drive/review-queue/audit?decidedBy=${encodeURIComponent('auditor-b@tradescout.local')}`);
+  assert.equal(byDecidedBy.status, 200);
+  assert.equal(byDecidedBy.body.records.length, 1);
+  assert.equal(byDecidedBy.body.records[0].decidedBy, 'auditor-b@tradescout.local');
+
+  const byDecision = await requestJson<{
+    status: 'ok';
+    records: Array<{ decision: string }>;
+  }>('/api/drive/review-queue/audit?decision=acknowledged');
+  assert.equal(byDecision.status, 200);
+  assert.equal(byDecision.body.records.some((record) => record.decision === 'acknowledged'), true);
+  assert.equal(byDecision.body.records.some((record) => record.decision === 'defer'), false);
+
+  const byRange = await requestJson<{
+    status: 'ok';
+    records: Array<{ requestId?: string; decidedAt: string }>;
+  }>(`/api/drive/review-queue/audit?from=${encodeURIComponent(atA!)}&to=${encodeURIComponent(atA!)}`);
+  assert.equal(byRange.status, 200);
+  assert.equal(byRange.body.records.every((record) => record.decidedAt === atA), true);
+  assert.equal(byRange.body.records.some((record) => record.requestId === reqA), true);
+  assert.equal(byRange.body.records.some((record) => record.requestId === reqB), false);
+
+  const historyFiltered = await requestJson<{
+    status: 'ok';
+    history: Array<{ requestId?: string; decision: string }>;
+  }>(`/api/drive/review-queue/${encodeURIComponent(itemA)}/history?requestId=${encodeURIComponent(reqA!)}&decision=acknowledged&limit=1`);
+  assert.equal(historyFiltered.status, 200);
+  assert.equal(historyFiltered.body.history.length, 1);
+  assert.equal(historyFiltered.body.history[0].requestId, reqA);
+  assert.equal(historyFiltered.body.history[0].decision, 'acknowledged');
+});
+
+test('audit/history query validation rejects invalid values and unknown parameters', async () => {
+  const invalidTs = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?from=bad-timestamp'
+  );
+  assert.equal(invalidTs.status, 400);
+  assert.equal(invalidTs.body.error, 'from must be a valid ISO timestamp');
+
+  const invalidRange = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?from=2026-05-26T10:00:00.000Z&to=2026-05-26T09:00:00.000Z'
+  );
+  assert.equal(invalidRange.status, 400);
+  assert.equal(invalidRange.body.error, 'from must be less than or equal to to');
+
+  const invalidLimit = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?limit=0'
+  );
+  assert.equal(invalidLimit.status, 400);
+  assert.equal(invalidLimit.body.error, 'limit must be greater than zero');
+
+  const overLimit = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?limit=101'
+  );
+  assert.equal(overLimit.status, 400);
+  assert.equal(overLimit.body.error, 'limit must be less than or equal to 100');
+
+  const unknownParam = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?foo=bar'
+  );
+  assert.equal(unknownParam.status, 400);
+  assert.equal(unknownParam.body.error, 'Unsupported query parameter: foo');
+
+  const invalidDecision = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?decision=approved'
+  );
+  assert.equal(invalidDecision.status, 400);
+  assert.equal(
+    invalidDecision.body.error,
+    'decision must be one of acknowledged, needs_manual_review, false_positive, defer, resolved_externally'
+  );
+});
+
 test('decision endpoint blocks with auth unhealthy and does not call mutation helpers', async () => {
   await requestJson('/api/drive/import-file', {
     method: 'POST',

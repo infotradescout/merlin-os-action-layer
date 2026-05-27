@@ -91,3 +91,25 @@ Attribution lookup is centralized in [src/operatorIdentity.ts](/d:/AAATraderCorn
 
 - This does not introduce a new auth system or roles.
 - Resolution order and fallback behavior are unchanged.
+
+### 8) v2.11 audit query controls
+
+Use read-only filters on existing endpoints:
+
+```bash
+curl -s "http://localhost:3030/api/drive/review-queue/audit?requestId=<requestId>&limit=50"
+curl -s "http://localhost:3030/api/drive/review-queue/audit?decidedBy=ops@tradescout.local&decision=acknowledged&limit=50"
+curl -s "http://localhost:3030/api/drive/review-queue/audit?from=2026-05-01T00:00:00.000Z&to=2026-05-26T23:59:59.999Z&limit=50"
+curl -s "http://localhost:3030/api/drive/review-queue/audit/export.json?decision=defer&limit=50"
+curl -s "http://localhost:3030/api/drive/review-queue/<itemId>/history?decision=acknowledged&limit=25"
+```
+
+Query rules:
+
+- `requestId`, `decidedBy`: exact match after trim.
+- `decision`: one of `acknowledged`, `needs_manual_review`, `false_positive`, `defer`, `resolved_externally`.
+- `from`/`to`: ISO timestamps only, inclusive.
+- `limit`: integer, default `50`, max `100`.
+- Unknown query params are rejected with `400`.
+
+This layer remains read-only and does not introduce remediation or mutation behavior.
