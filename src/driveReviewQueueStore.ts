@@ -21,6 +21,15 @@ export interface DriveReviewQueueDecisionRecord {
   mutationAllowed: false;
 }
 
+export interface DriveReviewQueueQueryOptions {
+  requestId?: string;
+  decidedBy?: string;
+  decision?: DriveReviewQueueDecision;
+  from?: string;
+  to?: string;
+  limit?: number;
+}
+
 interface DriveReviewQueueDecisionRow {
   id: string;
   item_id: string;
@@ -176,32 +185,98 @@ export function recordDriveReviewQueueDecision(input: {
   return record;
 }
 
-export function getDriveReviewQueueDecisionHistory(itemId: string, limit = 200): DriveReviewQueueDecisionRecord[] {
-  const maxItems = Math.max(1, Math.min(500, limit));
+function buildHistoryWhereClause(
+  itemId: string,
+  options: DriveReviewQueueQueryOptions
+): { clause: string; params: Array<string | number> } {
+  const conditions: string[] = ['item_id = ?'];
+  const params: Array<string | number> = [itemId];
+
+  if (options.requestId) {
+    conditions.push('id = ?');
+    params.push(options.requestId);
+  }
+  if (options.decidedBy) {
+    conditions.push('decided_by = ?');
+    params.push(options.decidedBy);
+  }
+  if (options.decision) {
+    conditions.push('decision = ?');
+    params.push(options.decision);
+  }
+  if (options.from) {
+    conditions.push('decided_at >= ?');
+    params.push(options.from);
+  }
+  if (options.to) {
+    conditions.push('decided_at <= ?');
+    params.push(options.to);
+  }
+
+  return { clause: conditions.join(' AND '), params };
+}
+
+function buildAuditWhereClause(options: DriveReviewQueueQueryOptions): { clause: string; params: Array<string | number> } {
+  const conditions: string[] = [];
+  const params: Array<string | number> = [];
+
+  if (options.requestId) {
+    conditions.push('id = ?');
+    params.push(options.requestId);
+  }
+  if (options.decidedBy) {
+    conditions.push('decided_by = ?');
+    params.push(options.decidedBy);
+  }
+  if (options.decision) {
+    conditions.push('decision = ?');
+    params.push(options.decision);
+  }
+  if (options.from) {
+    conditions.push('decided_at >= ?');
+    params.push(options.from);
+  }
+  if (options.to) {
+    conditions.push('decided_at <= ?');
+    params.push(options.to);
+  }
+
+  const clause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  return { clause, params };
+}
+
+export function getDriveReviewQueueDecisionHistory(
+  itemId: string,
+  options: DriveReviewQueueQueryOptions = {}
+): DriveReviewQueueDecisionRecord[] {
+  const maxItems = Math.max(1, Math.min(500, options.limit ?? 200));
+  const where = buildHistoryWhereClause(itemId, options);
   const rows = getDb()
     .prepare(
       `
       SELECT * FROM drive_review_queue_decisions
-      WHERE item_id = ?
+      WHERE ${where.clause}
       ORDER BY decided_at ASC, order_id ASC
       LIMIT ?
       `
     )
-    .all(itemId, maxItems) as DriveReviewQueueDecisionRow[];
+    .all(...where.params, maxItems) as DriveReviewQueueDecisionRow[];
   return rows.map(parseDecisionRow);
 }
 
-export function getDriveReviewQueueAudit(limit = 200): DriveReviewQueueDecisionRecord[] {
-  const maxItems = Math.max(1, Math.min(1000, limit));
+export function getDriveReviewQueueAudit(options: DriveReviewQueueQueryOptions = {}): DriveReviewQueueDecisionRecord[] {
+  const maxItems = Math.max(1, Math.min(1000, options.limit ?? 200));
+  const where = buildAuditWhereClause(options);
   const rows = getDb()
     .prepare(
       `
       SELECT * FROM drive_review_queue_decisions
+      ${where.clause}
       ORDER BY decided_at DESC, order_id DESC
       LIMIT ?
       `
     )
-    .all(maxItems) as DriveReviewQueueDecisionRow[];
+    .all(...where.params, maxItems) as DriveReviewQueueDecisionRow[];
   return rows.map(parseDecisionRow);
 }
 

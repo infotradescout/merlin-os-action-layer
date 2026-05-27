@@ -139,6 +139,37 @@ Attribution resolution is centralized in [src/operatorIdentity.ts](/d:/AAATrader
 - This is not a new auth system.
 - Client-submitted `decided_by` remains ignored as identity authority.
 
+## v2.11 audit filters and query controls addendum
+
+Read/query controls are available on existing history and audit routes only:
+
+- `GET /api/drive/review-queue/:itemId/history`
+- `GET /api/drive/review-queue/audit`
+- `GET /api/drive/review-queue/audit/export.json`
+
+Supported query params:
+
+- `requestId` (exact match after trim)
+- `decidedBy` (exact match after trim)
+- `decision` (`acknowledged`, `needs_manual_review`, `false_positive`, `defer`, `resolved_externally`)
+- `from` and `to` (ISO timestamp; inclusive range)
+- `limit` (default `50`, max `100`)
+
+Validation behavior:
+
+- Invalid timestamps return `400`.
+- `from > to` returns `400`.
+- Invalid decision values return `400`.
+- Invalid limit values return `400`.
+- Unknown query params return `400`.
+
+Safety remains unchanged:
+
+- Query/filter controls are read-only.
+- Attribution remains server-derived.
+- No queue mutation behavior is added.
+- No Drive or manifest mutation paths are added.
+
 ## Runbook (operator flow)
 
 1. Start with:

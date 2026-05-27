@@ -89,6 +89,21 @@ import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 loadEnvFromDotFile();
 
 type QueryBag = { [key: string]: string | undefined };
+type ReviewQueueDecisionLiteral =
+  | 'acknowledged'
+  | 'needs_manual_review'
+  | 'false_positive'
+  | 'defer'
+  | 'resolved_externally';
+
+type ReviewQueueQueryFilters = {
+  requestId?: string;
+  decidedBy?: string;
+  decision?: ReviewQueueDecisionLiteral;
+  from?: string;
+  to?: string;
+  limit: number;
+};
 
 type DemoSeedEvent = {
   entity_id: string;
@@ -137,6 +152,99 @@ function getNumber(value: string | undefined, fallback = 20): number {
   if (!value) return fallback;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseIsoTimestamp(value: string, label: string): { iso?: string; error?: string } {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { error: `${label} must not be empty` };
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return { error: `${label} must be a valid ISO timestamp` };
+  }
+  return { iso: parsed.toISOString() };
+}
+
+function parseReviewQueueQueryFilters(
+  query: QueryBag,
+  options?: { defaultLimit?: number; maxLimit?: number }
+): { filters?: ReviewQueueQueryFilters; error?: string } {
+  const allowedKeys = new Set(['requestId', 'decidedBy', 'decision', 'from', 'to', 'limit']);
+  for (const key of Object.keys(query)) {
+    if (!allowedKeys.has(key)) {
+      return { error: `Unsupported query parameter: ${key}` };
+    }
+  }
+
+  const requestId = query.requestId?.trim();
+  const decidedBy = query.decidedBy?.trim();
+  const rawDecision = query.decision?.trim();
+  const rawFrom = query.from?.trim();
+  const rawTo = query.to?.trim();
+  const rawLimit = query.limit?.trim();
+  const maxLimit = options?.maxLimit ?? 100;
+  const defaultLimit = options?.defaultLimit ?? 50;
+
+  const allowedDecisions: ReviewQueueDecisionLiteral[] = [
+    'acknowledged',
+    'needs_manual_review',
+    'false_positive',
+    'defer',
+    'resolved_externally'
+  ];
+
+  let decision: ReviewQueueDecisionLiteral | undefined;
+  if (rawDecision) {
+    if (!allowedDecisions.includes(rawDecision as ReviewQueueDecisionLiteral)) {
+      return { error: 'decision must be one of acknowledged, needs_manual_review, false_positive, defer, resolved_externally' };
+    }
+    decision = rawDecision as ReviewQueueDecisionLiteral;
+  }
+
+  let from: string | undefined;
+  if (rawFrom) {
+    const parsed = parseIsoTimestamp(rawFrom, 'from');
+    if (parsed.error) return { error: parsed.error };
+    from = parsed.iso;
+  }
+
+  let to: string | undefined;
+  if (rawTo) {
+    const parsed = parseIsoTimestamp(rawTo, 'to');
+    if (parsed.error) return { error: parsed.error };
+    to = parsed.iso;
+  }
+
+  if (from && to && from > to) {
+    return { error: 'from must be less than or equal to to' };
+  }
+
+  let limit = defaultLimit;
+  if (rawLimit) {
+    if (!/^\d+$/.test(rawLimit)) {
+      return { error: 'limit must be a positive integer' };
+    }
+    const parsedLimit = Number.parseInt(rawLimit, 10);
+    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+      return { error: 'limit must be greater than zero' };
+    }
+    if (parsedLimit > maxLimit) {
+      return { error: `limit must be less than or equal to ${maxLimit}` };
+    }
+    limit = parsedLimit;
+  }
+
+  return {
+    filters: {
+      requestId: requestId || undefined,
+      decidedBy: decidedBy || undefined,
+      decision,
+      from,
+      to,
+      limit
+    }
+  };
 }
 
 const PUBLIC_DIR = resolve(process.cwd(), 'public');
@@ -924,8 +1032,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
 
   if (method === 'GET' && pathname === '/api/drive/review-queue/audit') {
-    const limit = getNumber(query.limit, 200);
-    const records = getDriveReviewQueueAuditTrail(limit);
+    const parsed = parseReviewQueueQueryFilters(query, { defaultLimit: 50, maxLimit: 100 });
+    if (parsed.error) {
+      return responseJson(res, { error: parsed.error }, 400);
+    }
+    const records = getDriveReviewQueueAuditTrail(parsed.filters);
     return responseJson(res, {
       status: 'ok',
       mode: 'read_only',
@@ -935,8 +1046,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
 
   if (method === 'GET' && pathname === '/api/drive/review-queue/audit/export.json') {
-    const limit = getNumber(query.limit, 1000);
-    const records = getDriveReviewQueueAuditTrail(limit);
+    const parsed = parseReviewQueueQueryFilters(query, { defaultLimit: 50, maxLimit: 100 });
+    if (parsed.error) {
+      return responseJson(res, { error: parsed.error }, 400);
+    }
+    const records = getDriveReviewQueueAuditTrail(parsed.filters);
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
@@ -970,12 +1084,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
   const driveReviewQueueHistoryMatch = pathname.match(/^\/api\/drive\/review-queue\/([^/]+)\/history$/);
   if (method === 'GET' && driveReviewQueueHistoryMatch) {
+    const parsed = parseReviewQueueQueryFilters(query, { defaultLimit: 50, maxLimit: 100 });
+    if (parsed.error) {
+      return responseJson(res, { error: parsed.error }, 400);
+    }
     const itemId = decodeURIComponent(driveReviewQueueHistoryMatch[1]);
     const item = await getDriveReviewQueueItem(itemId);
     if (!item) {
       return responseJson(res, { error: 'Review queue item not found' }, 404);
     }
-    const history = getDriveReviewQueueItemHistory(itemId);
+    const history = getDriveReviewQueueItemHistory(itemId, parsed.filters);
     return responseJson(res, {
       status: 'ok',
       mode: 'read_only',
