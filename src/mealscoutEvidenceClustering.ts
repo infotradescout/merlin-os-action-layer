@@ -101,6 +101,9 @@ export function classifyMealScoutDetectedType(input: {
   const folder = normalizeText(input.sourceFolder);
   const signals = input.extractedSignals || {};
   const hints = input.visualHints || {};
+  const hasProfileSignals = Boolean(
+    signals.truckName || signals.phone || signals.email || signals.website || signals.cityArea || signals.cuisine
+  );
 
   if (folder.includes('/logos') || folder.endsWith('logos') || hints.hasLogo) {
     return { detectedType: 'logo', confidence: 0.85 };
@@ -111,11 +114,11 @@ export function classifyMealScoutDetectedType(input: {
   if (hints.hasHoursGrid) {
     return { detectedType: 'schedule', confidence: 0.8 };
   }
+  if (hasProfileSignals) {
+    return { detectedType: 'profile_screenshot', confidence: 0.8 };
+  }
   if (hints.hasSocialUi || signals.facebook || signals.instagram) {
     return { detectedType: 'social', confidence: 0.78 };
-  }
-  if (signals.truckName || signals.phone || signals.email || signals.website || signals.cityArea || signals.cuisine) {
-    return { detectedType: 'profile_screenshot', confidence: 0.75 };
   }
   return { detectedType: 'unknown', confidence: 0.4 };
 }
@@ -158,6 +161,16 @@ function evaluatePair(left: MealScoutEvidenceFile, right: MealScoutEvidenceFile)
   ) {
     signals.push('name_city_match');
     score += 0.7;
+  }
+  if (
+    normalizeText(left.extractedSignals.truckName) &&
+    normalizeText(left.extractedSignals.truckName) === normalizeText(right.extractedSignals.truckName)
+  ) {
+    signals.push('truck_name_exact_match');
+    score += 0.95;
+  } else if (similarName(left.extractedSignals.truckName, right.extractedSignals.truckName)) {
+    signals.push('truck_name_similar');
+    score += 0.55;
   }
 
   if (menuOverlap(left.extractedSignals.menuItems, right.extractedSignals.menuItems)) {
@@ -202,6 +215,26 @@ function aggregateClusterSignals(files: MealScoutEvidenceFile[]): { truckName?: 
 }
 
 function deriveClusterReviewStatus(cluster: MealScoutEvidenceCluster, existingProfiles: MealScoutExistingProfileHint[]): MealScoutEvidenceCluster['reviewStatus'] {
+  const singleton = cluster.files[0];
+  const singletonHasStrongIdentity =
+    cluster.files.length === 1 &&
+    Boolean(
+      normalizePhone(singleton?.extractedSignals.phone) ||
+        normalizeText(singleton?.extractedSignals.email) ||
+        normalizeText(singleton?.extractedSignals.website) ||
+        normalizeHandle(singleton?.extractedSignals.facebook) ||
+        normalizeHandle(singleton?.extractedSignals.instagram) ||
+        normalizeText(singleton?.extractedSignals.truckName)
+    );
+
+  if (
+    cluster.files.length === 1 &&
+    (cluster.files[0].detectedType === 'logo' || cluster.files[0].detectedType === 'unknown' || cluster.files[0].detectedType === 'menu') &&
+    !singletonHasStrongIdentity
+  ) {
+    return 'uncertain_match';
+  }
+
   const hasTruckName = cluster.files.some((file) => Boolean(file.extractedSignals.truckName));
   const hasContact = cluster.files.some((file) => Boolean(file.extractedSignals.phone || file.extractedSignals.email));
   const hasCity = cluster.files.some((file) => Boolean(file.extractedSignals.cityArea));
@@ -233,6 +266,105 @@ function deriveClusterReviewStatus(cluster: MealScoutEvidenceCluster, existingPr
   if (hasDuplicate) return 'duplicate_possible';
   if (hasUnknownOnly || cluster.confidence < 0.6) return 'uncertain_match';
   return 'ready_for_draft';
+}
+
+function hasStrongIdentity(file: MealScoutEvidenceFile): boolean {
+  return Boolean(
+    normalizePhone(file.extractedSignals.phone) ||
+      normalizeText(file.extractedSignals.email) ||
+      normalizeText(file.extractedSignals.website) ||
+      normalizeHandle(file.extractedSignals.facebook) ||
+      normalizeHandle(file.extractedSignals.instagram) ||
+      normalizeText(file.extractedSignals.truckName)
+  );
+}
+
+function hasConflictingIdentity(candidate: MealScoutEvidenceFile, anchor: MealScoutEvidenceFile): boolean {
+  const candidatePhone = normalizePhone(candidate.extractedSignals.phone);
+  const anchorPhone = normalizePhone(anchor.extractedSignals.phone);
+  if (candidatePhone && anchorPhone && candidatePhone !== anchorPhone) return true;
+
+  const candidateEmail = normalizeText(candidate.extractedSignals.email);
+  const anchorEmail = normalizeText(anchor.extractedSignals.email);
+  if (candidateEmail && anchorEmail && candidateEmail !== anchorEmail) return true;
+
+  const candidateSite = normalizeText(candidate.extractedSignals.website);
+  const anchorSite = normalizeText(anchor.extractedSignals.website);
+  if (candidateSite && anchorSite && candidateSite !== anchorSite) return true;
+
+  const candidateName = normalizeText(candidate.extractedSignals.truckName);
+  const anchorName = normalizeText(anchor.extractedSignals.truckName);
+  if (candidateName && anchorName && !similarName(candidateName, anchorName)) return true;
+
+  return false;
+}
+
+function bridgeAuxiliaryFiles(
+  clusters: MealScoutEvidenceCluster[],
+  existingProfiles: MealScoutExistingProfileHint[]
+): MealScoutEvidenceCluster[] {
+  if (clusters.length <= 1) return clusters;
+
+  const anchorCandidates = clusters.filter((cluster) =>
+    cluster.files.some((file) => file.detectedType === 'profile_screenshot' && hasStrongIdentity(file))
+  );
+
+  if (anchorCandidates.length !== 1) return clusters;
+  const anchor = anchorCandidates[0];
+  const anchorStrong = anchor.files.find((file) => file.detectedType === 'profile_screenshot' && hasStrongIdentity(file));
+  if (!anchorStrong) return clusters;
+
+  const keep: MealScoutEvidenceCluster[] = [];
+  for (const cluster of clusters) {
+    if (cluster.clusterId === anchor.clusterId) {
+      keep.push(cluster);
+      continue;
+    }
+
+    if (cluster.files.length !== 1) {
+      keep.push(cluster);
+      continue;
+    }
+
+    const single = cluster.files[0];
+    const auxiliaryType = single.detectedType === 'menu' || single.detectedType === 'logo' || single.detectedType === 'schedule';
+    if (!auxiliaryType) {
+      keep.push(cluster);
+      continue;
+    }
+
+    const candidateHasStrong = hasStrongIdentity(single);
+    const candidateName = normalizeText(single.extractedSignals.truckName);
+    const anchorName = normalizeText(anchorStrong.extractedSignals.truckName);
+    const nameAligned = candidateName && anchorName && similarName(candidateName, anchorName);
+    const safeToAttach =
+      !hasConflictingIdentity(single, anchorStrong) &&
+      (nameAligned || (!candidateHasStrong && (single.extractedSignals.menuItems || []).length > 0) || single.detectedType === 'logo');
+
+    if (safeToAttach) {
+      anchor.files.push(single);
+      anchor.matchSignals = Array.from(new Set([...anchor.matchSignals, 'auxiliary_bridge']));
+    } else {
+      keep.push(cluster);
+    }
+  }
+
+  const refreshed = keep.map((cluster, index) => {
+    const aggregate = aggregateClusterSignals(cluster.files);
+    return {
+      ...cluster,
+      clusterId: `cluster-${index + 1}`,
+      likelyTruckName: aggregate.truckName,
+      confidence: aggregate.confidence,
+      matchSignals: Array.from(new Set([...cluster.matchSignals, ...aggregate.matchSignals]))
+    };
+  });
+
+  for (const cluster of refreshed) {
+    cluster.reviewStatus = deriveClusterReviewStatus(cluster, existingProfiles);
+  }
+
+  return refreshed;
 }
 
 export function clusterMealScoutEvidenceFiles(
@@ -274,7 +406,7 @@ export function clusterMealScoutEvidenceFiles(
     clusters.push(cluster);
   }
 
-  return clusters;
+  return bridgeAuxiliaryFiles(clusters, existingProfiles);
 }
 
 export function createMealScoutEvidenceFile(input: {

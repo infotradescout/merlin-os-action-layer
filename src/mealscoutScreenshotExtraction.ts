@@ -88,6 +88,7 @@ function extractTruckName(text: string): string | undefined {
     const alphaCount = (line.match(/[a-z]/gi) || []).length;
     if (alphaCount < 3) continue;
     if (/[@]|https?:\/\/|www\.|^\$/.test(line)) continue;
+    if (/\$\s?\d+(?:\.\d{2})?/.test(line)) continue;
     if (/phone|email|menu|hours|location|city|facebook|instagram|tiktok/i.test(line)) continue;
     return line;
   }

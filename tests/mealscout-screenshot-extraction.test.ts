@@ -148,3 +148,57 @@ test('preview endpoint requires inputs and does not mutate live profiles', async
   assert.equal(bad.body.error.includes('inputs is required'), true);
 });
 
+test('pilot 1 payload consolidates to one cluster and one draft in preview-only mode', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    clusters: Array<{ clusterId: string; files: Array<{ fileId: string }> }>;
+    drafts: Array<{ draftId: string; mutationAllowed: boolean; sourceFiles: Array<{ sourceFileId: string }> }>;
+    summary: { clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'pilot-1-profile',
+          fileName: 'IMG_1021.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_1021.PNG',
+          sourceFolder: '/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText:
+            'Big Mikes Taco Truck\nPhone: 985-111-2222\nEmail: bigmikes@example.com\nCity: New Orleans\nCuisine: Tacos',
+          visualLabels: ['food truck', 'profile']
+        },
+        {
+          fileId: 'pilot-1-menu',
+          fileName: 'IMG_1033.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_1033.PNG',
+          sourceFolder: '/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Menu\nBrisket Taco - $4.50\nChicken Taco - $4.00\nLoaded Nachos - $9.00',
+          visualLabels: ['menu', 'food']
+        },
+        {
+          fileId: 'pilot-1-logo',
+          fileName: 'IMG_1044.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_1044.PNG',
+          sourceFolder: '/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Big Mikes Taco Truck',
+          visualLabels: ['logo']
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.summary.clusterCount, 1);
+  assert.equal(response.body.summary.draftCount, 1);
+  assert.equal(response.body.clusters.length, 1);
+  assert.equal(response.body.drafts.length, 1);
+  assert.equal(response.body.drafts[0].mutationAllowed, false);
+  assert.equal(response.body.drafts[0].sourceFiles.length, 3);
+});
+
