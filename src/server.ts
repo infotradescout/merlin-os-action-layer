@@ -85,9 +85,12 @@ import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegist
 import { loadEnvFromDotFile } from './env.js';
 import { resolveOperatorIdentity } from './operatorIdentity.js';
 import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
+import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js';
+import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInput } from './mealscoutScreenshotExtraction.js';
 import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
+  buildMealScoutDraftsFromClusters,
   createMealScoutBatch,
   createNewDraftFromCluster,
   getMealScoutBatch,
@@ -1124,6 +1127,66 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'POST' && pathname === '/api/mealscout/profile-import/batches') {
     const batch = createMealScoutBatch();
     return responseJson(res, { status: 'ok', batch }, 201);
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/intake/preview') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    const payload = (body || {}) as {
+      inputs?: MealScoutScreenshotInput[];
+      existingProfiles?: Array<{
+        id: string;
+        truckName?: string;
+        phone?: string;
+        email?: string;
+        website?: string;
+        cityArea?: string;
+        socials?: { facebook?: string; instagram?: string };
+      }>;
+    };
+    const inputs = Array.isArray(payload.inputs) ? payload.inputs : [];
+    if (inputs.length === 0) {
+      return responseJson(res, { error: 'inputs is required and must be a non-empty array' }, 400);
+    }
+
+    const evidenceFiles = inputs.map((input) => createMealScoutEvidenceFromScreenshotInput(input));
+    const existingHints = (payload.existingProfiles || []).map((profile) => ({
+      existingProfileId: profile.id,
+      truckName: profile.truckName,
+      phone: profile.phone,
+      email: profile.email,
+      website: profile.website,
+      cityArea: profile.cityArea,
+      facebook: profile.socials?.facebook,
+      instagram: profile.socials?.instagram
+    }));
+    const clusters = clusterMealScoutEvidenceFiles(evidenceFiles, existingHints);
+    const existingProfiles = (payload.existingProfiles || []).map((profile) => ({
+      id: profile.id,
+      truckName: profile.truckName,
+      phone: profile.phone,
+      email: profile.email,
+      website: profile.website,
+      cityArea: profile.cityArea,
+      socials: profile.socials
+    }));
+    const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
+
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      evidenceFiles,
+      clusters,
+      drafts,
+      summary: {
+        inputs: inputs.length,
+        evidenceCount: evidenceFiles.length,
+        clusterCount: clusters.length,
+        draftCount: drafts.length
+      }
+    });
   }
 
   const batchScreenshotsMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)\/screenshots$/);
