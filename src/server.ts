@@ -168,6 +168,11 @@ function parseIsoTimestamp(value: string, label: string): { iso?: string; error?
   if (!trimmed) {
     return { error: `${label} must not be empty` };
   }
+  const isoRfc3339Pattern =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+  if (!isoRfc3339Pattern.test(trimmed)) {
+    return { error: `${label} must be a valid ISO timestamp` };
+  }
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
     return { error: `${label} must be a valid ISO timestamp` };

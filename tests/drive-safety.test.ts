@@ -816,6 +816,24 @@ test('audit/history query validation rejects invalid values and unknown paramete
     invalidDecision.body.error,
     'decision must be one of acknowledged, needs_manual_review, false_positive, defer, resolved_externally'
   );
+
+  const looseDateSlash = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?from=2026/05/26'
+  );
+  assert.equal(looseDateSlash.status, 400);
+  assert.equal(looseDateSlash.body.error, 'from must be a valid ISO timestamp');
+
+  const looseDateText = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?to=May%2026,%202026'
+  );
+  assert.equal(looseDateText.status, 400);
+  assert.equal(looseDateText.body.error, 'to must be a valid ISO timestamp');
+
+  const dateOnly = await requestJson<{ error: string }>(
+    '/api/drive/review-queue/audit?from=2026-05-26'
+  );
+  assert.equal(dateOnly.status, 400);
+  assert.equal(dateOnly.body.error, 'from must be a valid ISO timestamp');
 });
 
 test('decision endpoint blocks with auth unhealthy and does not call mutation helpers', async () => {
