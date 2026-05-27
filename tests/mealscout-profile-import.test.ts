@@ -3,6 +3,7 @@ import { beforeEach, test } from 'node:test';
 
 const {
   buildMealScoutProfileDraft,
+  buildMealScoutDraftsFromClusters,
   resetMealScoutProfileImportForTest,
   seedMealScoutTruck,
   publishMealScoutDraft
@@ -195,4 +196,37 @@ test('does not expose publish mutate behavior', () => {
   seedMealScoutTruck({ truckName: 'Existing', phone: '985-777-0000' });
   const published = publishMealScoutDraft('any-draft-id');
   assert.equal(published, undefined);
+});
+
+test('can build drafts from evidence clusters without mutating profiles', () => {
+  const drafts = buildMealScoutDraftsFromClusters([
+    {
+      clusterId: 'cluster-1',
+      likelyTruckName: 'Cluster Truck',
+      confidence: 0.8,
+      matchSignals: ['phone_match'],
+      reviewStatus: 'ready_for_draft',
+      files: [
+        {
+          fileId: 'f1',
+          fileName: 'x.png',
+          drivePath: '/incoming/unknown/x.png',
+          sourceFolder: '/incoming/unknown',
+          detectedType: 'profile_screenshot',
+          confidence: 0.8,
+          extractedSignals: {
+            truckName: 'Cluster Truck',
+            phone: '985-222-9999',
+            cityArea: 'New Orleans',
+            cuisine: 'Cajun',
+            menuItems: [{ name: 'Po Boy' }]
+          }
+        }
+      ]
+    }
+  ]);
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0].mutationAllowed, false);
+  assert.equal(drafts[0].reviewStatus, 'ready_for_review');
 });

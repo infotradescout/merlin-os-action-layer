@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js';
 
 export type MealScoutExtractedSignal = {
   sourceFileId: string;
@@ -271,6 +272,45 @@ export function buildMealScoutProfileDraft(
 
   draft.reviewStatus = resolveReviewStatus(draft.missingFields, draft.duplicateCandidates, draft.warnings);
   return draft;
+}
+
+export function buildMealScoutDraftsFromClusters(
+  clusters: MealScoutEvidenceCluster[],
+  profiles: MealScoutExistingProfile[] = []
+): MealScoutProfileDraft[] {
+  return clusters.map((cluster) => {
+    const signals: MealScoutExtractedSignal[] = cluster.files.map((file) => ({
+      sourceFileId: file.fileId,
+      sourcePath: file.drivePath,
+      sourceType:
+        file.detectedType === 'menu'
+          ? 'menu'
+          : file.detectedType === 'logo'
+            ? 'logo'
+            : file.detectedType === 'unknown'
+              ? 'unknown'
+              : 'screenshot',
+      truckName: file.extractedSignals.truckName,
+      phone: file.extractedSignals.phone,
+      email: file.extractedSignals.email,
+      cityArea: file.extractedSignals.cityArea,
+      cuisine: file.extractedSignals.cuisine,
+      menuItems: file.extractedSignals.menuItems,
+      socials: {
+        facebook: file.extractedSignals.facebook,
+        instagram: file.extractedSignals.instagram
+      },
+      website: file.extractedSignals.website
+    }));
+    const draft = buildMealScoutProfileDraft(signals, profiles);
+    if (cluster.reviewStatus === 'uncertain_match' && draft.reviewStatus === 'ready_for_review') {
+      draft.reviewStatus = 'uncertain_match';
+      if (!draft.warnings.includes('uncertain cluster match')) {
+        draft.warnings.push('uncertain cluster match');
+      }
+    }
+    return draft;
+  });
 }
 
 export function createMealScoutBatch(): MealScoutCaptureBatch {
