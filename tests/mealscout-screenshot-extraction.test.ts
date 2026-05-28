@@ -297,3 +297,86 @@ test('pilot 2 mixed multi-truck dump stays separated and mutation-safe in previe
   );
 });
 
+test('pilot 3 existing truck evidence maps to existing candidate without duplicate draft creation', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    clusters: Array<{
+      clusterId: string;
+      files: Array<{ fileId: string; detectedType: string }>;
+    }>;
+    drafts: Array<{
+      draftId: string;
+      truckName?: string;
+      mutationAllowed: boolean;
+      sourceFiles: Array<{ sourceFileId: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown' }>;
+      duplicateCandidates: Array<{ existingProfileId: string; reason: string; confidence: number }>;
+    }>;
+    summary: { clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      existingProfiles: [
+        {
+          id: 'existing-bayou-bites',
+          truckName: 'Bayou Bites',
+          phone: '985-201-0101',
+          cityArea: 'New Orleans'
+        }
+      ],
+      inputs: [
+        {
+          fileId: 'pilot-3-existing-profile',
+          fileName: 'IMG_3001.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Bayou Bites\nPhone: 985-201-0101\nCity: New Orleans\nCuisine: Cajun'
+        },
+        {
+          fileId: 'pilot-3-existing-menu',
+          fileName: 'IMG_3002.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Bayou Bites Menu\nPhone: 985-201-0101\nShrimp Po Boy - $12.00'
+        },
+        {
+          fileId: 'pilot-3-other-profile',
+          fileName: 'IMG_3003.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie\nCuisine: Tacos'
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.summary.clusterCount, 2);
+  assert.equal(response.body.summary.draftCount, 2);
+  assert.equal(response.body.drafts.every((item) => item.mutationAllowed === false), true);
+
+  const existingTruckDrafts = response.body.drafts.filter((draft) =>
+    draft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites')
+  );
+  assert.equal(existingTruckDrafts.length, 1);
+  assert.equal(
+    existingTruckDrafts[0].sourceFiles.some((file) => file.sourceFileId === 'pilot-3-existing-profile'),
+    true
+  );
+  assert.equal(
+    existingTruckDrafts[0].sourceFiles.some((file) => file.sourceFileId === 'pilot-3-existing-menu'),
+    true
+  );
+
+  const unrelatedDraft = response.body.drafts.find((draft) =>
+    draft.sourceFiles.some((file) => file.sourceFileId === 'pilot-3-other-profile')
+  );
+  assert.ok(unrelatedDraft, 'Expected unrelated truck draft');
+  assert.equal(
+    unrelatedDraft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites'),
+    false
+  );
+
+  // Preview pipeline remains read-only and should not expose Drive mutation actions.
+  assert.equal('driveActions' in (response.body as unknown as Record<string, unknown>), false);
+});
+
