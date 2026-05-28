@@ -202,3 +202,98 @@ test('pilot 1 payload consolidates to one cluster and one draft in preview-only 
   assert.equal(response.body.drafts[0].sourceFiles.length, 3);
 });
 
+test('pilot 2 mixed multi-truck dump stays separated and mutation-safe in preview-only mode', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    clusters: Array<{
+      clusterId: string;
+      reviewStatus: 'ready_for_draft' | 'missing_required' | 'duplicate_possible' | 'uncertain_match';
+      files: Array<{ fileId: string; detectedType: string }>;
+    }>;
+    drafts: Array<{
+      draftId: string;
+      truckName?: string;
+      mutationAllowed: boolean;
+      reviewStatus: 'ready_for_review' | 'missing_required' | 'duplicate_possible' | 'uncertain_match';
+      menu: Array<{ name: string; sourceFileId: string }>;
+      sourceFiles: Array<{ sourceFileId: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown' }>;
+    }>;
+    summary: { clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'pilot-2-a-profile',
+          fileName: 'IMG_2001.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText:
+            'Bayou Bites\nPhone: 985-201-0101\nEmail: hello@bayoubites.com\nCity: New Orleans\nCuisine: Cajun'
+        },
+        {
+          fileId: 'pilot-2-a-menu',
+          fileName: 'IMG_2002.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Bayou Bites Menu\nPhone: 985-201-0101\nShrimp Po Boy - $12.00\nGumbo Bowl - $10.00'
+        },
+        {
+          fileId: 'pilot-2-b-profile',
+          fileName: 'IMG_2003.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Taco Orbit\nPhone: 504-777-0001\nCity: Metairie\nCuisine: Tacos\nInstagram: @tacoorbit'
+        },
+        {
+          fileId: 'pilot-2-b-menu',
+          fileName: 'IMG_2004.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Taco Orbit Menu\nPhone: 504-777-0001\nAl Pastor Taco - $4.25\nBirria Quesadilla - $9.75'
+        },
+        {
+          fileId: 'pilot-2-b-logo',
+          fileName: 'IMG_2005.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: 'Taco Orbit',
+          visualLabels: ['logo']
+        },
+        {
+          fileId: 'pilot-2-orphan-logo',
+          fileName: 'IMG_2006.PNG',
+          sourceFolder: '/incoming/unknown',
+          extractedText: '',
+          visualLabels: ['logo']
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.summary.clusterCount >= 2 && response.body.summary.clusterCount <= 3, true);
+  assert.equal(response.body.summary.draftCount, response.body.summary.clusterCount);
+  assert.equal(response.body.drafts.every((item) => item.mutationAllowed === false), true);
+
+  const bayouCluster = response.body.clusters.find((cluster) =>
+    cluster.files.some((file) => file.fileId === 'pilot-2-a-profile')
+  );
+  const tacoCluster = response.body.clusters.find((cluster) =>
+    cluster.files.some((file) => file.fileId === 'pilot-2-b-profile')
+  );
+  assert.ok(bayouCluster, 'Expected Bayou Bites cluster');
+  assert.ok(tacoCluster, 'Expected Taco Orbit cluster');
+  assert.equal(bayouCluster.files.some((file) => file.fileId === 'pilot-2-a-menu'), true);
+  assert.equal(tacoCluster.files.some((file) => file.fileId === 'pilot-2-b-menu'), true);
+
+  assert.equal(
+    response.body.clusters.some(
+      (cluster) =>
+        cluster.reviewStatus === 'uncertain_match' &&
+        cluster.files.length === 1 &&
+        cluster.files[0].fileId === 'pilot-2-orphan-logo' &&
+        cluster.files[0].detectedType === 'logo'
+    ),
+    true
+  );
+});
+
