@@ -72,6 +72,7 @@ import {
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
 import { getDriveClient } from './driveClient.js';
+import type { DriveFileInfo } from './driveClient.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { extractSupportedFile } from './fileExtraction.js';
@@ -145,6 +146,62 @@ type DemoSeedEvent = {
   review_required: boolean;
   truth_score?: number;
 };
+
+const DRIVE_PREVIEW_SUPPORTED_EXTENSIONS = new Set([
+  'png',
+  'jpg',
+  'jpeg',
+  'webp',
+  'gif',
+  'bmp',
+  'heic',
+  'heif',
+  'pdf'
+]);
+
+function isSupportedMealScoutPreviewFile(file: DriveFileInfo): boolean {
+  const mime = (file.mime_type || '').toLowerCase();
+  if (mime.startsWith('image/')) return true;
+  if (mime === 'application/pdf') return true;
+  const extension = file.file_name.includes('.') ? (file.file_name.split('.').pop() || '').toLowerCase() : '';
+  return DRIVE_PREVIEW_SUPPORTED_EXTENSIONS.has(extension);
+}
+
+function convertDriveFileToMealScoutScreenshotInput(file: DriveFileInfo): MealScoutScreenshotInput {
+  const metadata = file.raw_metadata || {};
+  const metadataPath = typeof metadata.folder_path === 'string' ? metadata.folder_path : undefined;
+  const extractedText = typeof metadata.extracted_text === 'string' ? metadata.extracted_text : undefined;
+  const visualLabels = Array.isArray(metadata.visual_labels)
+    ? metadata.visual_labels.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : undefined;
+  const drivePath = metadataPath ? `${metadataPath}/${file.file_name}` : `drive://${file.folder_id}/${file.file_name}`;
+
+  return {
+    fileId: file.drive_file_id,
+    fileName: file.file_name,
+    drivePath,
+    sourceFolder: metadataPath || file.folder_id,
+    sourceFolderId: file.folder_id,
+    mimeType: file.mime_type,
+    modifiedTime: file.modified_time,
+    extractedText,
+    visualLabels
+  };
+}
+
+async function resolveMealScoutPreviewDriveFolderId(folderId?: string): Promise<{ folderId: string; source: 'provided' | 'discovered' }> {
+  const provided = (folderId || '').trim();
+  if (provided) {
+    return { folderId: provided, source: 'provided' };
+  }
+
+  const discovery = await discoverMealScoutIntakeFolders({ createMissing: false });
+  const discoveredFolderId = discovery.folders['incoming/unknown']?.id || discovery.folders['incoming/screenshots']?.id;
+  if (!discoveredFolderId) {
+    throw new Error('MealScout intake folder unavailable for preview listing');
+  }
+  return { folderId: discoveredFolderId, source: 'discovered' };
+}
 
 function parseBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve) => {
@@ -1136,6 +1193,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
     const payload = (body || {}) as {
       inputs?: MealScoutScreenshotInput[];
+      driveFolderId?: string;
+      loadFromDriveFolder?: boolean;
+      includeUnsupportedDriveFiles?: boolean;
       existingProfiles?: Array<{
         id: string;
         truckName?: string;
@@ -1146,7 +1206,39 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         socials?: { facebook?: string; instagram?: string };
       }>;
     };
-    const inputs = Array.isArray(payload.inputs) ? payload.inputs : [];
+    const requestInputs = Array.isArray(payload.inputs) ? payload.inputs : [];
+    const loadFromDriveFolder = payload.loadFromDriveFolder === true;
+    let inputs = requestInputs;
+    let driveSource:
+      | {
+          folderId: string;
+          folderSource: 'provided' | 'discovered';
+          listedCount: number;
+          filteredOutCount: number;
+        }
+      | undefined;
+
+    if (loadFromDriveFolder) {
+      try {
+        const resolved = await resolveMealScoutPreviewDriveFolderId(payload.driveFolderId);
+        const driveClient = getDriveClient();
+        const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+        const filteredFiles = payload.includeUnsupportedDriveFiles
+          ? listedFiles
+          : listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file));
+        inputs = filteredFiles.map(convertDriveFileToMealScoutScreenshotInput);
+        driveSource = {
+          folderId: resolved.folderId,
+          folderSource: resolved.source,
+          listedCount: listedFiles.length,
+          filteredOutCount: Math.max(0, listedFiles.length - filteredFiles.length)
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Drive folder preview listing failed';
+        return responseJson(res, { error: message, mutationAllowed: false }, 409);
+      }
+    }
+
     if (inputs.length === 0) {
       return responseJson(res, { error: 'inputs is required and must be a non-empty array' }, 400);
     }
@@ -1177,6 +1269,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     return responseJson(res, {
       status: 'ok',
       mutationAllowed: false,
+      driveSource,
       evidenceFiles,
       clusters,
       drafts,

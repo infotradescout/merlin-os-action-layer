@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { before, after, test } from 'node:test';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import type { DriveClient } from '../src/driveClient.ts';
 
 process.env.MERLIN_RUNTIME = 'test';
 
 const { createMealScoutEvidenceFromScreenshotInput, parseMealScoutSignalsFromText } = await import('../src/mealscoutScreenshotExtraction.ts');
 const { createMerlinServer } = await import('../src/server.ts');
+const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 
 let server: Server;
 let baseUrl = '';
@@ -36,6 +38,7 @@ before(async () => {
 });
 
 after(async () => {
+  resetDriveClientFactory();
   await new Promise<void>((resolveStop) => server.close(() => resolveStop()));
 });
 
@@ -520,6 +523,195 @@ test('pilot 4 drive-style batch preview groups existing and new trucks without m
   }
 
   // Preview payload must not include any Drive mutation artifacts.
+  const previewPayload = response.body as unknown as Record<string, unknown>;
+  assert.equal('driveActions' in previewPayload, false);
+  assert.equal('movedFiles' in previewPayload, false);
+  assert.equal('appliedMutations' in previewPayload, false);
+});
+
+test('pilot 5 drive folder listing converts metadata into preview intake payload without mutations', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  let moveInvocations = 0;
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'drive-existing-profile',
+          file_name: 'IMG_5001.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/5001',
+          modified_time: '2026-05-28T12:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            extracted_text: 'Bayou Bites\nPhone: 985-201-0101\nCity: New Orleans\nCuisine: Cajun'
+          }
+        },
+        {
+          drive_file_id: 'drive-existing-menu',
+          file_name: 'IMG_5002.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/5002',
+          modified_time: '2026-05-28T12:01:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            extracted_text: 'Bayou Bites Menu\nPhone: 985-201-0101\nShrimp Po Boy - $12.00'
+          }
+        },
+        {
+          drive_file_id: 'drive-new-profile',
+          file_name: 'IMG_5003.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/5003',
+          modified_time: '2026-05-28T12:02:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            extracted_text: 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie\nCuisine: Tacos'
+          }
+        },
+        {
+          drive_file_id: 'drive-new-menu',
+          file_name: 'IMG_5004.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/5004',
+          modified_time: '2026-05-28T12:03:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            extracted_text: 'Orbit Tacos Menu\nPhone: 504-333-9090\nAl Pastor Taco - $4.25'
+          }
+        },
+        {
+          drive_file_id: 'drive-orphan-logo',
+          file_name: 'IMG_5005.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/5005',
+          modified_time: '2026-05-28T12:04:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            visual_labels: ['logo']
+          }
+        },
+        {
+          drive_file_id: 'drive-unsupported',
+          file_name: 'notes.txt',
+          mime_type: 'text/plain',
+          folder_id: folderId,
+          web_url: 'https://example.com/5006',
+          modified_time: '2026-05-28T12:05:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin/MealScout Intake/incoming/unknown',
+            extracted_text: 'irrelevant'
+          }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return undefined;
+    },
+    async moveFileToFolder() {
+      moveInvocations += 1;
+      return true;
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin') return [{ id: 'folder-merlin', name }];
+      if (parentId === 'folder-merlin' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called in read-only preview');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    driveSource?: { folderId: string; listedCount: number; filteredOutCount: number; folderSource: 'provided' | 'discovered' };
+    evidenceFiles: Array<{ fileId: string; fileName: string; sourceFolder: string; drivePath: string }>;
+    clusters: Array<{
+      reviewStatus: 'ready_for_draft' | 'uncertain_match' | 'missing_required' | 'duplicate_possible';
+      files: Array<{ fileId: string }>;
+    }>;
+    drafts: Array<{
+      mutationAllowed: boolean;
+      duplicateCandidates: Array<{ existingProfileId: string }>;
+      sourceFiles: Array<{ sourceFileId: string; sourcePath?: string }>;
+    }>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      loadFromDriveFolder: true,
+      existingProfiles: [
+        {
+          id: 'existing-bayou-bites',
+          truckName: 'Bayou Bites',
+          phone: '985-201-0101',
+          cityArea: 'New Orleans'
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.driveSource?.folderId, 'folder-intake-unknown');
+  assert.equal(response.body.driveSource?.folderSource, 'discovered');
+  assert.equal(response.body.driveSource?.listedCount, 6);
+  assert.equal(response.body.driveSource?.filteredOutCount, 1);
+
+  const evidenceFileIds = response.body.evidenceFiles.map((item) => item.fileId);
+  assert.equal(evidenceFileIds.includes('drive-unsupported'), false);
+  for (const expected of ['drive-existing-profile', 'drive-existing-menu', 'drive-new-profile', 'drive-new-menu', 'drive-orphan-logo']) {
+    assert.equal(evidenceFileIds.includes(expected), true);
+  }
+
+  const existingDraft = response.body.drafts.find((draft) =>
+    draft.sourceFiles.some((file) => file.sourceFileId === 'drive-existing-profile')
+  );
+  assert.ok(existingDraft, 'Expected existing truck draft');
+  assert.equal(
+    existingDraft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites'),
+    true
+  );
+
+  const newDraft = response.body.drafts.find((draft) =>
+    draft.sourceFiles.some((file) => file.sourceFileId === 'drive-new-profile')
+  );
+  assert.ok(newDraft, 'Expected new truck draft');
+  assert.equal(
+    newDraft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites'),
+    false
+  );
+
+  const orphanCluster = response.body.clusters.find((cluster) =>
+    cluster.files.some((file) => file.fileId === 'drive-orphan-logo')
+  );
+  assert.ok(orphanCluster, 'Expected orphan evidence cluster');
+  assert.equal(orphanCluster.reviewStatus, 'uncertain_match');
+  assert.equal(response.body.drafts.every((draft) => draft.mutationAllowed === false), true);
+  assert.equal(moveInvocations, 0);
+
   const previewPayload = response.body as unknown as Record<string, unknown>;
   assert.equal('driveActions' in previewPayload, false);
   assert.equal('movedFiles' in previewPayload, false);

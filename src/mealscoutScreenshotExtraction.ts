@@ -9,7 +9,9 @@ export type MealScoutScreenshotInput = {
   fileName: string;
   drivePath?: string;
   sourceFolder?: string;
+  sourceFolderId?: string;
   mimeType?: string;
+  modifiedTime?: string;
   extractedText?: string;
   visualLabels?: string[];
 };
