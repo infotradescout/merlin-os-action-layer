@@ -380,3 +380,149 @@ test('pilot 3 existing truck evidence maps to existing candidate without duplica
   assert.equal('driveActions' in (response.body as unknown as Record<string, unknown>), false);
 });
 
+test('pilot 4 drive-style batch preview groups existing and new trucks without mutations', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    clusters: Array<{
+      clusterId: string;
+      reviewStatus: 'ready_for_draft' | 'uncertain_match' | 'missing_required' | 'duplicate_possible';
+      files: Array<{ fileId: string; detectedType: string; drivePath: string }>;
+    }>;
+    drafts: Array<{
+      draftId: string;
+      truckName?: string;
+      mutationAllowed: boolean;
+      sourceFiles: Array<{ sourceFileId: string; sourcePath?: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown' }>;
+      duplicateCandidates: Array<{ existingProfileId: string; reason: string; confidence: number }>;
+    }>;
+    summary: { clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      existingProfiles: [
+        {
+          id: 'existing-bayou-bites',
+          truckName: 'Bayou Bites',
+          phone: '985-201-0101',
+          cityArea: 'New Orleans'
+        }
+      ],
+      inputs: [
+        {
+          fileId: 'pilot-4-existing-profile',
+          fileName: 'IMG_4001.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_4001.PNG',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Bayou Bites\nPhone: 985-201-0101\nCity: New Orleans\nCuisine: Cajun'
+        },
+        {
+          fileId: 'pilot-4-existing-menu',
+          fileName: 'IMG_4002.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_4002.PNG',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Bayou Bites Menu\nPhone: 985-201-0101\nShrimp Po Boy - $12.00'
+        },
+        {
+          fileId: 'pilot-4-new-profile',
+          fileName: 'IMG_4003.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_4003.PNG',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie\nCuisine: Tacos'
+        },
+        {
+          fileId: 'pilot-4-new-menu',
+          fileName: 'IMG_4004.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_4004.PNG',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: 'Orbit Tacos Menu\nPhone: 504-333-9090\nAl Pastor Taco - $4.25'
+        },
+        {
+          fileId: 'pilot-4-orphan-logo',
+          fileName: 'IMG_4005.PNG',
+          drivePath: '/Merlin/MealScout Intake/incoming/unknown/IMG_4005.PNG',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown',
+          mimeType: 'image/png',
+          extractedText: '',
+          visualLabels: ['logo']
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.summary.clusterCount, 3);
+  assert.equal(response.body.summary.draftCount, 3);
+  assert.equal(response.body.drafts.every((draft) => draft.mutationAllowed === false), true);
+
+  const existingDrafts = response.body.drafts.filter((draft) =>
+    draft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites')
+  );
+  assert.equal(existingDrafts.length, 1);
+  assert.equal(
+    existingDrafts[0].sourceFiles.some((file) => file.sourceFileId === 'pilot-4-existing-profile'),
+    true
+  );
+  assert.equal(existingDrafts[0].sourceFiles.some((file) => file.sourceFileId === 'pilot-4-existing-menu'), true);
+
+  const newTruckDraft = response.body.drafts.find((draft) =>
+    draft.sourceFiles.some((file) => file.sourceFileId === 'pilot-4-new-profile')
+  );
+  assert.ok(newTruckDraft, 'Expected new truck draft');
+  assert.equal(
+    newTruckDraft.sourceFiles.some((file) => file.sourceFileId === 'pilot-4-new-menu'),
+    true
+  );
+  assert.equal(
+    newTruckDraft.duplicateCandidates.some((candidate) => candidate.existingProfileId === 'existing-bayou-bites'),
+    false
+  );
+
+  const orphanCluster = response.body.clusters.find((cluster) =>
+    cluster.files.some((file) => file.fileId === 'pilot-4-orphan-logo')
+  );
+  assert.ok(orphanCluster, 'Expected orphan evidence cluster');
+  assert.equal(orphanCluster.reviewStatus, 'uncertain_match');
+  assert.equal(orphanCluster.files.length, 1);
+
+  assert.equal(
+    response.body.clusters.some(
+      (cluster) =>
+        cluster.files.some((file) => file.fileId === 'pilot-4-existing-profile') &&
+        cluster.files.some((file) => file.fileId === 'pilot-4-existing-menu')
+    ),
+    true
+  );
+  assert.equal(
+    response.body.clusters.some(
+      (cluster) =>
+        cluster.files.some((file) => file.fileId === 'pilot-4-new-profile') &&
+        cluster.files.some((file) => file.fileId === 'pilot-4-new-menu')
+    ),
+    true
+  );
+
+  const draftSourceFileIds = response.body.drafts.flatMap((draft) => draft.sourceFiles.map((file) => file.sourceFileId));
+  for (const expected of [
+    'pilot-4-existing-profile',
+    'pilot-4-existing-menu',
+    'pilot-4-new-profile',
+    'pilot-4-new-menu',
+    'pilot-4-orphan-logo'
+  ]) {
+    assert.equal(draftSourceFileIds.includes(expected), true);
+  }
+
+  // Preview payload must not include any Drive mutation artifacts.
+  const previewPayload = response.body as unknown as Record<string, unknown>;
+  assert.equal('driveActions' in previewPayload, false);
+  assert.equal('movedFiles' in previewPayload, false);
+  assert.equal('appliedMutations' in previewPayload, false);
+});
+
