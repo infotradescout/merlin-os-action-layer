@@ -1,0 +1,48 @@
+Pilot 7D Tesseract OCR Summary
+Timestamp: 2026-05-29T12:33:50.2712848-05:00
+listedCount: 3
+mutationAllowed: False
+
+fileId: 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+name: 707990078_2109431996279825_93215142009434330_n.jpg
+mimeType: image/jpeg
+byteLength: 56201
+downloadAttempted: True
+downloadSucceeded: True
+downloadError: 
+selectedEngine: tesseract
+engine: local_tesseract_cli
+ocrAttempted: True
+ocrSucceeded: True
+extractionError: 
+extractedTextLength: 321
+---
+fileId: 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+name: 705770904_918342954569744_6077113333953277063_n.jpg
+mimeType: image/jpeg
+byteLength: 65315
+downloadAttempted: True
+downloadSucceeded: True
+downloadError: 
+selectedEngine: tesseract
+engine: local_tesseract_cli
+ocrAttempted: True
+ocrSucceeded: True
+extractionError: 
+extractedTextLength: 407
+---
+fileId: 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+name: 706216881_1495538075647692_5427253878307980612_n.jpg
+mimeType: image/jpeg
+byteLength: 59949
+downloadAttempted: True
+downloadSucceeded: True
+downloadError: 
+selectedEngine: tesseract
+engine: local_tesseract_cli
+ocrAttempted: True
+ocrSucceeded: True
+extractionError: 
+extractedTextLength: 43
+---
+atLeastOneExtractedTextGtZero: True

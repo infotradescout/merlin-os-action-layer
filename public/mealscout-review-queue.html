@@ -130,6 +130,8 @@
       const client = createMealScoutReviewQueueClient();
       const draftReviewState = {};
       const mergeReviewState = {};
+      const draftDecisionIndex = new Map();
+      const mergeDecisionIndex = new Map();
 
       const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
       const sourceClassByFileId = new Map();
@@ -171,9 +173,38 @@
 
       function wireDraftActions(draftId) {
         for (const node of document.querySelectorAll(`button[data-draft-id="${draftId}"]`)) {
-          node.addEventListener('click', () => {
+          node.addEventListener('click', async () => {
             const decision = node.getAttribute('data-decision');
-            draftReviewState[draftId] = { decision, updatedAt: new Date().toISOString() };
+            const note = document.getElementById(`draft-reason-${draftId}`)?.value?.trim() || undefined;
+            draftReviewState[draftId] = { decision, status: 'pending', updatedAt: new Date().toISOString() };
+            renderDraftActionState(draftId);
+            try {
+              const existing = draftDecisionIndex.get(draftId);
+              const payload = {
+                draftIds: [draftId],
+                decision,
+                reason: note,
+                sourceFileIds: (window.__draftSourceFilesByDraftId?.[draftId] || []),
+                evidenceRefs: (window.__draftEvidenceRefsByDraftId?.[draftId] || []),
+                decidedBy: 'operator'
+              };
+              const saved = existing
+                ? await client.updateReviewDecision(existing.decisionId, payload)
+                : await client.saveReviewDecision(payload);
+              draftReviewState[draftId] = {
+                decision,
+                status: 'saved',
+                updatedAt: saved.decision?.decidedAt || new Date().toISOString()
+              };
+              draftDecisionIndex.set(draftId, saved.decision);
+            } catch (error) {
+              draftReviewState[draftId] = {
+                decision,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'save failed',
+                updatedAt: new Date().toISOString()
+              };
+            }
             renderDraftActionState(draftId);
           });
         }
@@ -186,7 +217,12 @@
         }
         const stamp = document.getElementById(`draft-state-${draftId}`);
         if (stamp) {
-          stamp.textContent = entry ? `Local review state: ${entry.decision}` : 'Local review state: none';
+          stamp.textContent = entry
+            ? `Review state: ${entry.decision} (${entry.status || 'local'})`
+            : 'Review state: none';
+          if (entry?.error) {
+            stamp.textContent += ` · ${entry.error}`;
+          }
         }
       }
 
@@ -212,6 +248,13 @@
           const menuRows = Array.isArray(draft.menu) && draft.menu.length
             ? draft.menu.map((item) => `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}</li>`).join('')
             : '<li class="mini">Not found in screenshot</li>';
+
+          const evidenceRefs = Object.keys(evidence || {});
+          const sourceFileIds = sourceFiles.map((file) => file.sourceFileId).filter(Boolean);
+          window.__draftSourceFilesByDraftId = window.__draftSourceFilesByDraftId || {};
+          window.__draftEvidenceRefsByDraftId = window.__draftEvidenceRefsByDraftId || {};
+          window.__draftSourceFilesByDraftId[draft.draftId] = sourceFileIds;
+          window.__draftEvidenceRefsByDraftId[draft.draftId] = evidenceRefs;
 
           const block = document.createElement('div');
           block.className = 'draft-card';
@@ -253,12 +296,13 @@
             </div>
             <div class="field-row">
               <h4>Operator Review Action</h4>
+              <textarea id="draft-reason-${safe(draft.draftId)}" class="mini" placeholder="Optional reason for decision"></textarea>
               <div class="actions">
                 <button data-draft-id="${safe(draft.draftId)}" data-decision="same_truck">Mark as same truck</button>
                 <button data-draft-id="${safe(draft.draftId)}" data-decision="keep_separate">Keep separate</button>
                 <button data-draft-id="${safe(draft.draftId)}" data-decision="needs_review">Needs review</button>
               </div>
-              <div id="draft-state-${safe(draft.draftId)}" class="mini">Local review state: none</div>
+              <div id="draft-state-${safe(draft.draftId)}" class="mini">Review state: none</div>
             </div>
           `;
           container.appendChild(block);
@@ -269,9 +313,38 @@
 
       function wireMergeActions(groupId) {
         for (const node of document.querySelectorAll(`button[data-group-id="${groupId}"]`)) {
-          node.addEventListener('click', () => {
+          node.addEventListener('click', async () => {
             const decision = node.getAttribute('data-decision');
-            mergeReviewState[groupId] = { decision, updatedAt: new Date().toISOString() };
+            const reason = document.getElementById(`merge-reason-${groupId}`)?.value?.trim() || undefined;
+            mergeReviewState[groupId] = { decision, status: 'pending', updatedAt: new Date().toISOString() };
+            renderMergeActionState(groupId);
+            try {
+              const existing = mergeDecisionIndex.get(groupId);
+              const payload = {
+                draftIds: window.__mergeDraftIdsByGroupId?.[groupId] || [],
+                decision,
+                reason,
+                sourceFileIds: window.__mergeSourceFilesByGroupId?.[groupId] || [],
+                evidenceRefs: window.__mergeEvidenceRefsByGroupId?.[groupId] || [],
+                decidedBy: 'operator'
+              };
+              const saved = existing
+                ? await client.updateReviewDecision(existing.decisionId, payload)
+                : await client.saveReviewDecision(payload);
+              mergeReviewState[groupId] = {
+                decision,
+                status: 'saved',
+                updatedAt: saved.decision?.decidedAt || new Date().toISOString()
+              };
+              mergeDecisionIndex.set(groupId, saved.decision);
+            } catch (error) {
+              mergeReviewState[groupId] = {
+                decision,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'save failed',
+                updatedAt: new Date().toISOString()
+              };
+            }
             renderMergeActionState(groupId);
           });
         }
@@ -284,7 +357,12 @@
         }
         const stamp = document.getElementById(`merge-state-${groupId}`);
         if (stamp) {
-          stamp.textContent = entry ? `Local review state: ${entry.decision}` : 'Local review state: none';
+          stamp.textContent = entry
+            ? `Review state: ${entry.decision} (${entry.status || 'local'})`
+            : 'Review state: none';
+          if (entry?.error) {
+            stamp.textContent += ` · ${entry.error}`;
+          }
         }
       }
 
@@ -305,6 +383,15 @@
           ).join('');
           const recommendationClass = group.recommendation === 'merge_recommended' ? 'ok' : group.recommendation === 'possible_match' ? 'warn' : 'danger';
           const block = document.createElement('div');
+          window.__mergeDraftIdsByGroupId = window.__mergeDraftIdsByGroupId || {};
+          window.__mergeSourceFilesByGroupId = window.__mergeSourceFilesByGroupId || {};
+          window.__mergeEvidenceRefsByGroupId = window.__mergeEvidenceRefsByGroupId || {};
+          window.__mergeDraftIdsByGroupId[group.groupId] = group.draftIds || [];
+          window.__mergeSourceFilesByGroupId[group.groupId] = Array.from(new Set(
+            (group.reasons || []).flatMap((reason) => reason.sourceFileIds || [])
+          ));
+          window.__mergeEvidenceRefsByGroupId[group.groupId] = (group.reasons || []).map((reason) => reason.type);
+
           block.className = 'draft-card';
           block.innerHTML = `
             <div>
@@ -323,12 +410,13 @@
             </div>
             <div class="field-row">
               <h4>Operator Review Action</h4>
+              <textarea id="merge-reason-${safe(group.groupId)}" class="mini" placeholder="Optional reason for decision"></textarea>
               <div class="actions">
                 <button data-group-id="${safe(group.groupId)}" data-decision="same_truck">Mark as same truck</button>
                 <button data-group-id="${safe(group.groupId)}" data-decision="keep_separate">Keep separate</button>
                 <button data-group-id="${safe(group.groupId)}" data-decision="needs_review">Needs review</button>
               </div>
-              <div id="merge-state-${safe(group.groupId)}" class="mini">Local review state: none</div>
+              <div id="merge-state-${safe(group.groupId)}" class="mini">Review state: none</div>
             </div>
           `;
           container.appendChild(block);
@@ -337,16 +425,54 @@
         }
       }
 
+      function hydrateSavedDecisions(payload, decisions) {
+        draftDecisionIndex.clear();
+        mergeDecisionIndex.clear();
+        const draftSet = new Set((payload.drafts || []).map((draft) => draft.draftId));
+        const mergeGroups = payload.mergeAssist?.candidateGroups || [];
+        for (const record of decisions) {
+          const recordDraftIds = new Set(record.draftIds || []);
+          for (const draftId of record.draftIds || []) {
+            if (draftSet.has(draftId)) {
+              draftDecisionIndex.set(draftId, record);
+              draftReviewState[draftId] = {
+                decision: record.decision,
+                status: 'saved',
+                updatedAt: record.decidedAt
+              };
+            }
+          }
+          for (const group of mergeGroups) {
+            const groupSet = new Set(group.draftIds || []);
+            const sameSize = groupSet.size === recordDraftIds.size;
+            const sameMembers = sameSize && [...groupSet].every((value) => recordDraftIds.has(value));
+            if (sameMembers) {
+              mergeDecisionIndex.set(group.groupId, record);
+              mergeReviewState[group.groupId] = {
+                decision: record.decision,
+                status: 'saved',
+                updatedAt: record.decidedAt
+              };
+            }
+          }
+        }
+      }
+
       async function hydrate() {
-        const payload = await client.getPreview({ loadFromDriveFolder: true, includeDebugOcr: true });
+        const [payload, decisionsPayload] = await Promise.all([
+          client.getPreview({ loadFromDriveFolder: true, includeDebugOcr: true }),
+          client.getReviewDecisions()
+        ]);
         const evidenceFiles = Array.isArray(payload.evidenceFiles) ? payload.evidenceFiles : [];
         const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
+        const decisions = Array.isArray(decisionsPayload.decisions) ? decisionsPayload.decisions : [];
         for (const file of evidenceFiles) {
           sourceClassByFileId.set(file.fileId, file.detectedType || 'unknown');
         }
         for (const row of debugOcr) {
           ocrByFileId.set(row.fileId, row);
         }
+        hydrateSavedDecisions(payload, decisions);
         renderSummary(payload);
         renderDrafts(payload);
         renderMergeAssist(payload);

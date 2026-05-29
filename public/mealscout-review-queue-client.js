@@ -36,6 +36,22 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
         body: JSON.stringify(payload)
       });
     },
+    getReviewDecisions({ draftId } = {}) {
+      const query = draftId ? `?draftId=${encodeURIComponent(draftId)}` : '';
+      return requestJson(endpoint(`/api/mealscout/review-decisions${query}`));
+    },
+    saveReviewDecision(payload) {
+      return requestJson(endpoint('/api/mealscout/review-decisions'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
+    updateReviewDecision(decisionId, payload) {
+      return requestJson(endpoint(`/api/mealscout/review-decisions/${encodeURIComponent(decisionId)}`), {
+        method: 'PATCH',
+        body: JSON.stringify(payload || {})
+      });
+    },
     setDraftReviewDecision(reviewState, draftId, decision) {
       if (!REVIEW_ACTIONS.includes(decision)) {
         throw new Error(`Unsupported review decision: ${decision}`);

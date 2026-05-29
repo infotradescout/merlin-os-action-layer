@@ -110,6 +110,12 @@ import {
   resetMealScoutProfileImportForTest,
   splitDraftByEvidence
 } from './mealscoutProfileImport.js';
+import {
+  createMealScoutReviewDecision,
+  listMealScoutReviewDecisions,
+  resetMealScoutReviewDecisionsForTest,
+  updateMealScoutReviewDecision
+} from './mealscoutReviewDecisions.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 
 loadEnvFromDotFile();
@@ -861,6 +867,7 @@ function resetDemoRuntimeState(): void {
   resetDriveManifestForTest();
   resetDriveReviewQueueForTest();
   resetMealScoutProfileImportForTest();
+  resetMealScoutReviewDecisionsForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -1540,6 +1547,93 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         draftCount: drafts.length
       }
     });
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/review-decisions') {
+    const draftId = query.draftId?.trim() || undefined;
+    const decisions = listMealScoutReviewDecisions({ draftId });
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      decisions
+    });
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/review-decisions') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      draftIds?: unknown;
+      decision?: unknown;
+      reason?: unknown;
+      sourceFileIds?: unknown;
+      evidenceRefs?: unknown;
+      decidedBy?: unknown;
+    };
+    const draftIds = Array.isArray(payload.draftIds) ? payload.draftIds.filter((item): item is string => typeof item === 'string') : [];
+    const decision = typeof payload.decision === 'string' ? payload.decision : '';
+    if (!draftIds.length) {
+      return responseJson(res, { error: 'draftIds is required', mutationAllowed: false }, 400);
+    }
+    if (!['same_truck', 'keep_separate', 'needs_review'].includes(decision)) {
+      return responseJson(res, { error: 'decision is invalid', mutationAllowed: false }, 400);
+    }
+    const sourceFileIds = Array.isArray(payload.sourceFileIds)
+      ? payload.sourceFileIds.filter((item): item is string => typeof item === 'string')
+      : [];
+    const evidenceRefs = Array.isArray(payload.evidenceRefs)
+      ? payload.evidenceRefs.filter((item): item is string => typeof item === 'string')
+      : [];
+    const record = createMealScoutReviewDecision({
+      draftIds,
+      decision: decision as 'same_truck' | 'keep_separate' | 'needs_review',
+      reason: typeof payload.reason === 'string' ? payload.reason : undefined,
+      sourceFileIds,
+      evidenceRefs,
+      decidedBy: typeof payload.decidedBy === 'string' ? payload.decidedBy : undefined
+    });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, decision: record }, 201);
+  }
+
+  const reviewDecisionMatch = pathname.match(/^\/api\/mealscout\/review-decisions\/([^/]+)$/);
+  if (method === 'PATCH' && reviewDecisionMatch) {
+    const decisionId = decodeURIComponent(reviewDecisionMatch[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      draftIds?: unknown;
+      decision?: unknown;
+      reason?: unknown;
+      sourceFileIds?: unknown;
+      evidenceRefs?: unknown;
+      decidedBy?: unknown;
+    };
+    const updates: Parameters<typeof updateMealScoutReviewDecision>[1] = {};
+    if (Array.isArray(payload.draftIds)) {
+      updates.draftIds = payload.draftIds.filter((item): item is string => typeof item === 'string');
+    }
+    if (typeof payload.decision === 'string') {
+      if (!['same_truck', 'keep_separate', 'needs_review'].includes(payload.decision)) {
+        return responseJson(res, { error: 'decision is invalid', mutationAllowed: false }, 400);
+      }
+      updates.decision = payload.decision as 'same_truck' | 'keep_separate' | 'needs_review';
+    }
+    if (typeof payload.reason === 'string') updates.reason = payload.reason;
+    if (Array.isArray(payload.sourceFileIds)) {
+      updates.sourceFileIds = payload.sourceFileIds.filter((item): item is string => typeof item === 'string');
+    }
+    if (Array.isArray(payload.evidenceRefs)) {
+      updates.evidenceRefs = payload.evidenceRefs.filter((item): item is string => typeof item === 'string');
+    }
+    if (typeof payload.decidedBy === 'string') updates.decidedBy = payload.decidedBy;
+
+    const updated = updateMealScoutReviewDecision(decisionId, updates);
+    if (!updated) return responseJson(res, { error: 'Decision not found', mutationAllowed: false }, 404);
+    return responseJson(res, { status: 'ok', mutationAllowed: false, decision: updated });
   }
 
   const batchScreenshotsMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)\/screenshots$/);

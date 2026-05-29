@@ -1,0 +1,12 @@
+Pilot 7F Review Queue Merge Assist Smoke Summary
+Generated: 2026-05-29T13:26:18
+Status: ok
+mutationAllowed: False
+listedCount: 3
+clusterCount: 2
+draftCount: 2
+mergeAssistCandidateGroups: 1
+Per-file OCR diagnostics:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD | image/jpeg | bytes=56201 | engine=tesseract | attempted=True | succeeded=True | textLen=321 | error= | class=menu
+- 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM | image/jpeg | bytes=65315 | engine=tesseract | attempted=True | succeeded=True | textLen=407 | error= | class=profile
+- 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl | image/jpeg | bytes=59949 | engine=tesseract | attempted=True | succeeded=True | textLen=43 | error= | class=profile

@@ -132,6 +132,39 @@ test('mealscout review queue client uses preview endpoint and local review state
         );
       }
 
+      if (target.includes('/api/mealscout/review-decisions') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mutationAllowed: false,
+            decisions: []
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+
+      if (target.includes('/api/mealscout/review-decisions') && method === 'POST') {
+        const requestBody = JSON.parse(typeof init.body === 'string' ? init.body : '{}');
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mutationAllowed: false,
+            decision: {
+              decisionId: 'ms-review-1',
+              draftIds: requestBody.draftIds || [],
+              decision: requestBody.decision,
+              reason: requestBody.reason,
+              sourceFileIds: requestBody.sourceFileIds || [],
+              evidenceRefs: requestBody.evidenceRefs || [],
+              decidedBy: requestBody.decidedBy,
+              decidedAt: '2026-05-29T18:10:00.000Z',
+              mutationAllowed: false
+            }
+          }),
+          { status: 201, headers: { 'content-type': 'application/json' } }
+        );
+      }
+
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
@@ -143,6 +176,22 @@ test('mealscout review queue client uses preview endpoint and local review state
     assert.equal(preview.drafts.length, 1);
     assert.equal(preview.mergeAssist.candidateGroups.length, 1);
     assert.equal(preview.mergeAssist.candidateGroups[0].reasons[0].type, 'similar_name');
+
+    const list = await client.getReviewDecisions();
+    assert.equal(list.status, 'ok');
+    assert.equal(list.mutationAllowed, false);
+
+    const saved = await client.saveReviewDecision({
+      draftIds: ['draft-1', 'draft-2'],
+      decision: 'same_truck',
+      reason: 'same menu and profile signals',
+      sourceFileIds: ['file-1', 'file-2'],
+      evidenceRefs: ['similar_name'],
+      decidedBy: 'operator'
+    });
+    assert.equal(saved.status, 'ok');
+    assert.equal(saved.mutationAllowed, false);
+    assert.equal(saved.decision.decision, 'same_truck');
 
     const draftState = client.setDraftReviewDecision({}, 'draft-1', 'needs_review');
     assert.equal(draftState['draft-1'].decision, 'needs_review');
