@@ -7,6 +7,11 @@ export type OperatorIdentity = {
   source: OperatorIdentitySource;
 };
 
+export type OperatorRole = {
+  role: string;
+  source: OperatorIdentitySource;
+};
+
 function readHeaderValue(req: IncomingMessage, headerName: string): string | undefined {
   const raw = req.headers[headerName.toLowerCase()];
   if (typeof raw === 'string') {
@@ -43,4 +48,22 @@ export function resolveOperatorIdentity(req: IncomingMessage): OperatorIdentity 
   }
 
   return { decidedBy: 'unknown', source: 'unknown' };
+}
+
+export function resolveOperatorRole(req: IncomingMessage): OperatorRole {
+  const roleHeaderCandidates = [
+    readHeaderValue(req, 'x-operator-role'),
+    readHeaderValue(req, 'x-user-role'),
+    readHeaderValue(req, 'x-forwarded-role')
+  ];
+  for (const candidate of roleHeaderCandidates) {
+    if (candidate) {
+      return { role: candidate.trim().toLowerCase(), source: 'trusted_header' };
+    }
+  }
+  const envRole = process.env.MERLIN_OPERATOR_ROLE?.trim().toLowerCase();
+  if (envRole) {
+    return { role: envRole, source: 'env' };
+  }
+  return { role: 'unknown', source: 'unknown' };
 }

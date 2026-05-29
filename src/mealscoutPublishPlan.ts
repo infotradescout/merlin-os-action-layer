@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { MealScoutProfileDraft } from './mealscoutProfileImport.js';
 import type { MealScoutReviewDecisionRecord } from './mealscoutReviewDecisions.js';
+import { getMealScoutReviewDecisionVersion } from './mealscoutReviewDecisions.js';
 
 type PlannedAction = 'create_new' | 'update_existing' | 'needs_review' | 'blocked';
 
@@ -38,6 +39,8 @@ export type MealScoutPublishPlanRecord = {
 
 export type MealScoutPublishPlanPreview = {
   planId: string;
+  signature: string;
+  reviewDecisionVersion: number;
   generatedAt: string;
   mutationAllowed: false;
   records: MealScoutPublishPlanRecord[];
@@ -280,8 +283,25 @@ export function buildMealScoutPublishPlanPreview(
     });
   }
 
+  const reviewDecisionVersion = getMealScoutReviewDecisionVersion();
+  const signature = JSON.stringify(
+    records.map((record) => ({
+      recordId: record.recordId,
+      plannedAction: record.plannedAction,
+      publishReady: record.publishReady,
+      draftIds: record.draftIds,
+      existingTruckId: record.existingTruckId,
+      profileFields: record.profileFields,
+      menuItems: record.menuItems,
+      blockedReasons: record.blockedReasons,
+      conflicts: record.conflicts
+    }))
+  );
+
   return {
     planId: `ms-plan-${randomUUID()}`,
+    signature,
+    reviewDecisionVersion,
     generatedAt: new Date().toISOString(),
     mutationAllowed: false,
     records

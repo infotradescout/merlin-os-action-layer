@@ -58,6 +58,14 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
         body: JSON.stringify(payload || {})
       });
     },
+    getPublishAudit(filters = {}) {
+      const params = new URLSearchParams();
+      if (filters.planId) params.set('planId', String(filters.planId));
+      if (filters.executionId) params.set('executionId', String(filters.executionId));
+      if (filters.recordId) params.set('recordId', String(filters.recordId));
+      const query = params.toString();
+      return requestJson(endpoint(`/api/mealscout/intake/publish-plan/audit${query ? `?${query}` : ''}`));
+    },
     setDraftReviewDecision(reviewState, draftId, decision) {
       if (!REVIEW_ACTIONS.includes(decision)) {
         throw new Error(`Unsupported review decision: ${decision}`);

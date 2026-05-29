@@ -15,6 +15,7 @@ export type MealScoutReviewDecisionRecord = {
 };
 
 const reviewDecisions = new Map<string, MealScoutReviewDecisionRecord>();
+let reviewDecisionVersion = 0;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -54,6 +55,7 @@ export function createMealScoutReviewDecision(input: {
     mutationAllowed: false
   };
   reviewDecisions.set(record.decisionId, record);
+  reviewDecisionVersion += 1;
   return record;
 }
 
@@ -82,9 +84,15 @@ export function updateMealScoutReviewDecision(
     mutationAllowed: false
   };
   reviewDecisions.set(decisionId, next);
+  reviewDecisionVersion += 1;
   return next;
+}
+
+export function getMealScoutReviewDecisionVersion(): number {
+  return reviewDecisionVersion;
 }
 
 export function resetMealScoutReviewDecisionsForTest(): void {
   reviewDecisions.clear();
+  reviewDecisionVersion = 0;
 }

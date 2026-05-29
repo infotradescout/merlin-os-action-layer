@@ -831,6 +831,10 @@ export function listMealScoutTrucks(): MealScoutExistingProfile[] {
   return Array.from(existingProfiles.values());
 }
 
+export function getMealScoutTruckById(id: string): MealScoutExistingProfile | undefined {
+  return existingProfiles.get(id);
+}
+
 export function seedMealScoutTruck(input: Omit<MealScoutExistingProfile, 'id'>): MealScoutExistingProfile {
   const profile: MealScoutExistingProfile = {
     ...input,

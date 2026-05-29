@@ -3,17 +3,20 @@ import type { MealScoutPublishPlanPreview, MealScoutPublishPlanRecord } from './
 import { getMealScoutPublishPlan } from './mealscoutPublishPlan.js';
 import {
   createMealScoutProfileFromPlanRecord,
+  getMealScoutTruckById,
   listMealScoutTrucks,
   updateMealScoutProfileFromPlanRecord
 } from './mealscoutProfileImport.js';
+import { getMealScoutReviewDecisionVersion } from './mealscoutReviewDecisions.js';
 
 export type MealScoutPublishExecutionResult = {
   recordId: string;
   plannedAction: 'create_new' | 'update_existing';
-  result: 'success' | 'failed' | 'skipped';
+  result: 'success' | 'failed' | 'skipped' | 'already_executed';
   targetId?: string;
   auditId: string;
   failureReason?: string;
+  priorAuditId?: string;
 };
 
 export type MealScoutPublishAuditEntry = {
@@ -26,9 +29,12 @@ export type MealScoutPublishAuditEntry = {
   action: 'create_new' | 'update_existing';
   fieldsWritten: string[];
   evidenceRefs: string[];
+  previousValues?: Record<string, string | undefined>;
+  newValues?: Record<string, string | undefined>;
+  targetId?: string;
   operatorId?: string;
   executedAt: string;
-  result: 'success' | 'failed' | 'skipped';
+  result: 'success' | 'failed' | 'skipped' | 'already_executed';
   failureReason?: string;
 };
 
@@ -42,6 +48,7 @@ export type MealScoutPublishExecutionResponse = {
 };
 
 const auditEntries: MealScoutPublishAuditEntry[] = [];
+const idempotencyIndex = new Map<string, { auditId: string; targetId?: string }>();
 
 function flattenEvidenceRefs(record: MealScoutPublishPlanRecord): string[] {
   const refs = new Set<string>();
@@ -99,6 +106,7 @@ export function executeMealScoutPublishPlan(input: {
   recordIds: string[];
   confirmation: boolean;
   operatorId?: string;
+  expectedSignature?: string;
 }): MealScoutPublishExecutionResponse {
   if (!input.confirmation) {
     throw new Error('confirmation_required');
@@ -112,6 +120,12 @@ export function executeMealScoutPublishPlan(input: {
   const plan = getMealScoutPublishPlan(input.planId);
   if (!plan) {
     throw new Error('plan_not_found_or_stale');
+  }
+  if (input.expectedSignature && input.expectedSignature !== plan.signature) {
+    throw new Error('stale_plan');
+  }
+  if (plan.reviewDecisionVersion !== getMealScoutReviewDecisionVersion()) {
+    throw new Error('stale_plan');
   }
 
   const executionId = `ms-exec-${randomUUID()}`;
@@ -181,12 +195,62 @@ export function executeMealScoutPublishPlan(input: {
       continue;
     }
 
+    const idempotencyKey = `${input.planId}::${record.recordId}::${flattenEvidenceRefs(record).join('|')}::${flattenSourceFileIds(record).join('|')}`;
+    const prior = idempotencyIndex.get(idempotencyKey);
+    if (prior) {
+      const already: MealScoutPublishExecutionResult = {
+        recordId,
+        plannedAction: record.plannedAction as 'create_new' | 'update_existing',
+        result: 'already_executed',
+        targetId: prior.targetId,
+        auditId,
+        failureReason: 'already_executed',
+        priorAuditId: prior.auditId
+      };
+      const audit: MealScoutPublishAuditEntry = {
+        auditId,
+        executionId,
+        planId: input.planId,
+        recordId,
+        draftIds: record.draftIds,
+        sourceFileIds: flattenSourceFileIds(record),
+        action: record.plannedAction as 'create_new' | 'update_existing',
+        fieldsWritten: [],
+        evidenceRefs: flattenEvidenceRefs(record),
+        operatorId: input.operatorId,
+        executedAt,
+        result: 'already_executed',
+        failureReason: 'already_executed',
+        targetId: prior.targetId
+      };
+      results.push(already);
+      audits.push(audit);
+      continue;
+    }
+
     let targetId: string | undefined;
     const fieldsWritten = Object.keys(record.profileFields || {});
+    let previousValues: Record<string, string | undefined> | undefined;
+    const newValues: Record<string, string | undefined> = {};
+    for (const [fieldName, field] of Object.entries(record.profileFields || {})) {
+      newValues[fieldName] = field.value;
+    }
     try {
       if (record.plannedAction === 'update_existing') {
         if (!record.existingTruckId) {
           throw new Error('missing_existing_truck_id');
+        }
+        const previous = getMealScoutTruckById(record.existingTruckId);
+        if (previous) {
+          previousValues = {
+            truckName: previous.truckName,
+            phone: previous.phone,
+            email: previous.email,
+            website: previous.website,
+            cityArea: previous.cityArea,
+            facebook: previous.socials?.facebook,
+            instagram: previous.socials?.instagram
+          };
         }
         const updated = updateMealScoutProfileFromPlanRecord(record.existingTruckId, record);
         if (!updated) throw new Error('existing_truck_not_found');
@@ -212,12 +276,16 @@ export function executeMealScoutPublishPlan(input: {
         action: record.plannedAction as 'create_new' | 'update_existing',
         fieldsWritten,
         evidenceRefs: flattenEvidenceRefs(record),
+        previousValues,
+        newValues,
+        targetId,
         operatorId: input.operatorId,
         executedAt,
         result: 'success'
       };
       results.push(success);
       audits.push(audit);
+      idempotencyIndex.set(idempotencyKey, { auditId, targetId });
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'execution_failed';
       const failed: MealScoutPublishExecutionResult = {
@@ -262,8 +330,23 @@ export function listMealScoutPublishExecutionAudit(): MealScoutPublishAuditEntry
   return [...auditEntries];
 }
 
+export function queryMealScoutPublishExecutionAudit(filters?: {
+  planId?: string;
+  executionId?: string;
+  recordId?: string;
+}): MealScoutPublishAuditEntry[] {
+  const rows = [...auditEntries].sort((a, b) => b.executedAt.localeCompare(a.executedAt));
+  return rows.filter((row) => {
+    if (filters?.planId && row.planId !== filters.planId) return false;
+    if (filters?.executionId && row.executionId !== filters.executionId) return false;
+    if (filters?.recordId && row.recordId !== filters.recordId) return false;
+    return true;
+  });
+}
+
 export function resetMealScoutPublishExecutionForTest(): void {
   auditEntries.length = 0;
+  idempotencyIndex.clear();
 }
 
 export function detectSafeMealScoutWritePath(): {

@@ -84,7 +84,7 @@ import { resetEntityResolutionForTest } from './entityResolution.js';
 import { getRecentRecommendations, resetRecommendationsForTest } from './recommendations.js';
 import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegistry.js';
 import { loadEnvFromDotFile } from './env.js';
-import { resolveOperatorIdentity } from './operatorIdentity.js';
+import { resolveOperatorIdentity, resolveOperatorRole } from './operatorIdentity.js';
 import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
 import type { MealScoutIntakeDiscovery } from './mealscoutDriveIntake.js';
 import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js';
@@ -121,6 +121,7 @@ import {
 import {
   detectSafeMealScoutWritePath,
   executeMealScoutPublishPlan,
+  queryMealScoutPublishExecutionAudit,
   resetMealScoutPublishExecutionForTest
 } from './mealscoutPublishExecution.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
@@ -1571,7 +1572,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       recordIds?: unknown;
       confirmation?: unknown;
       operatorId?: unknown;
+      expectedSignature?: unknown;
     };
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
     const planId = typeof payload.planId === 'string' ? payload.planId.trim() : '';
     const confirmation = payload.confirmation === true;
     const recordIds = Array.isArray(payload.recordIds)
@@ -1587,7 +1594,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         planId,
         recordIds,
         confirmation,
-        operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined
+        operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : resolveOperatorIdentity(req).decidedBy,
+        expectedSignature: typeof payload.expectedSignature === 'string' ? payload.expectedSignature : undefined
       });
       return responseJson(res, execution);
     } catch (error) {
@@ -1602,6 +1610,19 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         409
       );
     }
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/publish-plan/audit') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const planId = query.planId?.trim() || undefined;
+    const executionId = query.executionId?.trim() || undefined;
+    const recordId = query.recordId?.trim() || undefined;
+    const records = queryMealScoutPublishExecutionAudit({ planId, executionId, recordId });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, records });
   }
 
   if (method === 'GET' && pathname === '/api/mealscout/review-decisions') {

@@ -130,6 +130,8 @@
           <div id="plan-summary" class="mini">Loading plan...</div>
           <div id="plan-list" class="list" style="margin-top:0.6rem;"></div>
           <button id="publish-disabled" disabled title="Disabled in preview mode">Publish (Disabled)</button>
+          <h3 style="margin-top:0.75rem;">Execution Audit History</h3>
+          <ul id="publish-audit-list" class="list"><li class="draft-card">Loading audit history...</li></ul>
         </section>
       </div>
     </div>
@@ -144,6 +146,7 @@
       const mergeDecisionIndex = new Map();
       const executionState = {
         planId: '',
+        planSignature: '',
         selectedRecordIds: new Set(),
         confirmed: false,
         latestResult: null,
@@ -445,6 +448,7 @@
       function renderPublishPlan(payload) {
         const plan = payload.publishPlan || { records: [], mutationAllowed: false };
         executionState.planId = plan.planId || '';
+        executionState.planSignature = plan.signature || '';
         const records = Array.isArray(plan.records) ? plan.records : [];
         const summary = {
           total: records.length,
@@ -575,11 +579,13 @@
             try {
               const result = await client.executePublishPlan({
                 planId: executionState.planId,
+                expectedSignature: executionState.planSignature,
                 recordIds: Array.from(executionState.selectedRecordIds),
                 confirmation: true,
                 operatorId: 'operator'
               });
               executionState.latestResult = result;
+              await refreshPublishAudit();
             } catch (error) {
               executionState.latestResult = null;
               executionState.latestError = error instanceof Error ? error.message : 'Execution failed';
@@ -642,6 +648,34 @@
         renderDrafts(payload);
         renderMergeAssist(payload);
         renderPublishPlan(payload);
+        await refreshPublishAudit();
+      }
+
+      async function refreshPublishAudit() {
+        const listNode = document.getElementById('publish-audit-list');
+        if (!listNode) return;
+        try {
+          const auditPayload = await client.getPublishAudit({ planId: executionState.planId || undefined });
+          const records = Array.isArray(auditPayload.records) ? auditPayload.records : [];
+          listNode.innerHTML = '';
+          if (!records.length) {
+            listNode.innerHTML = '<li class="draft-card">No audit entries yet.</li>';
+            return;
+          }
+          for (const row of records) {
+            const li = document.createElement('li');
+            li.className = 'draft-card';
+            li.innerHTML = `
+              <div><span class="pill">${safe(row.result)}</span> <span class="pill">${safe(row.action)}</span></div>
+              <div class="mini">auditId:${safe(row.auditId)} · executionId:${safe(row.executionId)} · recordId:${safe(row.recordId)}</div>
+              <div class="mini">targetId:${safe(row.targetId)} · operator:${safe(row.operatorId)} · at:${safe(row.executedAt)}</div>
+              <div class="mini">failureReason:${safe(row.failureReason)}</div>
+            `;
+            listNode.appendChild(li);
+          }
+        } catch (_error) {
+          listNode.innerHTML = '<li class="draft-card">Audit history unavailable for current permissions.</li>';
+        }
       }
 
       hydrate().catch((error) => {

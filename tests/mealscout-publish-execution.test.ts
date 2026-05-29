@@ -24,7 +24,7 @@ let baseUrl: string;
 
 async function requestJson<T>(path: string, init: RequestInit = {}): Promise<{ status: number; body: T }> {
   const response = await fetch(`${baseUrl}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
     ...init
   });
   const text = await response.text();
@@ -74,6 +74,8 @@ async function makePlan(inputs: Array<{ fileId: string; fileName: string; source
 test('publishReady create_new record can execute with audit', async () => {
   const plan = rememberMealScoutPublishPlan({
     planId: 'ms-plan-exec-create',
+    signature: 'sig-exec-create',
+    reviewDecisionVersion: 0,
     generatedAt: '2026-05-29T00:00:00.000Z',
     mutationAllowed: false,
     records: [
@@ -98,8 +100,10 @@ test('publishReady create_new record can execute with audit', async () => {
     auditEntries: Array<{ result: string; auditId: string; fieldsWritten: string[] }>;
   }>('/api/mealscout/intake/publish-plan/execute', {
     method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
     body: JSON.stringify({
       planId: plan.planId,
+      expectedSignature: plan.signature,
       recordIds: [target.recordId],
       confirmation: true,
       operatorId: 'operator-a'
@@ -116,6 +120,8 @@ test('publishReady create_new record can execute with audit', async () => {
 test('execution blocks blocked/needs_review/conflict and requires confirmation', async () => {
   const blockedPlan = rememberMealScoutPublishPlan({
     planId: 'ms-plan-exec-blocked',
+    signature: 'sig-exec-blocked',
+    reviewDecisionVersion: 0,
     generatedAt: '2026-05-29T00:00:00.000Z',
     mutationAllowed: false,
     records: [
@@ -136,6 +142,7 @@ test('execution blocks blocked/needs_review/conflict and requires confirmation',
   const blockedRecord = blockedPlan.records[0];
   const withoutConfirm = await requestJson<{ error: string }>('/api/mealscout/intake/publish-plan/execute', {
     method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
     body: JSON.stringify({ planId: blockedPlan.planId, recordIds: [blockedRecord.recordId], confirmation: false })
   });
   assert.equal(withoutConfirm.status, 400);
@@ -144,6 +151,7 @@ test('execution blocks blocked/needs_review/conflict and requires confirmation',
     '/api/mealscout/intake/publish-plan/execute',
     {
       method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
       body: JSON.stringify({ planId: blockedPlan.planId, recordIds: [blockedRecord.recordId], confirmation: true })
     }
   );
@@ -156,6 +164,8 @@ test('execution blocks blocked/needs_review/conflict and requires confirmation',
 test('needs_review decision prevents execution', async () => {
   const plan = rememberMealScoutPublishPlan({
     planId: 'ms-plan-exec-needs-review',
+    signature: 'sig-exec-needs-review',
+    reviewDecisionVersion: 0,
     generatedAt: '2026-05-29T00:00:00.000Z',
     mutationAllowed: false,
     records: [
@@ -179,7 +189,8 @@ test('needs_review decision prevents execution', async () => {
     '/api/mealscout/intake/publish-plan/execute',
     {
       method: 'POST',
-      body: JSON.stringify({ planId: plan.planId, recordIds: [target.recordId], confirmation: true })
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: [target.recordId], confirmation: true })
     }
   );
   assert.equal(exec.status, 200);
@@ -190,6 +201,8 @@ test('needs_review decision prevents execution', async () => {
 test('conflicting contact fields prevent execution', async () => {
   const plan = rememberMealScoutPublishPlan({
     planId: 'ms-plan-exec-conflict',
+    signature: 'sig-exec-conflict',
+    reviewDecisionVersion: 0,
     generatedAt: '2026-05-29T00:00:00.000Z',
     mutationAllowed: false,
     records: [
@@ -214,7 +227,8 @@ test('conflicting contact fields prevent execution', async () => {
     '/api/mealscout/intake/publish-plan/execute',
     {
       method: 'POST',
-      body: JSON.stringify({ planId: plan.planId, recordIds: [target.recordId], confirmation: true })
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: [target.recordId], confirmation: true })
     }
   );
   assert.equal(exec.status, 200);
@@ -232,6 +246,8 @@ test('update_existing executes without creating duplicate and preview stays muta
   assert.equal(preview.body.mutationAllowed, false);
   const plan = rememberMealScoutPublishPlan({
     planId: 'ms-plan-exec-update',
+    signature: 'sig-exec-update',
+    reviewDecisionVersion: 0,
     generatedAt: '2026-05-29T00:00:00.000Z',
     mutationAllowed: false,
     records: [
@@ -255,10 +271,163 @@ test('update_existing executes without creating duplicate and preview stays muta
     '/api/mealscout/intake/publish-plan/execute',
     {
       method: 'POST',
-      body: JSON.stringify({ planId: plan.planId, recordIds: [update.recordId], confirmation: true })
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: [update.recordId], confirmation: true })
     }
   );
   assert.equal(exec.status, 200);
   assert.equal(exec.body.results[0].result, 'success');
   assert.equal(exec.body.results[0].targetId, seeded.id);
+});
+
+test('unauthorized execution is rejected and authorized execution works', async () => {
+  const plan = rememberMealScoutPublishPlan({
+    planId: 'ms-plan-auth-check',
+    signature: 'sig-auth-check',
+    reviewDecisionVersion: 0,
+    generatedAt: '2026-05-29T00:00:00.000Z',
+    mutationAllowed: false,
+    records: [
+      {
+        recordId: 'ms-plan-record-auth-1',
+        plannedAction: 'create_new',
+        publishReady: true,
+        draftIds: ['d-auth-1'],
+        profileFields: {
+          truckName: { value: 'Auth Truck', evidenceRefs: ['name'], sourceFileIds: ['f-auth-1'] },
+          cityArea: { value: 'Kenner', evidenceRefs: ['city'], sourceFileIds: ['f-auth-1'] },
+          phone: { value: '985-333-2222', evidenceRefs: ['phone'], sourceFileIds: ['f-auth-1'] }
+        },
+        menuItems: [{ name: 'Taco', evidenceRefs: ['menu'], sourceFileIds: ['f-auth-1'] }]
+      }
+    ]
+  });
+  const denied = await requestJson<{ error: string }>('/api/mealscout/intake/publish-plan/execute', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'viewer' },
+    body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: ['ms-plan-record-auth-1'], confirmation: true })
+  });
+  assert.equal(denied.status, 403);
+  const allowed = await requestJson<{ mutationAllowed: boolean; results: Array<{ result: string }> }>(
+    '/api/mealscout/intake/publish-plan/execute',
+    {
+      method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: ['ms-plan-record-auth-1'], confirmation: true })
+    }
+  );
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.body.mutationAllowed, true);
+  assert.equal(allowed.body.results[0].result, 'success');
+});
+
+test('re-executing same plan record is idempotent and returns already_executed', async () => {
+  const plan = rememberMealScoutPublishPlan({
+    planId: 'ms-plan-idempotent',
+    signature: 'sig-idempotent',
+    reviewDecisionVersion: 0,
+    generatedAt: '2026-05-29T00:00:00.000Z',
+    mutationAllowed: false,
+    records: [
+      {
+        recordId: 'ms-plan-record-idempotent-1',
+        plannedAction: 'create_new',
+        publishReady: true,
+        draftIds: ['d-ido-1'],
+        profileFields: {
+          truckName: { value: 'Ido Truck', evidenceRefs: ['name'], sourceFileIds: ['f-ido-1'] },
+          cityArea: { value: 'Kenner', evidenceRefs: ['city'], sourceFileIds: ['f-ido-1'] },
+          phone: { value: '985-333-2222', evidenceRefs: ['phone'], sourceFileIds: ['f-ido-1'] }
+        },
+        menuItems: [{ name: 'Taco', evidenceRefs: ['menu'], sourceFileIds: ['f-ido-1'] }]
+      }
+    ]
+  });
+  const first = await requestJson<{ results: Array<{ result: string; auditId: string }> }>(
+    '/api/mealscout/intake/publish-plan/execute',
+    {
+      method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: ['ms-plan-record-idempotent-1'], confirmation: true })
+    }
+  );
+  const second = await requestJson<{ results: Array<{ result: string; priorAuditId?: string; failureReason?: string }> }>(
+    '/api/mealscout/intake/publish-plan/execute',
+    {
+      method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: ['ms-plan-record-idempotent-1'], confirmation: true })
+    }
+  );
+  assert.equal(first.body.results[0].result, 'success');
+  assert.equal(second.body.results[0].result, 'already_executed');
+  assert.equal(second.body.results[0].failureReason, 'already_executed');
+  assert.equal(Boolean(second.body.results[0].priorAuditId), true);
+});
+
+test('stale plan is rejected and audit retrieval works with rollback-safe metadata', async () => {
+  const plan = rememberMealScoutPublishPlan({
+    planId: 'ms-plan-stale',
+    signature: 'sig-stale',
+    reviewDecisionVersion: 0,
+    generatedAt: '2026-05-29T00:00:00.000Z',
+    mutationAllowed: false,
+    records: [
+      {
+        recordId: 'ms-plan-record-stale-1',
+        plannedAction: 'update_existing',
+        publishReady: true,
+        draftIds: ['d-stale-1'],
+        existingTruckId: seedMealScoutTruck({ truckName: 'Old', phone: '985-333-4444', cityArea: 'Kenner' }).id,
+        profileFields: {
+          truckName: { value: 'New Name', evidenceRefs: ['name'], sourceFileIds: ['f-stale-1'] },
+          cityArea: { value: 'Kenner', evidenceRefs: ['city'], sourceFileIds: ['f-stale-1'] },
+          phone: { value: '985-333-4444', evidenceRefs: ['phone'], sourceFileIds: ['f-stale-1'] }
+        },
+        menuItems: [{ name: 'Taco', evidenceRefs: ['menu'], sourceFileIds: ['f-stale-1'] }]
+      }
+    ]
+  });
+  await requestJson('/api/mealscout/review-decisions', {
+    method: 'POST',
+    body: JSON.stringify({ draftIds: ['x'], decision: 'needs_review', sourceFileIds: ['f'], evidenceRefs: ['e'] })
+  });
+  const stale = await requestJson<{ error: string }>('/api/mealscout/intake/publish-plan/execute', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ planId: plan.planId, expectedSignature: plan.signature, recordIds: ['ms-plan-record-stale-1'], confirmation: true })
+  });
+  assert.equal(stale.status, 409);
+  assert.equal((stale.body.error || '').includes('stale_plan'), true);
+
+  const fresh = rememberMealScoutPublishPlan({
+    ...plan,
+    planId: 'ms-plan-fresh',
+    signature: 'sig-fresh',
+    reviewDecisionVersion: 1
+  });
+  const exec = await requestJson<{ executionId: string; auditEntries: Array<{ auditId: string; previousValues?: Record<string, string>; newValues?: Record<string, string>; targetId?: string }> }>(
+    '/api/mealscout/intake/publish-plan/execute',
+    {
+      method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({ planId: fresh.planId, expectedSignature: fresh.signature, recordIds: ['ms-plan-record-stale-1'], confirmation: true })
+    }
+  );
+  assert.equal(exec.status, 200);
+  assert.equal(Boolean(exec.body.auditEntries[0].targetId), true);
+  assert.equal(Boolean(exec.body.auditEntries[0].newValues), true);
+  assert.equal(Boolean(exec.body.auditEntries[0].previousValues), true);
+
+  const audit = await requestJson<{ status: string; mutationAllowed: boolean; records: Array<{ executionId: string }> }>(
+    `/api/mealscout/intake/publish-plan/audit?executionId=${encodeURIComponent(exec.body.executionId)}`,
+    {
+      method: 'GET',
+      headers: { 'x-operator-role': 'admin' }
+    }
+  );
+  assert.equal(audit.status, 200);
+  assert.equal(audit.body.status, 'ok');
+  assert.equal(audit.body.mutationAllowed, false);
+  assert.equal(audit.body.records.length > 0, true);
 });
