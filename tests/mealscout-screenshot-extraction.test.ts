@@ -857,3 +857,318 @@ test('pilot 6 preview route returns empty preview payload when Drive folder reso
   assert.equal(moveInvocations, 0);
 });
 
+test('pilot 7 preview uses Drive-extracted text when metadata text is absent', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  const texts = new Map<string, string>([
+    ['ocr-profile', 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie\nCuisine: Tacos'],
+    ['ocr-menu', 'Orbit Tacos Menu\nPhone: 504-333-9090\nAl Pastor Taco - $4.25']
+  ]);
+
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'ocr-profile',
+          file_name: 'new-truck-profile-01.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/profile',
+          modified_time: '2026-05-28T12:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown'
+          }
+        },
+        {
+          drive_file_id: 'ocr-menu',
+          file_name: 'new-truck-menu-01.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/menu',
+          modified_time: '2026-05-28T12:01:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown'
+          }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent(fileId: string) {
+      return texts.get(fileId);
+    },
+    async moveFileToFolder() {
+      throw new Error('moveFileToFolder must not be called');
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    evidenceFiles: Array<{ fileId: string; detectedType: string }>;
+    clusters: Array<{ files: Array<{ fileId: string }> }>;
+    drafts: Array<{ sourceFiles: Array<{ sourceFileId: string }> }>;
+    summary: { evidenceCount: number; clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      loadFromDriveFolder: true
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.summary.evidenceCount, 2);
+  assert.equal(response.body.summary.clusterCount, 1);
+  assert.equal(response.body.summary.draftCount, 1);
+  assert.equal(response.body.evidenceFiles.some((file) => file.detectedType !== 'unknown'), true);
+  assert.equal(
+    response.body.drafts[0].sourceFiles.some((file) => file.sourceFileId === 'ocr-profile'),
+    true
+  );
+  assert.equal(
+    response.body.drafts[0].sourceFiles.some((file) => file.sourceFileId === 'ocr-menu'),
+    true
+  );
+});
+
+test('preview OCR diagnostics are omitted by default', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'diag-default-1',
+          file_name: 'diag-default-1.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/default',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return 'Orbit Tacos\nPhone: 504-333-9090';
+    },
+    async moveFileToFolder() {
+      throw new Error('moveFileToFolder must not be called');
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    debugOcr?: unknown;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({ loadFromDriveFolder: true })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal('debugOcr' in response.body, false);
+});
+
+test('preview OCR diagnostics appear only with includeDebugOcr true', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'diag-optin-1',
+          file_name: 'diag-optin-1.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/optin',
+          modified_time: '2026-05-29T01:30:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie\nAl Pastor Taco - $4.25';
+    },
+    async moveFileToFolder() {
+      throw new Error('moveFileToFolder must not be called');
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    debugOcr?: Array<{
+      fileId: string;
+      name: string;
+      mimeType: string;
+      ocrAttempted: boolean;
+      ocrSucceeded: boolean;
+      extractedTextLength: number;
+      extractedTextSnippet: string;
+      classification: { detectedType: string };
+      detectedSignals: { truckName?: string; menuItemCount: number; contactSignals: string[] };
+    }>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({ loadFromDriveFolder: true, includeDebugOcr: true })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(Array.isArray(response.body.debugOcr), true);
+  assert.equal(response.body.debugOcr?.length, 1);
+  assert.equal(response.body.debugOcr?.[0].fileId, 'diag-optin-1');
+  assert.equal(response.body.debugOcr?.[0].ocrAttempted, true);
+  assert.equal(response.body.debugOcr?.[0].ocrSucceeded, true);
+  assert.equal((response.body.debugOcr?.[0].extractedTextLength || 0) > 0, true);
+  assert.equal((response.body.debugOcr?.[0].detectedSignals.menuItemCount || 0) > 0, true);
+  assert.equal(response.body.debugOcr?.[0].detectedSignals.contactSignals.includes('phone'), true);
+});
+
+test('preview OCR diagnostics cap snippet length and include no mutation artifacts', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  const longText = `Truck Name ${'A'.repeat(500)}`;
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'diag-cap-1',
+          file_name: 'diag-cap-1.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/cap',
+          modified_time: '2026-05-29T02:00:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return longText;
+    },
+    async moveFileToFolder() {
+      throw new Error('moveFileToFolder must not be called');
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    debugOcr: Array<{ extractedTextSnippet: string; extractedTextLength: number } & Record<string, unknown>>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({ loadFromDriveFolder: true, includeDebugOcr: true })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.debugOcr.length, 1);
+  assert.equal(response.body.debugOcr[0].extractedTextLength, longText.trim().length);
+  assert.equal(response.body.debugOcr[0].extractedTextSnippet.length <= 300, true);
+  assert.equal('moveAction' in response.body.debugOcr[0], false);
+  assert.equal('targetFolderId' in response.body.debugOcr[0], false);
+  assert.equal('rawConfig' in response.body.debugOcr[0], false);
+});
+

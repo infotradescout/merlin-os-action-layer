@@ -72,7 +72,7 @@ import {
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
 import { getDriveClient } from './driveClient.js';
-import type { DriveFileInfo } from './driveClient.js';
+import type { DriveClient, DriveFileInfo } from './driveClient.js';
 import { createCrawlabilityEvent, type CrawlabilityEventInput } from './crawlability.js';
 import { createDriveFileRecord, mapDriveFileToSourceRecord, shouldCreate4dataEvent } from './driveIngest.js';
 import { extractSupportedFile } from './fileExtraction.js';
@@ -187,6 +187,107 @@ function convertDriveFileToMealScoutScreenshotInput(file: DriveFileInfo): MealSc
     modifiedTime: file.modified_time,
     extractedText,
     visualLabels
+  };
+}
+
+type MealScoutPreviewOcrDiagnostic = {
+  fileId: string;
+  name: string;
+  mimeType: string;
+  ocrAttempted: boolean;
+  ocrSucceeded: boolean;
+  extractedTextLength: number;
+  extractedTextSnippet: string;
+  extractionError?: string;
+};
+
+type HydratedMealScoutPreviewResult = {
+  files: DriveFileInfo[];
+  diagnostics: MealScoutPreviewOcrDiagnostic[];
+};
+
+function toSafeErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return 'OCR extraction failed';
+  const message = error.message.trim();
+  return message || 'OCR extraction failed';
+}
+
+function buildExtractedTextDiagnostic(text: string | undefined): { extractedTextLength: number; extractedTextSnippet: string } {
+  const safeText = (text || '').trim();
+  return {
+    extractedTextLength: safeText.length,
+    extractedTextSnippet: safeText.slice(0, 300)
+  };
+}
+
+async function hydrateDriveFilesForPreviewWithDiagnostics(
+  files: DriveFileInfo[],
+  driveClient: DriveClient
+): Promise<HydratedMealScoutPreviewResult> {
+  const hydratedEntries = await Promise.all(
+    files.map(async (file) => {
+      const rawMetadata = file.raw_metadata || {};
+      const existingText = typeof rawMetadata.extracted_text === 'string' ? rawMetadata.extracted_text : undefined;
+      const hasExistingText = Boolean(existingText && existingText.trim().length > 0);
+      if (hasExistingText) {
+        const base = buildExtractedTextDiagnostic(existingText);
+        return {
+          file,
+          diagnostic: {
+            fileId: file.drive_file_id,
+            name: file.file_name,
+            mimeType: file.mime_type,
+            ocrAttempted: false,
+            ocrSucceeded: true,
+            ...base
+          } satisfies MealScoutPreviewOcrDiagnostic
+        };
+      }
+      try {
+        const extractedText = await driveClient.downloadFileContent(file.drive_file_id);
+        const normalizedText = typeof extractedText === 'string' ? extractedText : '';
+        const hasExtractedText = normalizedText.trim().length > 0;
+        const nextFile = hasExtractedText
+          ? {
+              ...file,
+              raw_metadata: {
+                ...rawMetadata,
+                extracted_text: normalizedText
+              }
+            }
+          : file;
+        const base = buildExtractedTextDiagnostic(normalizedText);
+        return {
+          file: nextFile,
+          diagnostic: {
+            fileId: file.drive_file_id,
+            name: file.file_name,
+            mimeType: file.mime_type,
+            ocrAttempted: true,
+            ocrSucceeded: hasExtractedText,
+            ...base
+          } satisfies MealScoutPreviewOcrDiagnostic
+        };
+      } catch (error) {
+        return {
+          file,
+          diagnostic: {
+            fileId: file.drive_file_id,
+            name: file.file_name,
+            mimeType: file.mime_type,
+            ocrAttempted: true,
+            ocrSucceeded: false,
+            extractedTextLength: 0,
+            extractedTextSnippet: '',
+            extractionError: toSafeErrorMessage(error)
+          } satisfies MealScoutPreviewOcrDiagnostic
+        };
+      }
+    })
+  );
+  return {
+    files: hydratedEntries.map((entry) => entry.file),
+    diagnostics: hydratedEntries.map((entry) => entry.diagnostic)
   };
 }
 
@@ -1229,6 +1330,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       driveFolderId?: string;
       loadFromDriveFolder?: boolean;
       includeUnsupportedDriveFiles?: boolean;
+      includeDebugOcr?: boolean;
       existingProfiles?: Array<{
         id: string;
         truckName?: string;
@@ -1241,6 +1343,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     };
     const requestInputs = Array.isArray(payload.inputs) ? payload.inputs : [];
     const loadFromDriveFolder = payload.loadFromDriveFolder === true;
+    const includeDebugOcr = payload.includeDebugOcr === true;
     let inputs = requestInputs;
     let driveSource:
       | {
@@ -1250,6 +1353,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
           filteredOutCount: number;
         }
       | undefined;
+    let driveOcrDiagnostics: MealScoutPreviewOcrDiagnostic[] | undefined;
 
     if (loadFromDriveFolder) {
       try {
@@ -1270,7 +1374,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         const filteredFiles = payload.includeUnsupportedDriveFiles
           ? listedFiles
           : listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file));
-        inputs = filteredFiles.map(convertDriveFileToMealScoutScreenshotInput);
+        const hydratedPreview = await hydrateDriveFilesForPreviewWithDiagnostics(filteredFiles, driveClient);
+        const hydratedFiles = hydratedPreview.files;
+        driveOcrDiagnostics = hydratedPreview.diagnostics;
+        inputs = hydratedFiles.map(convertDriveFileToMealScoutScreenshotInput);
         driveSource = {
           folderId: resolved.folderId,
           folderSource: resolved.source,
@@ -1326,11 +1433,39 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       socials: profile.socials
     }));
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
+    const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
+    const debugOcr =
+      includeDebugOcr && driveOcrDiagnostics
+        ? driveOcrDiagnostics.map((diagnostic) => {
+            const evidence = evidenceByFileId.get(diagnostic.fileId);
+            const extractedSignals = evidence?.extractedSignals || {};
+            const contactSignals = [
+              extractedSignals.phone ? 'phone' : '',
+              extractedSignals.email ? 'email' : '',
+              extractedSignals.website ? 'website' : '',
+              extractedSignals.facebook ? 'facebook' : '',
+              extractedSignals.instagram ? 'instagram' : ''
+            ].filter(Boolean);
+            return {
+              ...diagnostic,
+              classification: {
+                detectedType: evidence?.detectedType || 'unknown',
+                confidence: evidence?.confidence ?? 0
+              },
+              detectedSignals: {
+                truckName: extractedSignals.truckName,
+                menuItemCount: (extractedSignals.menuItems || []).length,
+                contactSignals
+              }
+            };
+          })
+        : undefined;
 
     return responseJson(res, {
       status: 'ok',
       mutationAllowed: false,
       driveSource,
+      ...(debugOcr ? { debugOcr } : {}),
       evidenceFiles,
       clusters,
       drafts,
