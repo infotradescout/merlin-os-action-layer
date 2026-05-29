@@ -103,6 +103,7 @@ test('read-only discovery reports missing folders without creating them', async 
   assert.equal(result.summary.present, 0);
   assert.equal(result.summary.missing, 17);
   assert.equal(result.root.merlin.path, 'Merlin OR Storage');
+  assert.equal(result.folders['incoming/unknown'].path, 'Merlin OR Storage/MealScout Intake/incoming/unknown');
   assert.equal(createdFolders.length, 0);
 });
 

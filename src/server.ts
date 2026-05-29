@@ -86,6 +86,7 @@ import { getRegisteredSources, resetSourceRegistryForTest } from './sourceRegist
 import { loadEnvFromDotFile } from './env.js';
 import { resolveOperatorIdentity } from './operatorIdentity.js';
 import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
+import type { MealScoutIntakeDiscovery } from './mealscoutDriveIntake.js';
 import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js';
 import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInput } from './mealscoutScreenshotExtraction.js';
 import {
@@ -189,18 +190,50 @@ function convertDriveFileToMealScoutScreenshotInput(file: DriveFileInfo): MealSc
   };
 }
 
-async function resolveMealScoutPreviewDriveFolderId(folderId?: string): Promise<{ folderId: string; source: 'provided' | 'discovered' }> {
+type MealScoutPreviewDriveFolderResolution =
+  | { ok: true; folderId: string; source: 'provided' | 'discovered' }
+  | {
+      ok: false;
+      reason: string;
+      diagnostic: {
+        expectedPath: string;
+        rootPath: string;
+        intakePath: string;
+        missingPaths: string[];
+        discoveryStatus: MealScoutIntakeDiscovery['status'];
+        discoveryReason?: string;
+      };
+    };
+
+function buildMealScoutPreviewUnavailableDiagnostic(discovery: MealScoutIntakeDiscovery): MealScoutPreviewDriveFolderResolution {
+  const expectedPath = `${discovery.root.mealscout_intake.path}/incoming/unknown`;
+  const missingPaths = discovery.missing.map((key) => `${discovery.root.mealscout_intake.path}/${key}`);
+  return {
+    ok: false,
+    reason: 'MealScout intake folder unavailable for preview listing',
+    diagnostic: {
+      expectedPath,
+      rootPath: discovery.root.merlin.path,
+      intakePath: discovery.root.mealscout_intake.path,
+      missingPaths,
+      discoveryStatus: discovery.status,
+      discoveryReason: discovery.reason
+    }
+  };
+}
+
+async function resolveMealScoutPreviewDriveFolderId(folderId?: string): Promise<MealScoutPreviewDriveFolderResolution> {
   const provided = (folderId || '').trim();
   if (provided) {
-    return { folderId: provided, source: 'provided' };
+    return { ok: true, folderId: provided, source: 'provided' };
   }
 
   const discovery = await discoverMealScoutIntakeFolders({ createMissing: false });
   const discoveredFolderId = discovery.folders['incoming/unknown']?.id || discovery.folders['incoming/screenshots']?.id;
   if (!discoveredFolderId) {
-    throw new Error('MealScout intake folder unavailable for preview listing');
+    return buildMealScoutPreviewUnavailableDiagnostic(discovery);
   }
-  return { folderId: discoveredFolderId, source: 'discovered' };
+  return { ok: true, folderId: discoveredFolderId, source: 'discovered' };
 }
 
 function parseBody(req: IncomingMessage): Promise<unknown> {
@@ -1221,6 +1254,17 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (loadFromDriveFolder) {
       try {
         const resolved = await resolveMealScoutPreviewDriveFolderId(payload.driveFolderId);
+        if (!resolved.ok) {
+          return responseJson(
+            res,
+            {
+              error: resolved.reason,
+              mutationAllowed: false,
+              diagnostic: resolved.diagnostic
+            },
+            409
+          );
+        }
         const driveClient = getDriveClient();
         const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
         const filteredFiles = payload.includeUnsupportedDriveFiles
@@ -1237,6 +1281,23 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         const message = error instanceof Error ? error.message : 'Drive folder preview listing failed';
         return responseJson(res, { error: message, mutationAllowed: false }, 409);
       }
+    }
+
+    if (loadFromDriveFolder && inputs.length === 0) {
+      return responseJson(res, {
+        status: 'ok',
+        mutationAllowed: false,
+        driveSource,
+        evidenceFiles: [],
+        clusters: [],
+        drafts: [],
+        summary: {
+          inputs: 0,
+          evidenceCount: 0,
+          clusterCount: 0,
+          draftCount: 0
+        }
+      });
     }
 
     if (inputs.length === 0) {

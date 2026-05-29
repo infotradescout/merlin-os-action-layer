@@ -757,7 +757,18 @@ test('pilot 6 preview route returns safe unavailable error and performs no Drive
   };
   setDriveClientFactory(() => client);
 
-  const response = await requestJson<{ error: string; mutationAllowed: boolean }>('/api/mealscout/intake/preview', {
+  const response = await requestJson<{
+    error: string;
+    mutationAllowed: boolean;
+    diagnostic?: {
+      expectedPath: string;
+      rootPath: string;
+      intakePath: string;
+      missingPaths: string[];
+      discoveryStatus: string;
+      discoveryReason?: string;
+    };
+  }>('/api/mealscout/intake/preview', {
     method: 'POST',
     body: JSON.stringify({
       loadFromDriveFolder: true
@@ -767,7 +778,82 @@ test('pilot 6 preview route returns safe unavailable error and performs no Drive
   assert.equal(response.status, 409);
   assert.equal(response.body.error.includes('unavailable'), true);
   assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.diagnostic?.expectedPath, 'Merlin OR Storage/MealScout Intake/incoming/unknown');
+  assert.equal(response.body.diagnostic?.rootPath, 'Merlin OR Storage');
+  assert.equal(Array.isArray(response.body.diagnostic?.missingPaths), true);
+  assert.equal((response.body.diagnostic?.missingPaths || []).length > 0, true);
   assert.equal(createInvocations, 0);
+  assert.equal(moveInvocations, 0);
+});
+
+test('pilot 6 preview route returns empty preview payload when Drive folder resolves but has no files', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  let moveInvocations = 0;
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return undefined;
+    },
+    async moveFileToFolder() {
+      moveInvocations += 1;
+      return true;
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called in preview read-only mode');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    driveSource?: { folderId: string; listedCount: number; filteredOutCount: number };
+    evidenceFiles: unknown[];
+    clusters: unknown[];
+    drafts: unknown[];
+    summary: { inputs: number; evidenceCount: number; clusterCount: number; draftCount: number };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      loadFromDriveFolder: true
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.driveSource?.folderId, 'folder-intake-unknown');
+  assert.equal(response.body.summary.inputs, 0);
+  assert.equal(response.body.summary.evidenceCount, 0);
+  assert.equal(response.body.summary.clusterCount, 0);
+  assert.equal(response.body.summary.draftCount, 0);
+  assert.equal(response.body.evidenceFiles.length, 0);
+  assert.equal(response.body.clusters.length, 0);
+  assert.equal(response.body.drafts.length, 0);
   assert.equal(moveInvocations, 0);
 });
 
