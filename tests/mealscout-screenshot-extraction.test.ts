@@ -1076,12 +1076,25 @@ test('preview OCR diagnostics appear only with includeDebugOcr true', async () =
       fileId: string;
       name: string;
       mimeType: string;
+      byteLength: number;
+      downloadAttempted: boolean;
+      downloadSucceeded: boolean;
+      downloadError?: string;
+      downloadSource: string;
+      detectedEngineCandidates: Array<{ engine: string; status: string }>;
+      selectedEngine: string;
       ocrAttempted: boolean;
       ocrSucceeded: boolean;
       extractedTextLength: number;
       extractedTextSnippet: string;
       classification: { detectedType: string };
-      detectedSignals: { truckName?: string; menuItemCount: number; contactSignals: string[] };
+      detectedSignals: {
+        truckName?: string;
+        menuItemCount: number;
+        contactSignals: string[];
+        priceSignals: string[];
+        socialSignals: string[];
+      };
     }>;
   }>('/api/mealscout/intake/preview', {
     method: 'POST',
@@ -1094,11 +1107,16 @@ test('preview OCR diagnostics appear only with includeDebugOcr true', async () =
   assert.equal(Array.isArray(response.body.debugOcr), true);
   assert.equal(response.body.debugOcr?.length, 1);
   assert.equal(response.body.debugOcr?.[0].fileId, 'diag-optin-1');
-  assert.equal(response.body.debugOcr?.[0].ocrAttempted, true);
+  assert.equal(Array.isArray(response.body.debugOcr?.[0].detectedEngineCandidates), true);
+  assert.equal(typeof response.body.debugOcr?.[0].selectedEngine, 'string');
+  assert.equal(typeof response.body.debugOcr?.[0].downloadAttempted, 'boolean');
+  assert.equal(typeof response.body.debugOcr?.[0].downloadSucceeded, 'boolean');
+  assert.equal(typeof response.body.debugOcr?.[0].ocrAttempted, 'boolean');
   assert.equal(response.body.debugOcr?.[0].ocrSucceeded, true);
   assert.equal((response.body.debugOcr?.[0].extractedTextLength || 0) > 0, true);
   assert.equal((response.body.debugOcr?.[0].detectedSignals.menuItemCount || 0) > 0, true);
   assert.equal(response.body.debugOcr?.[0].detectedSignals.contactSignals.includes('phone'), true);
+  assert.equal(response.body.debugOcr?.[0].detectedSignals.priceSignals.length > 0, true);
 });
 
 test('preview OCR diagnostics cap snippet length and include no mutation artifacts', async () => {
@@ -1170,5 +1188,79 @@ test('preview OCR diagnostics cap snippet length and include no mutation artifac
   assert.equal('moveAction' in response.body.debugOcr[0], false);
   assert.equal('targetFolderId' in response.body.debugOcr[0], false);
   assert.equal('rawConfig' in response.body.debugOcr[0], false);
+});
+
+test('preview OCR diagnostics include safe download and engine diagnostics fields', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  const client: DriveClient = {
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'diag-engine-missing',
+          file_name: 'diag-engine-missing.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/engine',
+          modified_time: '2026-05-29T03:00:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        }
+      ];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return undefined;
+    },
+    async moveFileToFolder() {
+      throw new Error('moveFileToFolder must not be called');
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName(name: string, parentId: string) {
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
+      if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
+      return [];
+    },
+    async createFolderIfMissing() {
+      throw new Error('createFolderIfMissing must not be called');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{
+    debugOcr: Array<{
+      extractionError?: string;
+      selectedEngine: string;
+      detectedEngineCandidates: Array<{ status: string }>;
+      downloadAttempted: boolean;
+      downloadSucceeded: boolean;
+      downloadError?: string;
+      ocrAttempted: boolean;
+    }>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({ loadFromDriveFolder: true, includeDebugOcr: true })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.debugOcr.length, 1);
+  assert.equal(response.body.debugOcr[0].downloadAttempted, true);
+  assert.equal(typeof response.body.debugOcr[0].downloadSucceeded, 'boolean');
+  assert.equal(typeof response.body.debugOcr[0].selectedEngine, 'string');
+  assert.equal(typeof response.body.debugOcr[0].ocrAttempted, 'boolean');
+  assert.equal(response.body.debugOcr[0].detectedEngineCandidates.length > 0, true);
 });
 

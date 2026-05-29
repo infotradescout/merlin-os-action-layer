@@ -89,6 +89,7 @@ import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
 import type { MealScoutIntakeDiscovery } from './mealscoutDriveIntake.js';
 import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js';
 import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInput } from './mealscoutScreenshotExtraction.js';
+import { runMealScoutLocalOcr } from './mealscoutOcrAdapter.js';
 import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
@@ -194,6 +195,14 @@ type MealScoutPreviewOcrDiagnostic = {
   fileId: string;
   name: string;
   mimeType: string;
+  byteLength: number;
+  downloadAttempted: boolean;
+  downloadSucceeded: boolean;
+  downloadError?: string;
+  downloadSource: string;
+  detectedEngineCandidates: Array<{ engine: string; status: string }>;
+  selectedEngine: string;
+  engine: string;
   ocrAttempted: boolean;
   ocrSucceeded: boolean;
   extractedTextLength: number;
@@ -205,12 +214,6 @@ type HydratedMealScoutPreviewResult = {
   files: DriveFileInfo[];
   diagnostics: MealScoutPreviewOcrDiagnostic[];
 };
-
-function toSafeErrorMessage(error: unknown): string {
-  if (!(error instanceof Error)) return 'OCR extraction failed';
-  const message = error.message.trim();
-  return message || 'OCR extraction failed';
-}
 
 function buildExtractedTextDiagnostic(text: string | undefined): { extractedTextLength: number; extractedTextSnippet: string } {
   const safeText = (text || '').trim();
@@ -237,52 +240,92 @@ async function hydrateDriveFilesForPreviewWithDiagnostics(
             fileId: file.drive_file_id,
             name: file.file_name,
             mimeType: file.mime_type,
+            byteLength: 0,
+            downloadAttempted: false,
+            downloadSucceeded: false,
+            downloadSource: 'metadata_existing',
+            detectedEngineCandidates: [],
+            selectedEngine: 'metadata_existing',
+            engine: 'metadata_existing',
             ocrAttempted: false,
             ocrSucceeded: true,
             ...base
           } satisfies MealScoutPreviewOcrDiagnostic
         };
       }
-      try {
-        const extractedText = await driveClient.downloadFileContent(file.drive_file_id);
-        const normalizedText = typeof extractedText === 'string' ? extractedText : '';
-        const hasExtractedText = normalizedText.trim().length > 0;
-        const nextFile = hasExtractedText
-          ? {
+      if (typeof driveClient.downloadFileBinary !== 'function') {
+        const legacyText = await driveClient.downloadFileContent(file.drive_file_id);
+        const normalizedLegacyText = typeof legacyText === 'string' ? legacyText.trim() : '';
+        if (normalizedLegacyText) {
+          const base = buildExtractedTextDiagnostic(normalizedLegacyText);
+          return {
+            file: {
               ...file,
               raw_metadata: {
                 ...rawMetadata,
-                extracted_text: normalizedText
+                extracted_text: normalizedLegacyText
               }
-            }
-          : file;
-        const base = buildExtractedTextDiagnostic(normalizedText);
-        return {
-          file: nextFile,
-          diagnostic: {
-            fileId: file.drive_file_id,
-            name: file.file_name,
-            mimeType: file.mime_type,
-            ocrAttempted: true,
-            ocrSucceeded: hasExtractedText,
-            ...base
-          } satisfies MealScoutPreviewOcrDiagnostic
-        };
-      } catch (error) {
-        return {
-          file,
-          diagnostic: {
-            fileId: file.drive_file_id,
-            name: file.file_name,
-            mimeType: file.mime_type,
-            ocrAttempted: true,
-            ocrSucceeded: false,
-            extractedTextLength: 0,
-            extractedTextSnippet: '',
-            extractionError: toSafeErrorMessage(error)
-          } satisfies MealScoutPreviewOcrDiagnostic
-        };
+            },
+            diagnostic: {
+              fileId: file.drive_file_id,
+              name: file.file_name,
+              mimeType: file.mime_type,
+              byteLength: Buffer.byteLength(normalizedLegacyText, 'utf8'),
+              downloadAttempted: true,
+              downloadSucceeded: true,
+              downloadSource: 'legacy_text_download',
+              detectedEngineCandidates: [],
+              selectedEngine: 'legacy_text_download',
+              engine: 'legacy_text_download',
+              ocrAttempted: false,
+              ocrSucceeded: true,
+              ...base
+            } satisfies MealScoutPreviewOcrDiagnostic
+          };
+        }
       }
+      const ocr = await runMealScoutLocalOcr({
+        fileId: file.drive_file_id,
+        name: file.file_name,
+        mimeType: file.mime_type,
+        downloadBytes: async () => {
+          if (typeof driveClient.downloadFileBinary === 'function') {
+            return driveClient.downloadFileBinary(file.drive_file_id);
+          }
+          return undefined;
+        }
+      });
+
+      const nextFile = ocr.ocrSucceeded
+        ? {
+            ...file,
+            raw_metadata: {
+              ...rawMetadata,
+              extracted_text: ocr.extractedText
+            }
+          }
+        : file;
+      const base = buildExtractedTextDiagnostic(ocr.extractedText);
+      return {
+        file: nextFile,
+        diagnostic: {
+          fileId: file.drive_file_id,
+          name: file.file_name,
+          mimeType: file.mime_type,
+          byteLength: ocr.byteLength,
+          downloadAttempted: ocr.downloadAttempted,
+          downloadSucceeded: ocr.downloadSucceeded,
+          ...(ocr.downloadError ? { downloadError: ocr.downloadError } : {}),
+          downloadSource: ocr.downloadSource,
+          detectedEngineCandidates: ocr.detectedEngineCandidates,
+          selectedEngine: ocr.selectedEngine,
+          engine: ocr.engine,
+          ocrAttempted: ocr.ocrAttempted,
+          ocrSucceeded: ocr.ocrSucceeded,
+          ...base,
+          ...(ocr.safeError ? { extractionError: ocr.safeError } : {})
+        } satisfies MealScoutPreviewOcrDiagnostic
+      };
     })
   );
   return {
@@ -1446,6 +1489,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
               extractedSignals.facebook ? 'facebook' : '',
               extractedSignals.instagram ? 'instagram' : ''
             ].filter(Boolean);
+            const priceSignals = (extractedSignals.menuItems || [])
+              .map((item) => item.price || '')
+              .filter((value) => value.length > 0);
+            const socialSignals = [extractedSignals.facebook || '', extractedSignals.instagram || ''].filter(Boolean);
             return {
               ...diagnostic,
               classification: {
@@ -1455,7 +1502,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
               detectedSignals: {
                 truckName: extractedSignals.truckName,
                 menuItemCount: (extractedSignals.menuItems || []).length,
-                contactSignals
+                contactSignals,
+                priceSignals,
+                socialSignals
               }
             };
           })

@@ -1,5 +1,10 @@
 import { google, type drive_v3 } from 'googleapis';
 import { randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import { getDriveAuthConfig, getDriveAuthProfile, type DriveAuthConfig } from './driveAuth.js';
 
 export interface DriveFolderInfo {
@@ -22,6 +27,7 @@ export interface DriveClient {
   listFilesInFolder(folderId: string): Promise<DriveFileInfo[]>;
   getFileMetadata(fileId: string): Promise<DriveFileInfo>;
   downloadFileContent(fileId: string): Promise<string | undefined>;
+  downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
   moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
   listFoldersByName(name: string, parentFolderId: string): Promise<DriveFolderInfo[]>;
@@ -40,6 +46,21 @@ class GoogleDriveClient implements DriveClient {
       auth.setCredentials({ refresh_token: oauth.refreshToken });
     }
     this.drive = google.drive({ version: 'v3', auth });
+  }
+
+  private async coerceMediaPayloadToBuffer(payload: unknown): Promise<Buffer | undefined> {
+    if (Buffer.isBuffer(payload)) return payload;
+    if (typeof payload === 'string') return Buffer.from(payload, 'utf8');
+    if (payload instanceof ArrayBuffer) return Buffer.from(payload);
+    if (ArrayBuffer.isView(payload)) return Buffer.from(payload.buffer);
+    if (payload instanceof Readable) {
+      const chunks: Buffer[] = [];
+      for await (const chunk of payload) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    }
+    return undefined;
   }
 
   async getFileMetadata(fileId: string): Promise<DriveFileInfo> {
@@ -75,21 +96,42 @@ class GoogleDriveClient implements DriveClient {
       'application/json',
       'message/rfc822'
     ]);
-    const supported = safeText.has(lowered) || /\.(pdf|txt|csv|json|md|eml)$/i.test(file.file_name);
+    const isImage = lowered.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|heic|heif)$/i.test(file.file_name);
+    const supported = safeText.has(lowered) || /\.(pdf|txt|csv|json|md|eml)$/i.test(file.file_name) || isImage;
 
     if (!supported) {
       return undefined;
     }
 
-    const response = await this.drive.files.get({
-      fileId,
-      alt: 'media'
-    });
+    const response = await this.drive.files.get(
+      {
+        fileId,
+        alt: 'media'
+      },
+      { responseType: 'arraybuffer' }
+    );
     const payload = response.data;
-    if (typeof payload === 'string') return payload;
-    if (Buffer.isBuffer(payload)) return payload.toString('utf8');
-    if (ArrayBuffer.isView(payload)) return Buffer.from(payload.buffer).toString('utf8');
+    const maybeBuffer = await this.coerceMediaPayloadToBuffer(payload);
+
+    if (maybeBuffer) {
+      if (isImage) {
+        return runImageOcrBestEffort(maybeBuffer, file.file_name);
+      }
+      return maybeBuffer.toString('utf8');
+    }
     return undefined;
+  }
+
+  async downloadFileBinary(fileId: string): Promise<Buffer | undefined> {
+    const response = await this.drive.files.get(
+      {
+        fileId,
+        alt: 'media'
+      },
+      { responseType: 'arraybuffer' }
+    );
+    const payload = response.data;
+    return this.coerceMediaPayloadToBuffer(payload);
   }
 
   async moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean> {
@@ -140,6 +182,35 @@ class GoogleDriveClient implements DriveClient {
       name: created.data.name || name
     };
   }
+}
+
+function runImageOcrBestEffort(buffer: Buffer, fileName: string): string | undefined {
+  const ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.')) : '.png';
+  const tempDir = mkdtempSync(join(tmpdir(), 'merlin-ocr-'));
+  const inputPath = join(tempDir, `input${ext}`);
+  try {
+    writeFileSync(inputPath, buffer);
+    const output = execFileSync(resolveTesseractBinary(), [inputPath, 'stdout', '-l', 'eng'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const trimmed = output.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function resolveTesseractBinary(): string {
+  const explicit = process.env.TESSERACT_PATH;
+  if (explicit && existsSync(explicit)) return explicit;
+  const windowsDefault = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe';
+  if (existsSync(windowsDefault)) return windowsDefault;
+  const windowsLocalUser = 'C:\\Users\\flavo\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe';
+  if (existsSync(windowsLocalUser)) return windowsLocalUser;
+  return 'tesseract';
 }
 
 function mapDriveFileInfo(file: drive_v3.Schema$File): DriveFileInfo {
