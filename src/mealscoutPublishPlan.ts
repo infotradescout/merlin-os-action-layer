@@ -20,6 +20,7 @@ type PlannedMenuItem = {
 };
 
 export type MealScoutPublishPlanRecord = {
+  recordId: string;
   plannedAction: PlannedAction;
   publishReady: boolean;
   draftIds: string[];
@@ -41,6 +42,8 @@ export type MealScoutPublishPlanPreview = {
   mutationAllowed: false;
   records: MealScoutPublishPlanRecord[];
 };
+
+const publishPlans = new Map<string, MealScoutPublishPlanPreview>();
 
 type DecisionType = MealScoutReviewDecisionRecord['decision'];
 
@@ -264,6 +267,7 @@ export function buildMealScoutPublishPlanPreview(
     else if (existingTruckIds.length === 1 || groupDrafts.some((draft) => draft.draftType === 'update_existing')) plannedAction = 'update_existing';
 
     records.push({
+      recordId: `ms-plan-record-${groupIds.slice().sort().join('__')}`,
       plannedAction,
       publishReady,
       draftIds: groupIds,
@@ -282,4 +286,17 @@ export function buildMealScoutPublishPlanPreview(
     mutationAllowed: false,
     records
   };
+}
+
+export function rememberMealScoutPublishPlan(plan: MealScoutPublishPlanPreview): MealScoutPublishPlanPreview {
+  publishPlans.set(plan.planId, plan);
+  return plan;
+}
+
+export function getMealScoutPublishPlan(planId: string): MealScoutPublishPlanPreview | undefined {
+  return publishPlans.get(planId);
+}
+
+export function resetMealScoutPublishPlansForTest(): void {
+  publishPlans.clear();
 }

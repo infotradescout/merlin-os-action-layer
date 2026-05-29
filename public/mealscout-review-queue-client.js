@@ -52,6 +52,12 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
         body: JSON.stringify(payload || {})
       });
     },
+    executePublishPlan(payload) {
+      return requestJson(endpoint('/api/mealscout/intake/publish-plan/execute'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
     setDraftReviewDecision(reviewState, draftId, decision) {
       if (!REVIEW_ACTIONS.includes(decision)) {
         throw new Error(`Unsupported review decision: ${decision}`);

@@ -91,6 +91,7 @@ import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js'
 import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInput } from './mealscoutScreenshotExtraction.js';
 import { runMealScoutLocalOcr } from './mealscoutOcrAdapter.js';
 import { buildMealScoutPublishPlanPreview } from './mealscoutPublishPlan.js';
+import { getMealScoutPublishPlan, rememberMealScoutPublishPlan, resetMealScoutPublishPlansForTest } from './mealscoutPublishPlan.js';
 import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
@@ -117,6 +118,11 @@ import {
   resetMealScoutReviewDecisionsForTest,
   updateMealScoutReviewDecision
 } from './mealscoutReviewDecisions.js';
+import {
+  detectSafeMealScoutWritePath,
+  executeMealScoutPublishPlan,
+  resetMealScoutPublishExecutionForTest
+} from './mealscoutPublishExecution.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 
 loadEnvFromDotFile();
@@ -869,6 +875,8 @@ function resetDemoRuntimeState(): void {
   resetDriveReviewQueueForTest();
   resetMealScoutProfileImportForTest();
   resetMealScoutReviewDecisionsForTest();
+  resetMealScoutPublishPlansForTest();
+  resetMealScoutPublishExecutionForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -1499,7 +1507,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
     const mergeAssist = buildMealScoutMergeAssist(drafts);
     const reviewDecisions = listMealScoutReviewDecisions();
-    const publishPlan = buildMealScoutPublishPlanPreview(drafts, reviewDecisions);
+    const publishPlan = rememberMealScoutPublishPlan(buildMealScoutPublishPlanPreview(drafts, reviewDecisions));
     const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
     const debugOcr =
       includeDebugOcr && driveOcrDiagnostics
@@ -1551,6 +1559,49 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         draftCount: drafts.length
       }
     });
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/intake/publish-plan/execute') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      planId?: unknown;
+      recordIds?: unknown;
+      confirmation?: unknown;
+      operatorId?: unknown;
+    };
+    const planId = typeof payload.planId === 'string' ? payload.planId.trim() : '';
+    const confirmation = payload.confirmation === true;
+    const recordIds = Array.isArray(payload.recordIds)
+      ? payload.recordIds.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      : [];
+    if (!confirmation) return responseJson(res, { error: 'confirmation required', mutationAllowed: false }, 400);
+    if (!planId) return responseJson(res, { error: 'planId is required', mutationAllowed: false }, 400);
+    if (recordIds.length === 0) return responseJson(res, { error: 'recordIds is required', mutationAllowed: false }, 400);
+    const plan = getMealScoutPublishPlan(planId);
+    if (!plan) return responseJson(res, { error: 'plan is stale or not found', mutationAllowed: false }, 409);
+    try {
+      const execution = executeMealScoutPublishPlan({
+        planId,
+        recordIds,
+        confirmation,
+        operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined
+      });
+      return responseJson(res, execution);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'publish execution failed';
+      return responseJson(
+        res,
+        {
+          error: message,
+          mutationAllowed: false,
+          safeWritePath: detectSafeMealScoutWritePath()
+        },
+        409
+      );
+    }
   }
 
   if (method === 'GET' && pathname === '/api/mealscout/review-decisions') {

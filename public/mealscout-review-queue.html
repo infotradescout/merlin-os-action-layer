@@ -142,6 +142,13 @@
       const mergeReviewState = {};
       const draftDecisionIndex = new Map();
       const mergeDecisionIndex = new Map();
+      const executionState = {
+        planId: '',
+        selectedRecordIds: new Set(),
+        confirmed: false,
+        latestResult: null,
+        latestError: ''
+      };
 
       const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
       const sourceClassByFileId = new Map();
@@ -437,6 +444,7 @@
 
       function renderPublishPlan(payload) {
         const plan = payload.publishPlan || { records: [], mutationAllowed: false };
+        executionState.planId = plan.planId || '';
         const records = Array.isArray(plan.records) ? plan.records : [];
         const summary = {
           total: records.length,
@@ -456,6 +464,12 @@
           return;
         }
 
+        const isSelectableRecord = (record) =>
+          record.publishReady === true &&
+          (record.plannedAction === 'create_new' || record.plannedAction === 'update_existing') &&
+          (!record.conflicts || record.conflicts.length === 0) &&
+          (!record.blockedReasons || record.blockedReasons.length === 0);
+
         for (const record of records) {
           const fields = Object.entries(record.profileFields || {}).map(([key, value]) => {
             return `<li><strong>${safe(key)}</strong>: ${safe(value.value)}<div class="mini">confidence:${safe(value.confidence)} · evidence:${safe((value.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((value.sourceFileIds || []).join(', '))}</div></li>`;
@@ -463,6 +477,8 @@
           const menu = (record.menuItems || []).map((item) => {
             return `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}<div class="mini">evidence:${safe((item.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((item.sourceFileIds || []).join(', '))}</div></li>`;
           }).join('');
+          const selectable = isSelectableRecord(record);
+          const checked = executionState.selectedRecordIds.has(record.recordId) ? 'checked' : '';
           const block = document.createElement('div');
           block.className = 'draft-card';
           block.innerHTML = `
@@ -470,6 +486,13 @@
               <span class="pill">${safe(record.plannedAction)}</span>
               <span class="pill ${record.publishReady ? 'ok' : 'danger'}">publishReady:${safe(record.publishReady)}</span>
               <span class="pill">mutationAllowed:false</span>
+              <span class="pill ${selectable ? 'ok' : 'warn'}">selectable:${selectable}</span>
+            </div>
+            <div class="field-row">
+              <label class="mini">
+                <input type="checkbox" data-plan-record-select="${safe(record.recordId)}" ${checked} ${selectable ? '' : 'disabled'} />
+                Select for controlled execution
+              </label>
             </div>
             <div class="mini">draftIds: ${safe((record.draftIds || []).join(', '))}</div>
             <div class="mini">existingTruckId: ${safe(record.existingTruckId)}</div>
@@ -489,6 +512,80 @@
             </div>
           `;
           list.appendChild(block);
+        }
+
+        const controls = document.createElement('div');
+        controls.className = 'draft-card';
+        controls.innerHTML = `
+          <div class="field-row">
+            <label>
+              <input type="checkbox" id="plan-confirmation" ${executionState.confirmed ? 'checked' : ''} />
+              I confirm these records are approved for publish/update.
+            </label>
+          </div>
+          <div class="field-row">
+            <button id="execute-plan-btn" ${executionState.selectedRecordIds.size > 0 && executionState.confirmed ? '' : 'disabled'}>
+              Execute Selected Records
+            </button>
+          </div>
+          <div id="execute-plan-status" class="mini"></div>
+        `;
+        list.appendChild(controls);
+        wirePlanControls(records);
+        renderExecutionStatus();
+      }
+
+      function renderExecutionStatus() {
+        const node = document.getElementById('execute-plan-status');
+        if (!node) return;
+        if (executionState.latestError) {
+          node.textContent = `Execution error: ${executionState.latestError}`;
+          return;
+        }
+        if (executionState.latestResult) {
+          const result = executionState.latestResult;
+          node.textContent = `executionId:${safe(result.executionId)} results:${safe((result.results || []).length)} audits:${safe((result.auditEntries || []).length)}`;
+          return;
+        }
+        node.textContent = `Selected: ${executionState.selectedRecordIds.size} · confirmation:${executionState.confirmed}`;
+      }
+
+      function wirePlanControls(records) {
+        for (const node of document.querySelectorAll('input[data-plan-record-select]')) {
+          node.addEventListener('change', () => {
+            const id = node.getAttribute('data-plan-record-select');
+            if (!id) return;
+            if (node.checked) executionState.selectedRecordIds.add(id);
+            else executionState.selectedRecordIds.delete(id);
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
+        }
+        const confirmationNode = document.getElementById('plan-confirmation');
+        if (confirmationNode) {
+          confirmationNode.addEventListener('change', () => {
+            executionState.confirmed = confirmationNode.checked;
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
+        }
+        const executeButton = document.getElementById('execute-plan-btn');
+        if (executeButton) {
+          executeButton.addEventListener('click', async () => {
+            if (executionState.selectedRecordIds.size === 0 || !executionState.confirmed) return;
+            executionState.latestError = '';
+            try {
+              const result = await client.executePublishPlan({
+                planId: executionState.planId,
+                recordIds: Array.from(executionState.selectedRecordIds),
+                confirmation: true,
+                operatorId: 'operator'
+              });
+              executionState.latestResult = result;
+            } catch (error) {
+              executionState.latestResult = null;
+              executionState.latestError = error instanceof Error ? error.message : 'Execution failed';
+            }
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
         }
       }
 
@@ -533,6 +630,7 @@
         const evidenceFiles = Array.isArray(payload.evidenceFiles) ? payload.evidenceFiles : [];
         const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
         const decisions = Array.isArray(decisionsPayload.decisions) ? decisionsPayload.decisions : [];
+        window.__latestPublishPlan = payload.publishPlan || { records: [], mutationAllowed: false };
         for (const file of evidenceFiles) {
           sourceClassByFileId.set(file.fileId, file.detectedType || 'unknown');
         }

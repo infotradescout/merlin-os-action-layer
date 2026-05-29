@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js';
+import type { MealScoutPublishPlanRecord } from './mealscoutPublishPlan.js';
 
 export type MealScoutExtractedSignal = {
   sourceFileId: string;
@@ -837,6 +838,45 @@ export function seedMealScoutTruck(input: Omit<MealScoutExistingProfile, 'id'>):
   };
   existingProfiles.set(profile.id, profile);
   return profile;
+}
+
+export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPlanRecord): MealScoutExistingProfile {
+  const profile: MealScoutExistingProfile = {
+    id: `ms-profile-${randomUUID()}`,
+    truckName: record.profileFields.truckName?.value,
+    phone: record.profileFields.phone?.value,
+    email: record.profileFields.email?.value,
+    website: record.profileFields.website?.value,
+    cityArea: record.profileFields.cityArea?.value,
+    socials: {
+      facebook: record.profileFields.facebook?.value,
+      instagram: record.profileFields.instagram?.value
+    }
+  };
+  existingProfiles.set(profile.id, profile);
+  return profile;
+}
+
+export function updateMealScoutProfileFromPlanRecord(
+  existingTruckId: string,
+  record: MealScoutPublishPlanRecord
+): MealScoutExistingProfile | undefined {
+  const existing = existingProfiles.get(existingTruckId);
+  if (!existing) return undefined;
+  const next: MealScoutExistingProfile = {
+    ...existing,
+    truckName: record.profileFields.truckName?.value || existing.truckName,
+    phone: record.profileFields.phone?.value || existing.phone,
+    email: record.profileFields.email?.value || existing.email,
+    website: record.profileFields.website?.value || existing.website,
+    cityArea: record.profileFields.cityArea?.value || existing.cityArea,
+    socials: {
+      facebook: record.profileFields.facebook?.value || existing.socials?.facebook,
+      instagram: record.profileFields.instagram?.value || existing.socials?.instagram
+    }
+  };
+  existingProfiles.set(existingTruckId, next);
+  return next;
 }
 
 export function resetMealScoutProfileImportForTest(): void {

@@ -77,6 +77,7 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
 test('mealscout review queue client uses preview endpoint and local review state only', async () => {
   const calls: Array<{ url: string; method: string; body?: string }> = [];
   const originalFetch = globalThis.fetch;
+  const baseDate = '2026-05-29T18:00:00.000Z';
   try {
     globalThis.fetch = async (url, init = {}) => {
       const method = String(init?.method || 'GET').toUpperCase();
@@ -125,6 +126,23 @@ test('mealscout review queue client uses preview endpoint and local review state
                 }
               ]
             },
+            publishPlan: {
+              planId: 'ms-plan-1',
+              generatedAt: baseDate,
+              mutationAllowed: false,
+              records: [
+                {
+                  recordId: 'ms-plan-record-draft-1',
+                  plannedAction: 'create_new',
+                  publishReady: true,
+                  draftIds: ['draft-1'],
+                  profileFields: {
+                    truckName: { value: 'Orbit Tacos', evidenceRefs: ['name'], sourceFileIds: ['file-1'] }
+                  },
+                  menuItems: [{ name: 'Taco', evidenceRefs: ['menu'], sourceFileIds: ['file-2'] }]
+                }
+              ]
+            },
             debugOcr: [
               { fileId: 'file-1', ocrSucceeded: true, extractedTextLength: 200 },
               { fileId: 'file-2', ocrSucceeded: true, extractedTextLength: 120 }
@@ -168,6 +186,43 @@ test('mealscout review queue client uses preview endpoint and local review state
         );
       }
 
+      if (target.includes('/api/mealscout/intake/publish-plan/execute') && method === 'POST') {
+        const requestBody = JSON.parse(typeof init.body === 'string' ? init.body : '{}');
+        return new Response(
+          JSON.stringify({
+            executionId: 'ms-exec-1',
+            planId: requestBody.planId,
+            mutationAllowed: true,
+            executedAt: '2026-05-29T18:20:00.000Z',
+            results: [
+              {
+                recordId: requestBody.recordIds?.[0] || 'none',
+                plannedAction: 'create_new',
+                result: 'success',
+                targetId: 'ms-profile-1',
+                auditId: 'ms-audit-1'
+              }
+            ],
+            auditEntries: [
+              {
+                auditId: 'ms-audit-1',
+                executionId: 'ms-exec-1',
+                planId: requestBody.planId,
+                recordId: requestBody.recordIds?.[0] || 'none',
+                draftIds: ['draft-1'],
+                sourceFileIds: ['file-1'],
+                action: 'create_new',
+                fieldsWritten: ['truckName'],
+                evidenceRefs: ['name'],
+                executedAt: '2026-05-29T18:20:00.000Z',
+                result: 'success'
+              }
+            ]
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
@@ -202,6 +257,16 @@ test('mealscout review queue client uses preview endpoint and local review state
     const mergeState = client.setMergeGroupReviewDecision({}, 'merge-draft-1-draft-2', 'keep_separate');
     assert.equal(mergeState['merge-draft-1-draft-2'].decision, 'keep_separate');
 
+    const execution = await client.executePublishPlan({
+      planId: 'ms-plan-1',
+      recordIds: ['ms-plan-record-draft-1'],
+      confirmation: true,
+      operatorId: 'operator-a'
+    });
+    assert.equal(execution.mutationAllowed, true);
+    assert.equal(execution.results[0].result, 'success');
+    assert.equal(execution.auditEntries[0].auditId, 'ms-audit-1');
+
     const previewCalls = calls.filter((entry) => entry.url.includes('/api/mealscout/intake/preview'));
     assert.equal(previewCalls.length, 1);
     assert.equal(previewCalls[0].method, 'POST');
@@ -210,7 +275,7 @@ test('mealscout review queue client uses preview endpoint and local review state
     assert.equal(payload.includeDebugOcr, true);
 
     const blockedPatterns = [
-      '/publish',
+      '/api/mealscout/profile-import/drafts/',
       '/approve',
       '/approve-updates',
       '/merge',
@@ -221,6 +286,7 @@ test('mealscout review queue client uses preview endpoint and local review state
     for (const pattern of blockedPatterns) {
       assert.equal(calls.some((entry) => entry.url.includes(pattern)), false, `unexpected mutation call: ${pattern}`);
     }
+    assert.equal(calls.some((entry) => entry.url.includes('/api/mealscout/intake/publish-plan/execute')), true);
   } finally {
     globalThis.fetch = originalFetch;
   }
