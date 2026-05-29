@@ -151,6 +151,54 @@ test('preview endpoint requires inputs and does not mutate live profiles', async
   assert.equal(bad.body.error.includes('inputs is required'), true);
 });
 
+test('preview endpoint includes merge assist recommendations without mutation', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    drafts: Array<{ draftId: string; mutationAllowed: boolean }>;
+    mergeAssist: {
+      candidateGroups: Array<{
+        recommendation: string;
+        reasons: Array<{ type: string; sourceDraftIds: string[]; sourceFileIds: string[] }>;
+        conflicts: Array<{ field: string }>;
+      }>;
+    };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'merge-file-1',
+          fileName: 'profile.png',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown/orbit/',
+          extractedText: 'Orbit Tacos\nPhone: 985-999-1234\nCity: Kenner\nTacos'
+        },
+        {
+          fileId: 'merge-file-2',
+          fileName: 'menu.png',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown/orbit/',
+          extractedText: 'Orbit Tacos Menu\nPhone: (985)999-1234\nQuesadilla $10.00'
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.drafts.every((draft) => draft.mutationAllowed === false), true);
+  assert.equal(Array.isArray(response.body.mergeAssist.candidateGroups), true);
+  if (response.body.mergeAssist.candidateGroups.length > 0) {
+    const top = response.body.mergeAssist.candidateGroups[0];
+    assert.equal(['merge_recommended', 'possible_match', 'keep_separate'].includes(top.recommendation), true);
+    assert.equal(top.reasons.length > 0 || top.conflicts.length > 0, true);
+    if (top.reasons.length > 0) {
+      assert.equal(top.reasons[0].sourceDraftIds.length, 2);
+      assert.equal(top.reasons[0].sourceFileIds.length >= 2, true);
+    }
+  }
+});
+
 test('extracts menu items with decimal prices without dollar sign', () => {
   const parsed = parseMealScoutSignalsFromText(['Chicken Adobo 10.95', 'Pork Fried 10.45'].join('\n'));
   assert.equal((parsed.extractedSignals.menuItems || []).length, 2);

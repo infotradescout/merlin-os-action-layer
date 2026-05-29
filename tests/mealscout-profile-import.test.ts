@@ -4,6 +4,7 @@ import { beforeEach, test } from 'node:test';
 const {
   buildMealScoutProfileDraft,
   buildMealScoutDraftsFromClusters,
+  buildMealScoutMergeAssist,
   resetMealScoutProfileImportForTest,
   seedMealScoutTruck,
   publishMealScoutDraft
@@ -258,4 +259,187 @@ test('can build drafts from evidence clusters without mutating profiles', () => 
   assert.equal(drafts.length, 1);
   assert.equal(drafts[0].mutationAllowed, false);
   assert.equal(drafts[0].reviewStatus, 'ready_for_review');
+});
+
+test('merge assist recommends merge for same phone', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'left-file',
+      sourcePath: '/incoming/unknown/left.png',
+      sourceType: 'screenshot',
+      truckName: 'Bayou Wheels',
+      phone: '985-555-1212',
+      cityArea: 'New Orleans',
+      cuisine: 'Cajun',
+      menuItems: [{ name: 'Po Boy' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'right-file',
+      sourcePath: '/incoming/unknown/right.png',
+      sourceType: 'menu',
+      truckName: 'Bayou Wheels Catering',
+      phone: '(985)555-1212',
+      cityArea: 'New Orleans',
+      cuisine: 'Cajun',
+      menuItems: [{ name: 'Jambalaya' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  assert.equal(assist.candidateGroups.length, 1);
+  assert.equal(assist.candidateGroups[0].recommendation, 'merge_recommended');
+  assert.equal(assist.candidateGroups[0].reasons.some((reason) => reason.type === 'same_phone'), true);
+});
+
+test('merge assist recommends merge for same email', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'left-email-file',
+      sourceType: 'screenshot',
+      truckName: 'Crescent Crave',
+      email: 'hello@crescent.example',
+      phone: '985-000-1234',
+      cityArea: 'Kenner',
+      cuisine: 'Fusion',
+      menuItems: [{ name: 'Wrap' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'right-email-file',
+      sourceType: 'screenshot',
+      truckName: 'Crescent Crave Truck',
+      email: 'HELLO@crescent.example',
+      cityArea: 'Kenner',
+      cuisine: 'Fusion',
+      menuItems: [{ name: 'Burger' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  assert.equal(assist.candidateGroups[0].recommendation, 'merge_recommended');
+  assert.equal(assist.candidateGroups[0].reasons.some((reason) => reason.type === 'same_email'), true);
+});
+
+test('merge assist recommends merge for same social handle', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'left-social-file',
+      sourceType: 'screenshot',
+      truckName: 'Orbit Tacos',
+      socials: { instagram: '@orbitrides' },
+      phone: '985-000-1111',
+      cityArea: 'Metairie',
+      cuisine: 'Mexican',
+      menuItems: [{ name: 'Taco' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'right-social-file',
+      sourceType: 'menu',
+      truckName: 'Orbit Tacos NOLA',
+      socials: { facebook: 'orbitrides' },
+      cityArea: 'Metairie',
+      cuisine: 'Mexican',
+      menuItems: [{ name: 'Burrito' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  assert.equal(assist.candidateGroups[0].recommendation, 'merge_recommended');
+  assert.equal(assist.candidateGroups[0].reasons.some((reason) => reason.type === 'same_social'), true);
+});
+
+test('merge assist keeps similar name only as possible_match', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'left-name-file',
+      sourcePath: '/incoming/unknown/orbit/profile-1.png',
+      sourceType: 'screenshot',
+      truckName: 'Big Orbit Tacos',
+      cityArea: 'Kenner',
+      cuisine: 'Mexican',
+      menuItems: [{ name: 'Taco Plate' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'right-name-file',
+      sourcePath: '/incoming/unknown/orbit/menu-1.png',
+      sourceType: 'menu',
+      truckName: "Big Orbit's Tacos",
+      cityArea: 'Kenner',
+      cuisine: 'Mexican',
+      menuItems: [{ name: 'Quesadilla' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  assert.equal(assist.candidateGroups[0].recommendation, 'possible_match');
+  assert.equal(assist.candidateGroups[0].reasons.some((reason) => reason.type === 'similar_name'), true);
+});
+
+test('merge assist prevents merge_recommended on conflicting phone', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'left-conflict-file',
+      sourceType: 'screenshot',
+      truckName: 'Nova Bites',
+      phone: '985-100-0001',
+      email: 'hello@novabites.example',
+      cityArea: 'Harahan',
+      cuisine: 'Fusion',
+      menuItems: [{ name: 'Bowl' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'right-conflict-file',
+      sourceType: 'screenshot',
+      truckName: 'Nova Bites',
+      phone: '985-100-0002',
+      email: 'hello@novabites.example',
+      cityArea: 'Harahan',
+      cuisine: 'Fusion',
+      menuItems: [{ name: 'Wrap' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  assert.equal(assist.candidateGroups[0].recommendation, 'keep_separate');
+  assert.equal(assist.candidateGroups[0].conflicts.some((conflict) => conflict.field === 'phone'), true);
+});
+
+test('merge assist reasons preserve source file IDs', () => {
+  const left = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'file-merge-left',
+      sourceType: 'screenshot',
+      truckName: 'Signal Truck',
+      phone: '985-212-3434',
+      cityArea: 'New Orleans',
+      cuisine: 'BBQ',
+      menuItems: [{ name: 'Brisket' }]
+    }
+  ]);
+  const right = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'file-merge-right',
+      sourceType: 'menu',
+      truckName: 'Signal Truck',
+      phone: '9852123434',
+      cityArea: 'New Orleans',
+      cuisine: 'BBQ',
+      menuItems: [{ name: 'Ribs' }]
+    }
+  ]);
+
+  const assist = buildMealScoutMergeAssist([left, right]);
+  const reason = assist.candidateGroups[0].reasons.find((item) => item.type === 'same_phone');
+  assert.ok(reason);
+  assert.equal(reason.sourceFileIds.includes('file-merge-left'), true);
+  assert.equal(reason.sourceFileIds.includes('file-merge-right'), true);
 });

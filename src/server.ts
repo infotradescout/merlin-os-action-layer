@@ -94,6 +94,7 @@ import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
   buildMealScoutDraftsFromClusters,
+  buildMealScoutMergeAssist,
   createMealScoutBatch,
   createNewDraftFromCluster,
   getMealScoutBatch,
@@ -1476,6 +1477,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       socials: profile.socials
     }));
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
+    const mergeAssist = buildMealScoutMergeAssist(drafts);
     const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
     const debugOcr =
       includeDebugOcr && driveOcrDiagnostics
@@ -1518,6 +1520,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       evidenceFiles,
       clusters,
       drafts,
+      mergeAssist,
       summary: {
         inputs: inputs.length,
         evidenceCount: evidenceFiles.length,

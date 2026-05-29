@@ -89,6 +89,45 @@ export type MealScoutProfileDraft = {
   mutationAllowed: false;
 };
 
+export type MealScoutMergeRecommendation = 'merge_recommended' | 'possible_match' | 'keep_separate';
+
+export type MealScoutMergeReasonType =
+  | 'same_phone'
+  | 'same_email'
+  | 'same_website'
+  | 'same_social'
+  | 'same_exact_name'
+  | 'similar_name'
+  | 'shared_file_context'
+  | 'menu_profile_link'
+  | 'weak_text_overlap';
+
+export type MealScoutMergeReason = {
+  type: MealScoutMergeReasonType;
+  detail: string;
+  sourceDraftIds: string[];
+  sourceFileIds: string[];
+};
+
+export type MealScoutMergeConflict = {
+  field: string;
+  values: string[];
+  sourceDraftIds: string[];
+};
+
+export type MealScoutMergeAssistCandidateGroup = {
+  groupId: string;
+  draftIds: string[];
+  recommendation: MealScoutMergeRecommendation;
+  confidence: number;
+  reasons: MealScoutMergeReason[];
+  conflicts: MealScoutMergeConflict[];
+};
+
+export type MealScoutMergeAssist = {
+  candidateGroups: MealScoutMergeAssistCandidateGroup[];
+};
+
 export type MealScoutExistingProfile = {
   id: string;
   truckName?: string;
@@ -131,6 +170,31 @@ function normalizePhone(value: string | undefined): string {
 
 function normalizeHandle(value: string | undefined): string {
   return normalizeText(value).replace(/^@/, '');
+}
+
+function normalizeWebsite(value: string | undefined): string {
+  return normalizeText(value).replace(/^https?:\/\//, '').replace(/\/+$/, '');
+}
+
+function normalizeName(value: string | undefined): string {
+  return normalizeText(value).replace(/[^a-z0-9]/g, '');
+}
+
+function sourceFileIdsForDraft(draft: MealScoutProfileDraft): string[] {
+  return Array.from(new Set(draft.sourceFiles.map((item) => item.sourceFileId).filter(Boolean)));
+}
+
+function sourceFolderTokensForDraft(draft: MealScoutProfileDraft): string[] {
+  const tokens = new Set<string>();
+  for (const sourceFile of draft.sourceFiles) {
+    const path = (sourceFile.sourcePath || '').trim();
+    if (!path) continue;
+    const parts = path.split(/[\\/]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
+    for (const part of parts) {
+      tokens.add(part);
+    }
+  }
+  return Array.from(tokens);
 }
 
 function scoreConfidence(signals: MealScoutExtractedSignal[]): number {
@@ -418,6 +482,171 @@ export function buildMealScoutDraftsFromClusters(
     }
     return draft;
   });
+}
+
+export function buildMealScoutMergeAssist(drafts: MealScoutProfileDraft[]): MealScoutMergeAssist {
+  const candidateGroups: MealScoutMergeAssistCandidateGroup[] = [];
+
+  for (let leftIndex = 0; leftIndex < drafts.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < drafts.length; rightIndex += 1) {
+      const left = drafts[leftIndex];
+      const right = drafts[rightIndex];
+      const sourceDraftIds = [left.draftId, right.draftId];
+      const sourceFileIds = Array.from(new Set([...sourceFileIdsForDraft(left), ...sourceFileIdsForDraft(right)]));
+      const reasons: MealScoutMergeReason[] = [];
+      const conflicts: MealScoutMergeConflict[] = [];
+      let strongestReasonConfidence = 0;
+
+      const leftPhone = normalizePhone(left.phone);
+      const rightPhone = normalizePhone(right.phone);
+      if (leftPhone && rightPhone) {
+        if (leftPhone === rightPhone) {
+          reasons.push({
+            type: 'same_phone',
+            detail: 'Drafts share the same normalized phone number.',
+            sourceDraftIds,
+            sourceFileIds
+          });
+          strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.99);
+        } else {
+          conflicts.push({ field: 'phone', values: [left.phone || '', right.phone || ''].filter(Boolean), sourceDraftIds });
+        }
+      }
+
+      const leftEmail = normalizeText(left.email);
+      const rightEmail = normalizeText(right.email);
+      if (leftEmail && rightEmail) {
+        if (leftEmail === rightEmail) {
+          reasons.push({
+            type: 'same_email',
+            detail: 'Drafts share the same email address.',
+            sourceDraftIds,
+            sourceFileIds
+          });
+          strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.99);
+        } else {
+          conflicts.push({ field: 'email', values: [left.email || '', right.email || ''].filter(Boolean), sourceDraftIds });
+        }
+      }
+
+      const leftWebsite = normalizeWebsite(left.website);
+      const rightWebsite = normalizeWebsite(right.website);
+      if (leftWebsite && rightWebsite) {
+        if (leftWebsite === rightWebsite) {
+          reasons.push({
+            type: 'same_website',
+            detail: 'Drafts share the same website.',
+            sourceDraftIds,
+            sourceFileIds
+          });
+          strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.96);
+        } else {
+          conflicts.push({ field: 'website', values: [left.website || '', right.website || ''].filter(Boolean), sourceDraftIds });
+        }
+      }
+
+      const leftHandles = [normalizeHandle(left.socials.facebook), normalizeHandle(left.socials.instagram)].filter(Boolean);
+      const rightHandles = [normalizeHandle(right.socials.facebook), normalizeHandle(right.socials.instagram)].filter(Boolean);
+      const sharedHandle = leftHandles.find((handle) => rightHandles.includes(handle));
+      if (sharedHandle) {
+        reasons.push({
+          type: 'same_social',
+          detail: 'Drafts share the same normalized social handle.',
+          sourceDraftIds,
+          sourceFileIds
+        });
+        strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.95);
+      } else if (leftHandles.length > 0 && rightHandles.length > 0) {
+        conflicts.push({
+          field: 'social',
+          values: Array.from(new Set([...leftHandles, ...rightHandles])),
+          sourceDraftIds
+        });
+      }
+
+      const leftName = normalizeName(left.truckName);
+      const rightName = normalizeName(right.truckName);
+      if (leftName && rightName) {
+        if (leftName === rightName) {
+          reasons.push({
+            type: 'same_exact_name',
+            detail: 'Drafts share the same normalized truck name.',
+            sourceDraftIds,
+            sourceFileIds
+          });
+          strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.94);
+        } else if (similarName(left.truckName, right.truckName)) {
+          reasons.push({
+            type: 'similar_name',
+            detail: 'Draft truck names are similar but not exact matches.',
+            sourceDraftIds,
+            sourceFileIds
+          });
+          strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.66);
+        }
+      }
+
+      const leftPathTokens = sourceFolderTokensForDraft(left);
+      const rightPathTokens = sourceFolderTokensForDraft(right);
+      if (leftPathTokens.some((token) => rightPathTokens.includes(token))) {
+        reasons.push({
+          type: 'shared_file_context',
+          detail: 'Drafts share folder or filename context from source paths.',
+          sourceDraftIds,
+          sourceFileIds
+        });
+        strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.62);
+      }
+
+      const leftHasMenu = left.sourceFiles.some((item) => item.sourceType === 'menu');
+      const rightHasMenu = right.sourceFiles.some((item) => item.sourceType === 'menu');
+      const leftHasProfileLike = left.sourceFiles.some((item) => item.sourceType === 'screenshot');
+      const rightHasProfileLike = right.sourceFiles.some((item) => item.sourceType === 'screenshot');
+      if ((leftHasMenu && rightHasProfileLike) || (rightHasMenu && leftHasProfileLike)) {
+        reasons.push({
+          type: 'menu_profile_link',
+          detail: 'One draft appears menu-focused while the other appears profile-focused.',
+          sourceDraftIds,
+          sourceFileIds
+        });
+        strongestReasonConfidence = Math.max(strongestReasonConfidence, 0.58);
+      }
+
+      if (reasons.length === 0 && conflicts.length === 0) continue;
+
+      const hasStrongReason = reasons.some((reason) =>
+        ['same_phone', 'same_email', 'same_website', 'same_social', 'same_exact_name'].includes(reason.type)
+      );
+      let recommendation: MealScoutMergeRecommendation = 'keep_separate';
+      if (hasStrongReason && conflicts.length === 0) {
+        recommendation = 'merge_recommended';
+      } else if (reasons.length > 0 && conflicts.length === 0) {
+        recommendation = 'possible_match';
+      } else if (reasons.length > 0) {
+        recommendation = 'keep_separate';
+      }
+
+      const confidence =
+        recommendation === 'merge_recommended'
+          ? Math.max(0.85, strongestReasonConfidence)
+          : recommendation === 'possible_match'
+            ? Math.max(0.5, Math.min(0.84, strongestReasonConfidence || 0.55))
+            : Math.min(0.49, strongestReasonConfidence || 0.35);
+
+      candidateGroups.push({
+        groupId: `merge-${left.draftId}-${right.draftId}`,
+        draftIds: sourceDraftIds,
+        recommendation,
+        confidence: Number(confidence.toFixed(2)),
+        reasons,
+        conflicts
+      });
+    }
+  }
+
+  return {
+    candidateGroups: candidateGroups.sort((a, b) => b.confidence - a.confidence)
+  };
 }
 
 export function createMealScoutBatch(): MealScoutCaptureBatch {
