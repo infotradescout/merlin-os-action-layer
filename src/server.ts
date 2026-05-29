@@ -1304,6 +1304,18 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     return responseJson(res, { error: 'Drive review queue panel not found' }, 404);
   }
 
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/mealscout-review-queue-client.js') {
+    const served = servePublicFile(res, 'mealscout-review-queue-client.js');
+    if (served) return;
+    return responseJson(res, { error: 'MealScout review queue client not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/mealscout-review-queue') {
+    const served = servePublicFile(res, 'mealscout-review-queue.html');
+    if (served) return;
+    return responseJson(res, { error: 'MealScout review queue panel not found' }, 404);
+  }
+
   if (method === 'GET' && pathname === '/api/drive/review-queue') {
     try {
       const queue = await runDriveReviewQueue();

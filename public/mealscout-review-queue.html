@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MealScout OCR Review Queue</title>
+    <style>
+      :root {
+        --bg: #f7f2e8;
+        --panel: #fffdf8;
+        --ink: #1c1f18;
+        --muted: #6a6d63;
+        --line: #dfd6c2;
+        --accent: #bb4f2f;
+        --warn: #9a5f00;
+        --danger: #9f2a2a;
+        --ok: #2e7d58;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #fef8ec 0%, var(--bg) 100%);
+      }
+      .wrap { max-width: 1320px; margin: 0 auto; padding: 1rem; }
+      h1, h2, h3, h4 { margin: 0; }
+      .subtitle { color: var(--muted); font-size: 0.95rem; }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.8rem;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin: 0.8rem 0;
+      }
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.55rem;
+        background: #fff9ef;
+      }
+      .metric .k { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; }
+      .metric .v { margin-top: 0.25rem; font-weight: 700; font-size: 1.2rem; }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 0.8rem;
+      }
+      .list { display: grid; gap: 0.7rem; }
+      .draft-card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.7rem;
+        background: #fffefb;
+      }
+      .pill {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.12rem 0.5rem;
+        margin-right: 0.35rem;
+        font-size: 0.75rem;
+      }
+      .pill.warn { color: var(--warn); border-color: #e7c68e; }
+      .pill.danger { color: var(--danger); border-color: #e3aaaa; }
+      .pill.ok { color: var(--ok); border-color: #9fd8ba; }
+      .grid-two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+      }
+      .field-row { border-top: 1px dashed var(--line); padding-top: 0.45rem; margin-top: 0.45rem; }
+      .mini { color: var(--muted); font-size: 0.82rem; }
+      .mono { font-family: Consolas, "Courier New", monospace; }
+      .actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap; }
+      button {
+        border: 1px solid var(--line);
+        background: #fff6e8;
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 0.35rem 0.6rem;
+        cursor: pointer;
+      }
+      button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+      .danger-box {
+        border: 1px solid #e3aaaa;
+        background: #fff4f4;
+        border-radius: 8px;
+        padding: 0.45rem;
+      }
+      @media (max-width: 1000px) {
+        .layout { grid-template-columns: 1fr; }
+        .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-two { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>MealScout OCR Review Queue</h1>
+        <p class="subtitle">Preview-only operator station. No auto-merge, no publish, no production mutation.</p>
+      </div>
+
+      <section class="summary" id="summary-grid"></section>
+
+      <div class="layout">
+        <section class="panel">
+          <h2>OCR Draft Profiles</h2>
+          <p class="subtitle">Draft cards from screenshot OCR with field evidence and source files.</p>
+          <div id="draft-list" class="list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Duplicate / Merge Assist</h2>
+          <p class="subtitle">Evidence-based recommendations only. Operator decides.</p>
+          <div id="merge-list" class="list"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createMealScoutReviewQueueClient } from '/admin/mealscout-review-queue-client.js';
+
+      const client = createMealScoutReviewQueueClient();
+      const draftReviewState = {};
+      const mergeReviewState = {};
+
+      const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
+      const sourceClassByFileId = new Map();
+      const ocrByFileId = new Map();
+
+      function renderSummary(payload) {
+        const summary = payload.summary || {};
+        const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
+        const ocrSucceeded = debugOcr.filter((row) => row.ocrSucceeded === true).length;
+        const sourceFileCount = (payload.evidenceFiles || []).length;
+        const items = [
+          { k: 'draft count', v: summary.draftCount ?? 0 },
+          { k: 'source file count', v: sourceFileCount },
+          { k: 'ocr success count', v: ocrSucceeded },
+          { k: 'cluster count', v: summary.clusterCount ?? 0 },
+          { k: 'mutationAllowed', v: String(payload.mutationAllowed) }
+        ];
+        const container = document.getElementById('summary-grid');
+        container.innerHTML = '';
+        for (const item of items) {
+          const card = document.createElement('div');
+          card.className = 'metric';
+          card.innerHTML = `<div class="k">${item.k}</div><div class="v">${item.v}</div>`;
+          container.appendChild(card);
+        }
+      }
+
+      function renderEvidence(field, evidence) {
+        if (!evidence) return '';
+        return `
+          <div class="field-row">
+            <div><strong>${field}</strong>: ${safe(evidence.value)}</div>
+            <div class="mini">confidence: ${safe(evidence.confidence)} · extraction: ${safe(evidence.extractionMethod)}</div>
+            <div class="mini">snippet: ${safe(evidence.rawSnippet)}</div>
+            <div class="mini">source: ${safe(evidence.sourceFileName)} · <span class="mono">${safe(evidence.sourceFileId)}</span></div>
+          </div>
+        `;
+      }
+
+      function wireDraftActions(draftId) {
+        for (const node of document.querySelectorAll(`button[data-draft-id="${draftId}"]`)) {
+          node.addEventListener('click', () => {
+            const decision = node.getAttribute('data-decision');
+            draftReviewState[draftId] = { decision, updatedAt: new Date().toISOString() };
+            renderDraftActionState(draftId);
+          });
+        }
+      }
+
+      function renderDraftActionState(draftId) {
+        const entry = draftReviewState[draftId];
+        for (const node of document.querySelectorAll(`button[data-draft-id="${draftId}"]`)) {
+          node.classList.toggle('active', node.getAttribute('data-decision') === entry?.decision);
+        }
+        const stamp = document.getElementById(`draft-state-${draftId}`);
+        if (stamp) {
+          stamp.textContent = entry ? `Local review state: ${entry.decision}` : 'Local review state: none';
+        }
+      }
+
+      function renderDrafts(payload) {
+        const drafts = Array.isArray(payload.drafts) ? payload.drafts : [];
+        const container = document.getElementById('draft-list');
+        container.innerHTML = '';
+        if (!drafts.length) {
+          container.innerHTML = '<div class="draft-card">No drafts returned from preview.</div>';
+          return;
+        }
+        for (const draft of drafts) {
+          const evidence = draft.extractedFieldEvidence || {};
+          const menuEvidence = Array.isArray(evidence.menuItems) ? evidence.menuItems : [];
+          const sourceFiles = Array.isArray(draft.sourceFiles) ? draft.sourceFiles : [];
+          const sourceRows = sourceFiles.map((file) => {
+            const detected = sourceClassByFileId.get(file.sourceFileId) || 'unknown';
+            const ocr = ocrByFileId.get(file.sourceFileId);
+            const ocrStatus = ocr ? `${ocr.ocrSucceeded ? 'ocr_ok' : 'ocr_fail'}:${ocr.extractedTextLength || 0}` : 'ocr_n/a';
+            return `<li class="mini"><span class="mono">${safe(file.sourceFileId)}</span> · ${safe(file.sourcePath)} · class:${safe(detected)} · ${ocrStatus}</li>`;
+          }).join('');
+
+          const menuRows = Array.isArray(draft.menu) && draft.menu.length
+            ? draft.menu.map((item) => `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}</li>`).join('')
+            : '<li class="mini">Not found in screenshot</li>';
+
+          const block = document.createElement('div');
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill">${safe(draft.draftType)}</span>
+              <span class="pill">${safe(draft.reviewStatus)}</span>
+              <span class="pill ${draft.mutationAllowed ? 'danger' : 'ok'}">mutationAllowed:${safe(draft.mutationAllowed)}</span>
+            </div>
+            <h3 style="margin-top:0.4rem;">${safe(draft.truckName)}</h3>
+            <div class="mini">draftId: <span class="mono">${safe(draft.draftId)}</span> · confidence: ${safe(draft.confidence)}</div>
+            <div class="grid-two" style="margin-top:0.45rem;">
+              <div><strong>Phone</strong>: ${safe(draft.phone)}</div>
+              <div><strong>Email</strong>: ${safe(draft.email)}</div>
+              <div><strong>Website</strong>: ${safe(draft.website)}</div>
+              <div><strong>Socials</strong>: IG ${safe(draft.socials?.instagram)} · FB ${safe(draft.socials?.facebook)}</div>
+              <div><strong>City / Service Area</strong>: ${safe(draft.cityArea)}</div>
+              <div><strong>Cuisine</strong>: ${safe(draft.cuisine)}</div>
+            </div>
+            <div class="field-row">
+              <h4>Menu Items</h4>
+              <ul>${menuRows}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Extracted Field Evidence</h4>
+              ${renderEvidence('truckName', evidence.truckName)}
+              ${renderEvidence('phone', evidence.phone)}
+              ${renderEvidence('email', evidence.email)}
+              ${renderEvidence('website', evidence.website)}
+              ${renderEvidence('facebook', evidence.facebook)}
+              ${renderEvidence('instagram', evidence.instagram)}
+              ${renderEvidence('cityArea', evidence.cityArea)}
+              ${renderEvidence('cuisine', evidence.cuisine)}
+              ${menuEvidence.map((entry) => renderEvidence('menuItem', entry)).join('')}
+            </div>
+            <div class="field-row">
+              <h4>Source Files</h4>
+              <ul>${sourceRows || '<li class="mini">No source files listed.</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Operator Review Action</h4>
+              <div class="actions">
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="same_truck">Mark as same truck</button>
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="keep_separate">Keep separate</button>
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="needs_review">Needs review</button>
+              </div>
+              <div id="draft-state-${safe(draft.draftId)}" class="mini">Local review state: none</div>
+            </div>
+          `;
+          container.appendChild(block);
+          wireDraftActions(draft.draftId);
+          renderDraftActionState(draft.draftId);
+        }
+      }
+
+      function wireMergeActions(groupId) {
+        for (const node of document.querySelectorAll(`button[data-group-id="${groupId}"]`)) {
+          node.addEventListener('click', () => {
+            const decision = node.getAttribute('data-decision');
+            mergeReviewState[groupId] = { decision, updatedAt: new Date().toISOString() };
+            renderMergeActionState(groupId);
+          });
+        }
+      }
+
+      function renderMergeActionState(groupId) {
+        const entry = mergeReviewState[groupId];
+        for (const node of document.querySelectorAll(`button[data-group-id="${groupId}"]`)) {
+          node.classList.toggle('active', node.getAttribute('data-decision') === entry?.decision);
+        }
+        const stamp = document.getElementById(`merge-state-${groupId}`);
+        if (stamp) {
+          stamp.textContent = entry ? `Local review state: ${entry.decision}` : 'Local review state: none';
+        }
+      }
+
+      function renderMergeAssist(payload) {
+        const groups = payload.mergeAssist?.candidateGroups || [];
+        const container = document.getElementById('merge-list');
+        container.innerHTML = '';
+        if (!groups.length) {
+          container.innerHTML = '<div class="draft-card">No duplicate candidates returned for this preview batch.</div>';
+          return;
+        }
+        for (const group of groups) {
+          const reasons = (group.reasons || []).map((reason) =>
+            `<li><strong>${safe(reason.type)}</strong>: ${safe(reason.detail)}<div class="mini">drafts: ${safe(reason.sourceDraftIds?.join(', '))} · files: ${safe(reason.sourceFileIds?.join(', '))}</div></li>`
+          ).join('');
+          const conflicts = (group.conflicts || []).map((conflict) =>
+            `<li><strong>${safe(conflict.field)}</strong>: ${safe((conflict.values || []).join(' vs '))}<div class="mini">drafts: ${safe((conflict.sourceDraftIds || []).join(', '))}</div></li>`
+          ).join('');
+          const recommendationClass = group.recommendation === 'merge_recommended' ? 'ok' : group.recommendation === 'possible_match' ? 'warn' : 'danger';
+          const block = document.createElement('div');
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill ${recommendationClass}">${safe(group.recommendation)}</span>
+              <span class="pill">confidence:${safe(group.confidence)}</span>
+            </div>
+            <div class="mini">groupId: <span class="mono">${safe(group.groupId)}</span></div>
+            <div class="mini">draftIds: ${safe((group.draftIds || []).join(', '))}</div>
+            <div class="field-row">
+              <h4>Reasons</h4>
+              <ul>${reasons || '<li class="mini">No reasons provided.</li>'}</ul>
+            </div>
+            <div class="field-row ${group.conflicts?.length ? 'danger-box' : ''}">
+              <h4>Conflicts</h4>
+              <ul>${conflicts || '<li class="mini">No conflicts reported.</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Operator Review Action</h4>
+              <div class="actions">
+                <button data-group-id="${safe(group.groupId)}" data-decision="same_truck">Mark as same truck</button>
+                <button data-group-id="${safe(group.groupId)}" data-decision="keep_separate">Keep separate</button>
+                <button data-group-id="${safe(group.groupId)}" data-decision="needs_review">Needs review</button>
+              </div>
+              <div id="merge-state-${safe(group.groupId)}" class="mini">Local review state: none</div>
+            </div>
+          `;
+          container.appendChild(block);
+          wireMergeActions(group.groupId);
+          renderMergeActionState(group.groupId);
+        }
+      }
+
+      async function hydrate() {
+        const payload = await client.getPreview({ loadFromDriveFolder: true, includeDebugOcr: true });
+        const evidenceFiles = Array.isArray(payload.evidenceFiles) ? payload.evidenceFiles : [];
+        const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
+        for (const file of evidenceFiles) {
+          sourceClassByFileId.set(file.fileId, file.detectedType || 'unknown');
+        }
+        for (const row of debugOcr) {
+          ocrByFileId.set(row.fileId, row);
+        }
+        renderSummary(payload);
+        renderDrafts(payload);
+        renderMergeAssist(payload);
+      }
+
+      hydrate().catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unable to load MealScout review queue';
+        alert(message);
+      });
+    </script>
+  </body>
+</html>
