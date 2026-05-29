@@ -48,7 +48,6 @@ export type MealScoutIntakeDiscovery = {
 };
 
 const MEALSCOUT_INTAKE_ROOT = 'MealScout Intake';
-const MERLIN_ROOT = 'Merlin';
 const CREATE_MISSING_ENV = 'MERLIN_MEALSCOUT_INTAKE_CREATE_MISSING_FOLDERS';
 
 const REQUIRED_TREE: Array<{ key: IntakeLeafKey; segments: string[] }> = [
@@ -95,10 +94,10 @@ async function findOrCreateFolder(
   return { folder: created, duplicateIds: [] };
 }
 
-function emptyFolders(): IntakeFolders {
+function emptyFolders(rootFolderName: string): IntakeFolders {
   const empty = {} as IntakeFolders;
   for (const item of REQUIRED_TREE) {
-    empty[item.key] = { id: '', path: `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}/${item.segments.join('/')}` };
+    empty[item.key] = { id: '', path: `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}/${item.segments.join('/')}` };
   }
   return empty;
 }
@@ -109,6 +108,7 @@ export async function discoverMealScoutIntakeFolders(
   const authConfig = getDriveAuthConfig();
   const profile = getDriveAuthProfile(authConfig);
   const config = parseDriveManagerConfig();
+  const rootFolderName = config.rootFolderName;
   const createMissing = options.createMissing ?? envTrue(process.env[CREATE_MISSING_ENV]);
   const checkedAt = new Date().toISOString();
 
@@ -118,11 +118,11 @@ export async function discoverMealScoutIntakeFolders(
       mode: 'read_only',
       reason: profile.reason || 'Drive sync disabled',
       root: {
-        merlin: { id: '', path: MERLIN_ROOT },
-        mealscout_intake: { id: '', path: `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}` }
+        merlin: { id: '', path: rootFolderName },
+        mealscout_intake: { id: '', path: `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}` }
       },
       summary: { required: REQUIRED_TREE.length, present: 0, missing: REQUIRED_TREE.length, duplicateCount: 0 },
-      folders: emptyFolders(),
+      folders: emptyFolders(rootFolderName),
       duplicates: {},
       missing: REQUIRED_TREE.map((entry) => entry.key),
       mutationAllowed: false,
@@ -132,11 +132,11 @@ export async function discoverMealScoutIntakeFolders(
 
   const client = options.client || getDriveClient(authConfig);
   const duplicates: Partial<Record<IntakeLeafKey | 'root/merlin' | 'root/mealscout_intake', string[]>> = {};
-  const folders = emptyFolders();
+  const folders = emptyFolders(rootFolderName);
   const missing: IntakeLeafKey[] = [];
   let duplicateCount = 0;
 
-  const merlinRoot = await findOrCreateFolder(client, MERLIN_ROOT, 'root', createMissing);
+  const merlinRoot = await findOrCreateFolder(client, rootFolderName, 'root', createMissing);
   if (merlinRoot.duplicateIds.length > 0) {
     duplicates['root/merlin'] = merlinRoot.duplicateIds;
     duplicateCount += merlinRoot.duplicateIds.length;
@@ -145,10 +145,10 @@ export async function discoverMealScoutIntakeFolders(
     return {
       status: 'error',
       mode: createMissing ? 'provisioned' : 'read_only',
-      reason: 'Missing Merlin root folder',
+      reason: `Missing ${rootFolderName} root folder`,
       root: {
-        merlin: { id: '', path: MERLIN_ROOT },
-        mealscout_intake: { id: '', path: `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}` }
+        merlin: { id: '', path: rootFolderName },
+        mealscout_intake: { id: '', path: `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}` }
       },
       summary: { required: REQUIRED_TREE.length, present: 0, missing: REQUIRED_TREE.length, duplicateCount },
       folders,
@@ -170,8 +170,8 @@ export async function discoverMealScoutIntakeFolders(
       mode: createMissing ? 'provisioned' : 'read_only',
       reason: 'Missing MealScout Intake root folder',
       root: {
-        merlin: { id: merlinRoot.folder.id, path: MERLIN_ROOT },
-        mealscout_intake: { id: '', path: `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}` }
+        merlin: { id: merlinRoot.folder.id, path: rootFolderName },
+        mealscout_intake: { id: '', path: `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}` }
       },
       summary: { required: REQUIRED_TREE.length, present: 0, missing: REQUIRED_TREE.length, duplicateCount },
       folders,
@@ -184,7 +184,7 @@ export async function discoverMealScoutIntakeFolders(
 
   for (const entry of REQUIRED_TREE) {
     let parentId = intakeRoot.folder.id;
-    let path = `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}`;
+    let path = `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}`;
     let finalFolderId = '';
     for (const segment of entry.segments) {
       const result = await findOrCreateFolder(client, segment, parentId, createMissing);
@@ -213,8 +213,8 @@ export async function discoverMealScoutIntakeFolders(
     mode: createMissing ? 'provisioned' : 'read_only',
     reason: hasBlockingIssues ? (missing.length > 0 ? 'setup_required' : 'folder_conflict') : undefined,
     root: {
-      merlin: { id: merlinRoot.folder.id, path: MERLIN_ROOT },
-      mealscout_intake: { id: intakeRoot.folder.id, path: `${MERLIN_ROOT}/${MEALSCOUT_INTAKE_ROOT}` }
+      merlin: { id: merlinRoot.folder.id, path: rootFolderName },
+      mealscout_intake: { id: intakeRoot.folder.id, path: `${rootFolderName}/${MEALSCOUT_INTAKE_ROOT}` }
     },
     summary: {
       required: REQUIRED_TREE.length,
@@ -229,4 +229,3 @@ export async function discoverMealScoutIntakeFolders(
     checkedAt
   };
 }
-

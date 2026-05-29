@@ -631,8 +631,8 @@ test('pilot 5 drive folder listing converts metadata into preview intake payload
       return undefined;
     },
     async listFoldersByName(name: string, parentId: string) {
-      if (parentId === 'root' && name === 'Merlin') return [{ id: 'folder-merlin', name }];
-      if (parentId === 'folder-merlin' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
+      if (parentId === 'root' && name === 'Merlin OR Storage') return [{ id: 'folder-merlin-storage', name }];
+      if (parentId === 'folder-merlin-storage' && name === 'MealScout Intake') return [{ id: 'folder-intake', name }];
       if (parentId === 'folder-intake' && name === 'incoming') return [{ id: 'folder-incoming', name }];
       if (parentId === 'folder-incoming' && name === 'unknown') return [{ id: 'folder-intake-unknown', name }];
       return [];
@@ -716,5 +716,58 @@ test('pilot 5 drive folder listing converts metadata into preview intake payload
   assert.equal('driveActions' in previewPayload, false);
   assert.equal('movedFiles' in previewPayload, false);
   assert.equal('appliedMutations' in previewPayload, false);
+});
+
+test('pilot 6 preview route returns safe unavailable error and performs no Drive mutations', async () => {
+  process.env.MERLIN_DRIVE_MODE = 'oauth';
+  process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+  process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
+  process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+  process.env.GOOGLE_CLIENT_ID = 'test-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+  process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
+  process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+
+  let createInvocations = 0;
+  let moveInvocations = 0;
+  const client: DriveClient = {
+    async listFilesInFolder() {
+      return [];
+    },
+    async getFileMetadata() {
+      throw new Error('not used');
+    },
+    async downloadFileContent() {
+      return undefined;
+    },
+    async moveFileToFolder() {
+      moveInvocations += 1;
+      return true;
+    },
+    async findFolderByName() {
+      return undefined;
+    },
+    async listFoldersByName() {
+      return [];
+    },
+    async createFolderIfMissing() {
+      createInvocations += 1;
+      throw new Error('createFolderIfMissing must not be called in preview read-only mode');
+    }
+  };
+  setDriveClientFactory(() => client);
+
+  const response = await requestJson<{ error: string; mutationAllowed: boolean }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      loadFromDriveFolder: true
+    })
+  });
+
+  assert.equal(response.status, 409);
+  assert.equal(response.body.error.includes('unavailable'), true);
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(createInvocations, 0);
+  assert.equal(moveInvocations, 0);
 });
 
