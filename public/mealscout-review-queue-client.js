@@ -64,6 +64,12 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
         body: JSON.stringify(payload || {})
       });
     },
+    getBatchHistory() {
+      return requestJson(endpoint('/api/mealscout/intake/batches'));
+    },
+    getBatchDetail(batchId) {
+      return requestJson(endpoint(`/api/mealscout/intake/batches/${encodeURIComponent(batchId)}`));
+    },
     getPublishAudit(filters = {}) {
       const params = new URLSearchParams();
       if (filters.planId) params.set('planId', String(filters.planId));

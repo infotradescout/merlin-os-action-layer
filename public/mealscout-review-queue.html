@@ -130,6 +130,51 @@
         </div>
       </section>
 
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Batch History</h2>
+        <p class="subtitle">Batch history is read-only and does not publish records.</p>
+        <div class="actions">
+          <label class="mini">Batch
+            <select id="filter-batch"><option value="">All</option></select>
+          </label>
+          <label class="mini">Rep
+            <input id="filter-rep" type="text" placeholder="rep id" />
+          </label>
+          <label class="mini">Affiliate
+            <input id="filter-affiliate" type="text" placeholder="affiliate code" />
+          </label>
+          <label class="mini">Attribution
+            <select id="filter-attribution-source">
+              <option value="">All</option>
+              <option value="drive_metadata">drive_metadata</option>
+              <option value="request_context">request_context</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </label>
+          <label class="mini">Classification
+            <select id="filter-classification">
+              <option value="">All</option>
+              <option value="profile">profile</option>
+              <option value="menu">menu</option>
+              <option value="logo">logo</option>
+              <option value="social">social</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </label>
+          <label class="mini">Decision
+            <select id="filter-decision">
+              <option value="">All</option>
+              <option value="same_truck">same_truck</option>
+              <option value="keep_separate">keep_separate</option>
+              <option value="needs_review">needs_review</option>
+            </select>
+          </label>
+          <button id="clear-filters-btn">Clear filters</button>
+        </div>
+        <div id="active-filter-chips" class="mini" style="margin-top:0.4rem;">No active filters.</div>
+        <ul id="batch-history-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No batches yet.</li></ul>
+      </section>
+
       <div class="layout">
         <section class="panel">
           <h2>OCR Draft Profiles</h2>
@@ -175,12 +220,23 @@
       };
       const batchState = {
         lastResult: null,
-        lastError: ''
+        lastError: '',
+        history: [],
+        activeBatchId: ''
+      };
+      const filterState = {
+        batchId: '',
+        repId: '',
+        affiliateCode: '',
+        attributionSource: '',
+        classification: '',
+        reviewDecision: ''
       };
 
       const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
       const sourceClassByFileId = new Map();
       const ocrByFileId = new Map();
+      const draftMetaById = new Map();
 
       function renderSummary(payload) {
         const summary = payload.summary || {};
@@ -202,6 +258,58 @@
           card.innerHTML = `<div class="k">${item.k}</div><div class="v">${item.v}</div>`;
           container.appendChild(card);
         }
+      }
+
+      function updateFilterStateFromInputs() {
+        filterState.batchId = document.getElementById('filter-batch')?.value || '';
+        filterState.repId = (document.getElementById('filter-rep')?.value || '').trim();
+        filterState.affiliateCode = (document.getElementById('filter-affiliate')?.value || '').trim();
+        filterState.attributionSource = document.getElementById('filter-attribution-source')?.value || '';
+        filterState.classification = document.getElementById('filter-classification')?.value || '';
+        filterState.reviewDecision = document.getElementById('filter-decision')?.value || '';
+      }
+
+      function renderActiveFilterChips() {
+        const node = document.getElementById('active-filter-chips');
+        if (!node) return;
+        const chips = [];
+        if (filterState.batchId) chips.push(`batch:${filterState.batchId}`);
+        if (filterState.repId) chips.push(`rep:${filterState.repId}`);
+        if (filterState.affiliateCode) chips.push(`affiliate:${filterState.affiliateCode}`);
+        if (filterState.attributionSource) chips.push(`source:${filterState.attributionSource}`);
+        if (filterState.classification) chips.push(`classification:${filterState.classification}`);
+        if (filterState.reviewDecision) chips.push(`decision:${filterState.reviewDecision}`);
+        node.textContent = chips.length ? `Active filters: ${chips.join(' | ')}` : 'No active filters.';
+      }
+
+      function matchesDraftFilters(draft) {
+        const meta = draftMetaById.get(draft.draftId) || {};
+        if (filterState.batchId && meta.batchId !== filterState.batchId) return false;
+        if (filterState.repId) {
+          const hasRep = (draft.sourceFiles || []).some((file) =>
+            String(file.sourceAttribution?.repId || file.sourceAttribution?.driveUploaderEmail || '').includes(filterState.repId)
+          );
+          if (!hasRep) return false;
+        }
+        if (filterState.affiliateCode) {
+          const hasAffiliate = (draft.sourceFiles || []).some((file) =>
+            String(file.sourceAttribution?.affiliateCode || '').includes(filterState.affiliateCode)
+          );
+          if (!hasAffiliate) return false;
+        }
+        if (filterState.attributionSource) {
+          const hasSource = (draft.sourceFiles || []).some((file) => file.sourceAttribution?.attributionSource === filterState.attributionSource);
+          if (!hasSource) return false;
+        }
+        if (filterState.classification) {
+          const hasClass = (draft.sourceFiles || []).some((file) => (sourceClassByFileId.get(file.sourceFileId) || 'unknown') === filterState.classification);
+          if (!hasClass) return false;
+        }
+        if (filterState.reviewDecision) {
+          const decision = draftReviewState[draft.draftId]?.decision || draftDecisionIndex.get(draft.draftId)?.decision;
+          if (decision !== filterState.reviewDecision) return false;
+        }
+        return true;
       }
 
       function renderBatchResult(result) {
@@ -243,6 +351,58 @@
         }
       }
 
+      function renderBatchHistory() {
+        const listNode = document.getElementById('batch-history-list');
+        const batchSelect = document.getElementById('filter-batch');
+        if (!listNode || !batchSelect) return;
+        const batches = Array.isArray(batchState.history) ? batchState.history : [];
+        listNode.innerHTML = '';
+        batchSelect.innerHTML = '<option value="">All</option>';
+        if (!batches.length) {
+          listNode.innerHTML = '<li class="draft-card">No batches yet.</li>';
+          return;
+        }
+        for (const batch of batches) {
+          const option = document.createElement('option');
+          option.value = batch.batchId;
+          option.textContent = `${batch.batchId} (${batch.status})`;
+          batchSelect.appendChild(option);
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(batch.status)}</span> <span class="pill">drafts:${safe(batch.draftCount)}</span></div>
+            <div class="mini"><strong>${safe(batch.batchId)}</strong> folder:${safe(batch.folderId)}</div>
+            <div class="mini">scanned:${safe(batch.scannedFileCount)} processed:${safe(batch.processedFileCount)} skipped:${safe(batch.skippedFileCount)} failed:${safe(batch.failedFileCount)}</div>
+            <div class="mini">reps:${safe((batch.repIds || []).join(', '))} · affiliates:${safe((batch.affiliateCodes || []).join(', '))}</div>
+            <div class="mini">attribution:${safe((batch.attributionSources || []).join(', '))}</div>
+            <button data-batch-select="${safe(batch.batchId)}">Filter to batch</button>
+          `;
+          listNode.appendChild(li);
+        }
+        if (filterState.batchId) {
+          batchSelect.value = filterState.batchId;
+        }
+        for (const button of document.querySelectorAll('button[data-batch-select]')) {
+          button.addEventListener('click', () => {
+            filterState.batchId = button.getAttribute('data-batch-select') || '';
+            const select = document.getElementById('filter-batch');
+            if (select) select.value = filterState.batchId;
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
+      }
+
+      async function loadBatchHistory() {
+        try {
+          const payload = await client.getBatchHistory();
+          batchState.history = Array.isArray(payload.batches) ? payload.batches : [];
+        } catch (_error) {
+          batchState.history = [];
+        }
+        renderBatchHistory();
+      }
+
       function wireBatchControls() {
         const runButton = document.getElementById('run-batch-intake-btn');
         if (!runButton) return;
@@ -280,6 +440,51 @@
             });
           }
         });
+      }
+
+      function wireFilterControls() {
+        const controls = [
+          'filter-batch',
+          'filter-rep',
+          'filter-affiliate',
+          'filter-attribution-source',
+          'filter-classification',
+          'filter-decision'
+        ];
+        for (const id of controls) {
+          const node = document.getElementById(id);
+          if (!node) continue;
+          node.addEventListener('change', () => {
+            updateFilterStateFromInputs();
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+          node.addEventListener('input', () => {
+            updateFilterStateFromInputs();
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
+        const clearButton = document.getElementById('clear-filters-btn');
+        if (clearButton) {
+          clearButton.addEventListener('click', () => {
+            filterState.batchId = '';
+            filterState.repId = '';
+            filterState.affiliateCode = '';
+            filterState.attributionSource = '';
+            filterState.classification = '';
+            filterState.reviewDecision = '';
+            const ids = ['filter-batch', 'filter-rep', 'filter-affiliate', 'filter-attribution-source', 'filter-classification', 'filter-decision'];
+            for (const id of ids) {
+              const node = document.getElementById(id);
+              if (!node) continue;
+              if (node.tagName === 'SELECT') node.value = '';
+              else node.value = '';
+            }
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
       }
 
       function renderEvidence(field, evidence) {
@@ -354,11 +559,12 @@
         const drafts = Array.isArray(payload.drafts) ? payload.drafts : [];
         const container = document.getElementById('draft-list');
         container.innerHTML = '';
-        if (!drafts.length) {
+        const filteredDrafts = drafts.filter((draft) => matchesDraftFilters(draft));
+        if (!filteredDrafts.length) {
           container.innerHTML = '<div class="draft-card">No drafts returned from preview.</div>';
           return;
         }
-        for (const draft of drafts) {
+        for (const draft of filteredDrafts) {
           const evidence = draft.extractedFieldEvidence || {};
           const menuEvidence = Array.isArray(evidence.menuItems) ? evidence.menuItems : [];
           const sourceFiles = Array.isArray(draft.sourceFiles) ? draft.sourceFiles : [];
@@ -375,6 +581,8 @@
 
           const evidenceRefs = Object.keys(evidence || {});
           const sourceFileIds = sourceFiles.map((file) => file.sourceFileId).filter(Boolean);
+          const batchId = (sourceFiles.find((file) => file.sourceAttribution?.batchId)?.sourceAttribution?.batchId) || '';
+          draftMetaById.set(draft.draftId, { batchId });
           window.__draftSourceFilesByDraftId = window.__draftSourceFilesByDraftId || {};
           window.__draftEvidenceRefsByDraftId = window.__draftEvidenceRefsByDraftId || {};
           window.__draftSourceFilesByDraftId[draft.draftId] = sourceFileIds;
@@ -737,6 +945,7 @@
           client.getPreview({ loadFromDriveFolder: true, includeDebugOcr: true }),
           client.getReviewDecisions()
         ]);
+        window.__latestPayload = payload;
         const evidenceFiles = Array.isArray(payload.evidenceFiles) ? payload.evidenceFiles : [];
         const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
         const decisions = Array.isArray(decisionsPayload.decisions) ? decisionsPayload.decisions : [];
@@ -754,6 +963,8 @@
         renderPublishPlan(payload);
         await refreshPublishAudit();
         renderBatchResult(batchState.lastResult);
+        await loadBatchHistory();
+        renderActiveFilterChips();
       }
 
       async function refreshPublishAudit() {
@@ -788,6 +999,7 @@
         alert(message);
       });
       wireBatchControls();
+      wireFilterControls();
     </script>
   </body>
 </html>

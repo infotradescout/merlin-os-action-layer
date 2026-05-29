@@ -119,8 +119,11 @@ import {
   updateMealScoutReviewDecision
 } from './mealscoutReviewDecisions.js';
 import {
+  getMealScoutBatchHistoryDetail,
   getMealScoutBatchProcessedRecord,
+  listMealScoutBatchHistory,
   rememberMealScoutBatchProcessedRecord,
+  rememberMealScoutBatchHistory,
   resetMealScoutBatchProcessedStateForTest
 } from './mealscoutBatchIntakeState.js';
 import {
@@ -1674,6 +1677,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : 50;
 
     const batchId = `ms-intake-batch-${randomUUID()}`;
+    const startedAt = new Date().toISOString();
     const skippedFiles: Array<{ fileId: string; fileName: string; reason: MealScoutBatchRunSkipReason }> = [];
     const processedFiles: Array<{
       fileId: string;
@@ -1681,6 +1685,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       byteLength: number;
       ocrAttempted: boolean;
       ocrSucceeded: boolean;
+      extractedTextLength: number;
       classification: 'profile' | 'menu' | 'logo' | 'social' | 'unknown';
       sourceFileAttribution?: MealScoutScreenshotInput['sourceFileAttribution'];
     }> = [];
@@ -1782,6 +1787,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
             byteLength: diagnostic.byteLength,
             ocrAttempted: diagnostic.ocrAttempted,
             ocrSucceeded: diagnostic.ocrSucceeded,
+            extractedTextLength: diagnostic.extractedTextLength,
             classification: normalizeBatchClassification(evidence.detectedType),
             sourceFileAttribution: input.sourceFileAttribution
           });
@@ -1796,9 +1802,80 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const clusters = clusterMealScoutEvidenceFiles(evidenceFiles, []);
       const drafts = buildMealScoutDraftsFromClusters(clusters, []);
       const status = errors.length > 0 ? 'partial' : 'completed';
+      const completedAt = new Date().toISOString();
+      const attributionSources = Array.from(
+        new Set(
+          processedFiles
+            .map((row) => row.sourceFileAttribution?.attributionSource || 'unknown')
+            .filter((value): value is 'drive_metadata' | 'request_context' | 'unknown' =>
+              value === 'drive_metadata' || value === 'request_context' || value === 'unknown'
+            )
+        )
+      );
+      const repIds = Array.from(
+        new Set(processedFiles.map((row) => row.sourceFileAttribution?.repId || '').filter(Boolean))
+      );
+      const affiliateCodes = Array.from(
+        new Set(processedFiles.map((row) => row.sourceFileAttribution?.affiliateCode || '').filter(Boolean))
+      );
+      const sourceChannels = Array.from(
+        new Set(
+          processedFiles
+            .map((row) => row.sourceFileAttribution?.sourceChannel)
+            .filter((value): value is 'drive_upload' | 'manual_upload' | 'admin_import' =>
+              value === 'drive_upload' || value === 'manual_upload' || value === 'admin_import'
+            )
+        )
+      );
+      const reviewStatusCounts = {
+        unreviewed: drafts.length,
+        same_truck: 0,
+        keep_separate: 0,
+        needs_review: drafts.filter((draft) => draft.reviewStatus === 'uncertain_match').length,
+        publish_ready: drafts.filter((draft) => draft.reviewStatus === 'ready_for_review').length,
+        blocked: drafts.filter((draft) => draft.reviewStatus === 'missing_required').length,
+        executed: 0
+      };
+      rememberMealScoutBatchHistory({
+        batchId,
+        folderId: resolvedFolderId,
+        status,
+        startedAt,
+        completedAt,
+        operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined,
+        scannedFileCount,
+        eligibleFileCount,
+        processedFileCount: processedFiles.length,
+        skippedFileCount: skippedFiles.length,
+        failedFileCount: errors.length,
+        draftCount: drafts.length,
+        attributionSources,
+        repIds,
+        affiliateCodes,
+        sourceChannels,
+        reviewStatusCounts,
+        processedFiles: processedFiles.map((row) => ({
+          fileId: row.fileId,
+          fileName: row.fileName,
+          processedAt: completedAt,
+          batchId,
+          classification: row.classification,
+          ocrSucceeded: row.ocrSucceeded,
+          extractedTextLength: row.extractedTextLength,
+          sourceEvidenceRefs: [],
+          sourceFileAttribution: row.sourceFileAttribution
+        })),
+        skippedFiles,
+        failedFiles: errors,
+        generatedDraftIds: drafts.map((draft) => draft.draftId),
+        relatedPublishPlanIds: [],
+        relatedExecutionIds: []
+      });
       return responseJson(res, {
         batchId,
         status,
+        startedAt,
+        completedAt,
         mutationAllowed: false,
         folderId: resolvedFolderId,
         scannedFileCount,
@@ -1814,11 +1891,47 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Drive batch intake failed';
+      const completedAt = new Date().toISOString();
+      rememberMealScoutBatchHistory({
+        batchId,
+        folderId: resolvedFolderId,
+        status: 'failed',
+        startedAt,
+        completedAt,
+        operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined,
+        scannedFileCount,
+        eligibleFileCount,
+        processedFileCount: processedFiles.length,
+        skippedFileCount: skippedFiles.length,
+        failedFileCount: Math.max(1, errors.length),
+        draftCount: 0,
+        attributionSources: [],
+        repIds: [],
+        affiliateCodes: [],
+        sourceChannels: [],
+        reviewStatusCounts: {
+          unreviewed: 0,
+          same_truck: 0,
+          keep_separate: 0,
+          needs_review: 0,
+          publish_ready: 0,
+          blocked: 0,
+          executed: 0
+        },
+        processedFiles: [],
+        skippedFiles,
+        failedFiles: [...errors, { message }],
+        generatedDraftIds: [],
+        relatedPublishPlanIds: [],
+        relatedExecutionIds: []
+      });
       return responseJson(
         res,
         {
           batchId,
           status: 'failed',
+          startedAt,
+          completedAt,
           mutationAllowed: false,
           folderId: resolvedFolderId,
           scannedFileCount,
@@ -1834,6 +1947,30 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         409
       );
     }
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/batches') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    return responseJson(res, { mutationAllowed: false, batches: listMealScoutBatchHistory() });
+  }
+
+  const mealscoutBatchDetailMatch = pathname.match(/^\/api\/mealscout\/intake\/batches\/([^/]+)$/);
+  if (method === 'GET' && mealscoutBatchDetailMatch) {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const batchId = decodeURIComponent(mealscoutBatchDetailMatch[1]);
+    const batch = getMealScoutBatchHistoryDetail(batchId);
+    if (!batch) {
+      return responseJson(res, { error: 'batch_not_found', mutationAllowed: false }, 404);
+    }
+    return responseJson(res, { mutationAllowed: false, batch });
   }
 
   if (method === 'POST' && pathname === '/api/mealscout/intake/publish-plan/execute') {

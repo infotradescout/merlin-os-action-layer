@@ -231,3 +231,49 @@ test('second run skips already processed unless reprocess true', async () => {
   assert.equal(third.status, 200);
   assert.equal(third.body.processedFileCount >= 1, true);
 });
+
+test('batch history and detail are role-gated and return summaries', async () => {
+  setDriveClientFactory(() => buildDriveClient());
+  const run = await requestJson<{ batchId: string }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', maxFiles: 2, repId: 'rep-1', affiliateCode: 'AFF-1' })
+  });
+  assert.equal(run.status, 200);
+
+  const deniedHistory = await requestJson<{ error: string; mutationAllowed: boolean }>('/api/mealscout/intake/batches', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'viewer' }
+  });
+  assert.equal(deniedHistory.status, 403);
+  assert.equal(deniedHistory.body.mutationAllowed, false);
+
+  const history = await requestJson<{ mutationAllowed: boolean; batches: Array<{ batchId: string; processedFileCount: number; repIds: string[] }> }>('/api/mealscout/intake/batches', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(history.status, 200);
+  assert.equal(history.body.mutationAllowed, false);
+  assert.equal(history.body.batches.length >= 1, true);
+  assert.equal(history.body.batches.some((row) => row.batchId === run.body.batchId), true);
+
+  const deniedDetail = await requestJson<{ error: string; mutationAllowed: boolean }>(`/api/mealscout/intake/batches/${encodeURIComponent(run.body.batchId)}`, {
+    method: 'GET',
+    headers: { 'x-operator-role': 'viewer' }
+  });
+  assert.equal(deniedDetail.status, 403);
+  assert.equal(deniedDetail.body.mutationAllowed, false);
+
+  const detail = await requestJson<{ mutationAllowed: boolean; batch: { batchId: string; processedFiles: unknown[]; skippedFiles: unknown[] } }>(
+    `/api/mealscout/intake/batches/${encodeURIComponent(run.body.batchId)}`,
+    {
+      method: 'GET',
+      headers: { 'x-operator-role': 'admin' }
+    }
+  );
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.mutationAllowed, false);
+  assert.equal(detail.body.batch.batchId, run.body.batchId);
+  assert.equal(Array.isArray(detail.body.batch.processedFiles), true);
+  assert.equal(Array.isArray(detail.body.batch.skippedFiles), true);
+});

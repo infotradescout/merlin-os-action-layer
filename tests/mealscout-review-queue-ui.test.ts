@@ -69,6 +69,8 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
   assert.ok(response.body.includes('Drive Batch Intake'));
   assert.ok(response.body.includes('Run batch intake'));
   assert.ok(response.body.includes('Batch intake does not publish records.'));
+  assert.ok(response.body.includes('Batch History'));
+  assert.ok(response.body.includes('Clear filters'));
   assert.ok(response.body.includes('Preview only - no records will be published.'));
   assert.ok(response.body.includes('Publish (Disabled)'));
   assert.ok(response.body.includes('Mark as same truck'));
@@ -248,6 +250,43 @@ test('mealscout review queue client uses preview endpoint and local review state
         );
       }
 
+      if (target.endsWith('/api/mealscout/intake/batches') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            mutationAllowed: false,
+            batches: [
+              {
+                batchId: 'ms-intake-batch-1',
+                folderId: 'folder-intake-unknown',
+                status: 'completed',
+                startedAt: baseDate,
+                completedAt: baseDate,
+                scannedFileCount: 3,
+                eligibleFileCount: 2,
+                processedFileCount: 2,
+                skippedFileCount: 1,
+                failedFileCount: 0,
+                draftCount: 1,
+                attributionSources: ['request_context'],
+                repIds: ['rep-1'],
+                affiliateCodes: ['AFF-1'],
+                sourceChannels: ['manual_upload'],
+                reviewStatusCounts: {
+                  unreviewed: 1,
+                  same_truck: 0,
+                  keep_separate: 0,
+                  needs_review: 0,
+                  publish_ready: 1,
+                  blocked: 0,
+                  executed: 0
+                }
+              }
+            ]
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
@@ -297,6 +336,11 @@ test('mealscout review queue client uses preview endpoint and local review state
     assert.equal(batch.processedFileCount, 2);
     assert.equal(batch.skippedFiles[0].reason, 'unsupported_type');
 
+    const history = await client.getBatchHistory();
+    assert.equal(history.mutationAllowed, false);
+    assert.equal(Array.isArray(history.batches), true);
+    assert.equal(history.batches[0].batchId, 'ms-intake-batch-1');
+
     const previewCalls = calls.filter((entry) => entry.url.includes('/api/mealscout/intake/preview'));
     assert.equal(previewCalls.length, 1);
     assert.equal(previewCalls[0].method, 'POST');
@@ -318,6 +362,7 @@ test('mealscout review queue client uses preview endpoint and local review state
     }
     assert.equal(calls.some((entry) => entry.url.includes('/api/mealscout/intake/publish-plan/execute')), true);
     assert.equal(calls.some((entry) => entry.url.includes('/api/mealscout/intake/batches/run')), true);
+    assert.equal(calls.some((entry) => entry.url.includes('/api/mealscout/intake/batches')), true);
   } finally {
     globalThis.fetch = originalFetch;
   }
