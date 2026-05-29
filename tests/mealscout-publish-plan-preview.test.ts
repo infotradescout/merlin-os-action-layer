@@ -15,6 +15,8 @@ function makeDraft(input: {
   menuName?: string;
   existingTruckId?: string;
   draftType?: 'create_new' | 'update_existing' | 'uncertain_match';
+  repId?: string;
+  affiliateCode?: string;
 }) {
   const draft = buildMealScoutProfileDraft([
     {
@@ -29,7 +31,13 @@ function makeDraft(input: {
       socials: { instagram: input.instagram },
       menuItems: input.menuName ? [{ name: input.menuName, price: '$10.00' }] : undefined,
       menuDeferred: false,
-      rawExtractedText: 'raw ocr snippet'
+      rawExtractedText: 'raw ocr snippet',
+      sourceFileAttribution: {
+        attributionSource: 'request_context',
+        repId: input.repId,
+        affiliateCode: input.affiliateCode,
+        sourceChannel: 'manual_upload'
+      }
     }
   ]);
   draft.draftId = input.id;
@@ -135,4 +143,25 @@ test('existing truck match yields update_existing and fields carry evidence refs
   assert.equal(name.evidenceRefs.length > 0, true);
   assert.equal(name.sourceFileIds.length > 0, true);
   assert.equal(plan.mutationAllowed, false);
+});
+
+test('publish plan preserves contributor attribution and primary source', () => {
+  const d1 = makeDraft({ id: 'd9', truckName: 'Attribution Truck', cityArea: 'Kenner', phone: '999', menuName: 'Plate', repId: 'rep-1' });
+  const d2 = makeDraft({ id: 'd10', truckName: 'Attribution Truck', cityArea: 'Kenner', menuName: 'Logo Only', repId: 'rep-2' });
+  const plan = buildMealScoutPublishPlanPreview([d1, d2], [
+    {
+      decisionId: 'r-attrib',
+      draftIds: ['d9', 'd10'],
+      decision: 'same_truck',
+      sourceFileIds: ['d9-file', 'd10-file'],
+      evidenceRefs: ['similar_name'],
+      decidedAt: '2026-05-29T00:00:00.000Z',
+      mutationAllowed: false
+    }
+  ]);
+  assert.equal(plan.records.length, 1);
+  const attribution = plan.records[0].sourceAttribution;
+  assert.ok(attribution);
+  assert.equal(attribution?.contributingRepIds.includes('rep-1'), true);
+  assert.equal(attribution?.contributingRepIds.includes('rep-2'), true);
 });

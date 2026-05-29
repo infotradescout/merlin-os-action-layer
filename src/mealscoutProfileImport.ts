@@ -25,6 +25,19 @@ export type MealScoutExtractedSignal = {
   };
   website?: string;
   notes?: string;
+  sourceFileAttribution?: {
+    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    driveUploaderEmail?: string;
+    driveUploaderName?: string;
+    uploadedAt?: string;
+    modifiedAt?: string;
+    intakeSubmittedBy?: string;
+    affiliateCode?: string;
+    repId?: string;
+    sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
+    batchId?: string;
+    capturedAt?: string;
+  };
 };
 
 export type MealScoutDuplicateCandidate = {
@@ -59,6 +72,7 @@ export type MealScoutProfileDraft = {
     sourceFileId: string;
     sourcePath?: string;
     sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown';
+    sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
   }>;
   missingFields: string[];
   warnings: string[];
@@ -75,6 +89,7 @@ export type MealScoutProfileDraft = {
         extractionMethod: 'ocr';
         confidence: number;
         rawSnippet: string;
+        sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
       }
     >
   > & {
@@ -85,7 +100,15 @@ export type MealScoutProfileDraft = {
       extractionMethod: 'ocr';
       confidence: number;
       rawSnippet: string;
+      sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
     }>;
+  };
+  sourceAttribution?: {
+    primarySourceRepId?: string;
+    contributingRepIds: string[];
+    sourceFileIds: string[];
+    attributionPolicy: string;
+    createdFromBatchId?: string;
   };
   mutationAllowed: false;
 };
@@ -324,6 +347,7 @@ function buildFieldEvidence(
       extractionMethod: 'ocr';
       confidence: number;
       rawSnippet: string;
+      sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
     }
   | undefined {
   for (const signal of signals) {
@@ -335,7 +359,8 @@ function buildFieldEvidence(
       sourceFileName: signal.sourceFileName,
       extractionMethod: 'ocr',
       confidence,
-      rawSnippet: buildRawSnippet(signal.rawExtractedText, value)
+      rawSnippet: buildRawSnippet(signal.rawExtractedText, value),
+      sourceAttribution: signal.sourceFileAttribution
     };
   }
   return undefined;
@@ -346,6 +371,42 @@ function resolveReviewStatus(missingFields: string[], duplicateCandidates: MealS
   if (duplicateCandidates.length > 0) return 'duplicate_possible';
   if (warnings.some((item) => item.includes('uncertain'))) return 'uncertain_match';
   return 'ready_for_review';
+}
+
+function buildDraftAttribution(signals: MealScoutExtractedSignal[]): MealScoutProfileDraft['sourceAttribution'] {
+  const contributingRepIds = Array.from(
+    new Set(
+      signals
+        .map((signal) => signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.driveUploaderEmail || '')
+        .filter(Boolean)
+    )
+  );
+  const sourceFileIds = Array.from(new Set(signals.map((signal) => signal.sourceFileId).filter(Boolean)));
+  let primarySourceRepId: string | undefined;
+  for (const signal of signals) {
+    const contributor = signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.driveUploaderEmail;
+    const hasRequiredEvidence = Boolean(
+      signal.truckName ||
+        signal.cityArea ||
+        signal.phone ||
+        signal.email ||
+        signal.website ||
+        signal.socials?.facebook ||
+        signal.socials?.instagram ||
+        (signal.menuItems || []).length > 0
+    );
+    if (contributor && hasRequiredEvidence) {
+      primarySourceRepId = contributor;
+      break;
+    }
+  }
+  return {
+    primarySourceRepId,
+    contributingRepIds,
+    sourceFileIds,
+    attributionPolicy: 'first_required_field_contributor',
+    createdFromBatchId: signals.find((signal) => signal.sourceFileAttribution?.batchId)?.sourceFileAttribution?.batchId
+  };
 }
 
 export function buildMealScoutProfileDraft(
@@ -382,7 +443,8 @@ export function buildMealScoutProfileDraft(
     sourceFiles: safeSignals.map((signal) => ({
       sourceFileId: signal.sourceFileId,
       sourcePath: signal.sourcePath,
-      sourceType: signal.sourceType
+      sourceType: signal.sourceType,
+      sourceAttribution: signal.sourceFileAttribution
     })),
     missingFields: [],
     warnings: [],
@@ -390,6 +452,7 @@ export function buildMealScoutProfileDraft(
     confidence: scoreConfidence(safeSignals),
     reviewStatus: 'ready_for_review',
     extractedFieldEvidence: {},
+    sourceAttribution: buildDraftAttribution(safeSignals),
     mutationAllowed: false
   };
 
@@ -434,7 +497,8 @@ export function buildMealScoutProfileDraft(
       sourceFileName: signal.sourceFileName,
       extractionMethod: 'ocr' as const,
       confidence: 0.8,
-      rawSnippet: buildRawSnippet(signal.rawExtractedText, item.name)
+      rawSnippet: buildRawSnippet(signal.rawExtractedText, item.name),
+      sourceAttribution: signal.sourceFileAttribution
     }))
   );
   if (menuEvidence.length > 0) {
@@ -472,7 +536,8 @@ export function buildMealScoutDraftsFromClusters(
         facebook: file.extractedSignals.facebook,
         instagram: file.extractedSignals.instagram
       },
-      website: file.extractedSignals.website
+      website: file.extractedSignals.website,
+      sourceFileAttribution: file.sourceFileAttribution
     }));
     const draft = buildMealScoutProfileDraft(signals, profiles);
     if (cluster.reviewStatus === 'uncertain_match' && draft.reviewStatus === 'ready_for_review') {

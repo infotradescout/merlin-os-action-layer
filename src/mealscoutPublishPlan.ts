@@ -35,6 +35,13 @@ export type MealScoutPublishPlanRecord = {
     values: string[];
     sourceDraftIds: string[];
   }>;
+  sourceAttribution?: {
+    primarySourceRepId?: string;
+    contributingRepIds: string[];
+    sourceFileIds: string[];
+    attributionPolicy: string;
+    createdFromBatchId?: string;
+  };
 };
 
 export type MealScoutPublishPlanPreview = {
@@ -268,6 +275,16 @@ export function buildMealScoutPublishPlanPreview(
     if (anyNeedsReview) plannedAction = 'needs_review';
     else if (!publishReady) plannedAction = 'blocked';
     else if (existingTruckIds.length === 1 || groupDrafts.some((draft) => draft.draftType === 'update_existing')) plannedAction = 'update_existing';
+    const contributingRepIds = Array.from(
+      new Set(groupDrafts.flatMap((draft) => draft.sourceAttribution?.contributingRepIds || []).filter(Boolean))
+    );
+    const sourceFileIds = Array.from(
+      new Set(groupDrafts.flatMap((draft) => draft.sourceAttribution?.sourceFileIds || []).filter(Boolean))
+    );
+    const primarySourceRepId =
+      groupDrafts.map((draft) => draft.sourceAttribution?.primarySourceRepId).find((value) => Boolean(value)) || undefined;
+    const createdFromBatchId =
+      groupDrafts.map((draft) => draft.sourceAttribution?.createdFromBatchId).find((value) => Boolean(value)) || undefined;
 
     records.push({
       recordId: `ms-plan-record-${groupIds.slice().sort().join('__')}`,
@@ -279,7 +296,14 @@ export function buildMealScoutPublishPlanPreview(
       menuItems,
       blockedReasons: blockedReasons.length ? blockedReasons : undefined,
       warnings: warnings.length ? warnings : undefined,
-      conflicts: conflicts.length ? conflicts : undefined
+      conflicts: conflicts.length ? conflicts : undefined,
+      sourceAttribution: {
+        primarySourceRepId,
+        contributingRepIds,
+        sourceFileIds,
+        attributionPolicy: 'first_required_field_contributor',
+        createdFromBatchId
+      }
     });
   }
 

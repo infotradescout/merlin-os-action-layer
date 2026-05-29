@@ -109,6 +109,27 @@
 
       <section class="summary" id="summary-grid"></section>
 
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Drive Batch Intake</h2>
+        <p class="subtitle">Operator-controlled batch intake. Batch intake does not publish records.</p>
+        <div class="actions">
+          <label class="mini">maxFiles <input id="batch-max-files" type="number" min="1" max="500" value="50" /></label>
+          <label class="mini"><input id="batch-reprocess" type="checkbox" /> reprocess files</label>
+          <button id="run-batch-intake-btn">Run batch intake</button>
+        </div>
+        <div id="batch-intake-summary" class="mini" style="margin-top:0.5rem;">No batch run yet.</div>
+        <div id="batch-intake-lists" class="grid-two" style="margin-top:0.6rem;">
+          <div class="draft-card">
+            <h4>Processed Files</h4>
+            <ul id="batch-processed-files" class="list"><li class="mini">None</li></ul>
+          </div>
+          <div class="draft-card">
+            <h4>Skipped Files</h4>
+            <ul id="batch-skipped-files" class="list"><li class="mini">None</li></ul>
+          </div>
+        </div>
+      </section>
+
       <div class="layout">
         <section class="panel">
           <h2>OCR Draft Profiles</h2>
@@ -152,6 +173,10 @@
         latestResult: null,
         latestError: ''
       };
+      const batchState = {
+        lastResult: null,
+        lastError: ''
+      };
 
       const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
       const sourceClassByFileId = new Map();
@@ -179,6 +204,84 @@
         }
       }
 
+      function renderBatchResult(result) {
+        const summaryNode = document.getElementById('batch-intake-summary');
+        const processedNode = document.getElementById('batch-processed-files');
+        const skippedNode = document.getElementById('batch-skipped-files');
+        if (!summaryNode || !processedNode || !skippedNode) return;
+        if (!result) {
+          summaryNode.textContent = 'No batch run yet.';
+          processedNode.innerHTML = '<li class="mini">None</li>';
+          skippedNode.innerHTML = '<li class="mini">None</li>';
+          return;
+        }
+        summaryNode.textContent =
+          `status:${safe(result.status)} scanned:${safe(result.scannedFileCount)} eligible:${safe(result.eligibleFileCount)} processed:${safe(result.processedFileCount)} skipped:${safe(result.skippedFileCount)} failed:${safe(result.failedFileCount)} drafts:${safe(result.draftCount)} mutationAllowed:${safe(result.mutationAllowed)}`;
+        processedNode.innerHTML = '';
+        const processed = Array.isArray(result.processedFiles) ? result.processedFiles : [];
+        if (!processed.length) {
+          processedNode.innerHTML = '<li class="mini">None</li>';
+        } else {
+          for (const row of processed) {
+            const li = document.createElement('li');
+            li.className = 'mini';
+            li.textContent = `${safe(row.fileName)} (${safe(row.fileId)}) class:${safe(row.classification)} ocr:${safe(row.ocrSucceeded)} bytes:${safe(row.byteLength)} by:${safe(row.sourceFileAttribution?.driveUploaderEmail || row.sourceFileAttribution?.repId)} aff:${safe(row.sourceFileAttribution?.affiliateCode)} source:${safe(row.sourceFileAttribution?.attributionSource)}`;
+            processedNode.appendChild(li);
+          }
+        }
+        skippedNode.innerHTML = '';
+        const skipped = Array.isArray(result.skippedFiles) ? result.skippedFiles : [];
+        if (!skipped.length) {
+          skippedNode.innerHTML = '<li class="mini">None</li>';
+        } else {
+          for (const row of skipped) {
+            const li = document.createElement('li');
+            li.className = 'mini';
+            li.textContent = `${safe(row.fileName)} (${safe(row.fileId)}) reason:${safe(row.reason)}`;
+            skippedNode.appendChild(li);
+          }
+        }
+      }
+
+      function wireBatchControls() {
+        const runButton = document.getElementById('run-batch-intake-btn');
+        if (!runButton) return;
+        runButton.addEventListener('click', async () => {
+          const maxFilesNode = document.getElementById('batch-max-files');
+          const reprocessNode = document.getElementById('batch-reprocess');
+          const maxFiles = Number(maxFilesNode?.value || 50);
+          const reprocess = Boolean(reprocessNode?.checked);
+          batchState.lastError = '';
+          try {
+            const result = await client.runBatchIntake({
+              mode: 'process',
+              maxFiles,
+              reprocess,
+              operatorId: 'operator'
+            });
+            batchState.lastResult = result;
+            renderBatchResult(batchState.lastResult);
+            await hydrate();
+          } catch (error) {
+            batchState.lastResult = null;
+            batchState.lastError = error instanceof Error ? error.message : 'Batch intake failed';
+            renderBatchResult({
+              status: 'failed',
+              scannedFileCount: 0,
+              eligibleFileCount: 0,
+              processedFileCount: 0,
+              skippedFileCount: 0,
+              failedFileCount: 1,
+              draftCount: 0,
+              mutationAllowed: false,
+              processedFiles: [],
+              skippedFiles: [],
+              errors: [{ message: batchState.lastError }]
+            });
+          }
+        });
+      }
+
       function renderEvidence(field, evidence) {
         if (!evidence) return '';
         return `
@@ -187,6 +290,7 @@
             <div class="mini">confidence: ${safe(evidence.confidence)} · extraction: ${safe(evidence.extractionMethod)}</div>
             <div class="mini">snippet: ${safe(evidence.rawSnippet)}</div>
             <div class="mini">source: ${safe(evidence.sourceFileName)} · <span class="mono">${safe(evidence.sourceFileId)}</span></div>
+            <div class="mini">attribution: rep ${safe(evidence.sourceAttribution?.repId)} · affiliate ${safe(evidence.sourceAttribution?.affiliateCode)} · uploader ${safe(evidence.sourceAttribution?.driveUploaderEmail)} · source ${safe(evidence.sourceAttribution?.attributionSource)}</div>
           </div>
         `;
       }
@@ -262,7 +366,7 @@
             const detected = sourceClassByFileId.get(file.sourceFileId) || 'unknown';
             const ocr = ocrByFileId.get(file.sourceFileId);
             const ocrStatus = ocr ? `${ocr.ocrSucceeded ? 'ocr_ok' : 'ocr_fail'}:${ocr.extractedTextLength || 0}` : 'ocr_n/a';
-            return `<li class="mini"><span class="mono">${safe(file.sourceFileId)}</span> · ${safe(file.sourcePath)} · class:${safe(detected)} · ${ocrStatus}</li>`;
+            return `<li class="mini"><span class="mono">${safe(file.sourceFileId)}</span> · ${safe(file.sourcePath)} · class:${safe(detected)} · ${ocrStatus}<div class="mini">by:${safe(file.sourceAttribution?.driveUploaderEmail || file.sourceAttribution?.repId)} · affiliate:${safe(file.sourceAttribution?.affiliateCode)} · source:${safe(file.sourceAttribution?.attributionSource)}</div></li>`;
           }).join('');
 
           const menuRows = Array.isArray(draft.menu) && draft.menu.length
@@ -649,6 +753,7 @@
         renderMergeAssist(payload);
         renderPublishPlan(payload);
         await refreshPublishAudit();
+        renderBatchResult(batchState.lastResult);
       }
 
       async function refreshPublishAudit() {
@@ -682,6 +787,7 @@
         const message = error instanceof Error ? error.message : 'Unable to load MealScout review queue';
         alert(message);
       });
+      wireBatchControls();
     </script>
   </body>
 </html>

@@ -34,6 +34,19 @@ export type MealScoutEvidenceFile = {
   extractedSignals: MealScoutExtractedSignals;
   rawExtractedText?: string;
   confidence: number;
+  sourceFileAttribution?: {
+    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    driveUploaderEmail?: string;
+    driveUploaderName?: string;
+    uploadedAt?: string;
+    modifiedAt?: string;
+    intakeSubmittedBy?: string;
+    affiliateCode?: string;
+    repId?: string;
+    sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
+    batchId?: string;
+    capturedAt?: string;
+  };
 };
 
 export type MealScoutEvidenceCluster = {
@@ -475,6 +488,7 @@ export function createMealScoutEvidenceFile(input: {
   visualHints?: { hasLogo?: boolean; hasMenuLayout?: boolean; hasHoursGrid?: boolean; hasSocialUi?: boolean };
   detectedType?: MealScoutDetectedType;
   confidence?: number;
+  sourceFileAttribution?: MealScoutEvidenceFile['sourceFileAttribution'];
 }): MealScoutEvidenceFile {
   const auto = classifyMealScoutDetectedType({
     sourceFolder: input.sourceFolder,
@@ -490,6 +504,7 @@ export function createMealScoutEvidenceFile(input: {
     detectedType: input.detectedType || auto.detectedType,
     extractedSignals: input.extractedSignals || {},
     rawExtractedText: input.rawExtractedText,
-    confidence: Number(Math.max(0, Math.min(1, input.confidence ?? auto.confidence)).toFixed(2))
+    confidence: Number(Math.max(0, Math.min(1, input.confidence ?? auto.confidence)).toFixed(2)),
+    sourceFileAttribution: input.sourceFileAttribution
   };
 }

@@ -29,6 +29,7 @@ export type MealScoutPublishAuditEntry = {
   action: 'create_new' | 'update_existing';
   fieldsWritten: string[];
   evidenceRefs: string[];
+  sourceAttribution?: MealScoutPublishPlanRecord['sourceAttribution'];
   previousValues?: Record<string, string | undefined>;
   newValues?: Record<string, string | undefined>;
   targetId?: string;
@@ -156,6 +157,7 @@ export function executeMealScoutPublishPlan(input: {
         action,
         fieldsWritten: [],
         evidenceRefs: [],
+        sourceAttribution: undefined,
         operatorId: input.operatorId,
         executedAt,
         result: 'failed',
@@ -185,6 +187,7 @@ export function executeMealScoutPublishPlan(input: {
         action: record.plannedAction as 'create_new' | 'update_existing',
         fieldsWritten: [],
         evidenceRefs: flattenEvidenceRefs(record),
+        sourceAttribution: record.sourceAttribution,
         operatorId: input.operatorId,
         executedAt,
         result: 'skipped',
@@ -217,6 +220,7 @@ export function executeMealScoutPublishPlan(input: {
         action: record.plannedAction as 'create_new' | 'update_existing',
         fieldsWritten: [],
         evidenceRefs: flattenEvidenceRefs(record),
+        sourceAttribution: record.sourceAttribution,
         operatorId: input.operatorId,
         executedAt,
         result: 'already_executed',
@@ -276,6 +280,7 @@ export function executeMealScoutPublishPlan(input: {
         action: record.plannedAction as 'create_new' | 'update_existing',
         fieldsWritten,
         evidenceRefs: flattenEvidenceRefs(record),
+        sourceAttribution: record.sourceAttribution,
         previousValues,
         newValues,
         targetId,
@@ -305,6 +310,7 @@ export function executeMealScoutPublishPlan(input: {
         action: record.plannedAction as 'create_new' | 'update_existing',
         fieldsWritten: [],
         evidenceRefs: flattenEvidenceRefs(record),
+        sourceAttribution: record.sourceAttribution,
         operatorId: input.operatorId,
         executedAt,
         result: 'failed',

@@ -119,6 +119,11 @@ import {
   updateMealScoutReviewDecision
 } from './mealscoutReviewDecisions.js';
 import {
+  getMealScoutBatchProcessedRecord,
+  rememberMealScoutBatchProcessedRecord,
+  resetMealScoutBatchProcessedStateForTest
+} from './mealscoutBatchIntakeState.js';
+import {
   detectSafeMealScoutWritePath,
   executeMealScoutPublishPlan,
   queryMealScoutPublishExecutionAudit,
@@ -202,7 +207,54 @@ function convertDriveFileToMealScoutScreenshotInput(file: DriveFileInfo): MealSc
     mimeType: file.mime_type,
     modifiedTime: file.modified_time,
     extractedText,
-    visualLabels
+    visualLabels,
+    sourceFileAttribution: {
+      attributionSource: 'unknown',
+      modifiedAt: file.modified_time,
+      sourceChannel: 'drive_upload'
+    }
+  };
+}
+
+function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
+  batchId?: string;
+  submittedByUserId?: string;
+  affiliateCode?: string;
+  repId?: string;
+  sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
+}): MealScoutScreenshotInput['sourceFileAttribution'] {
+  const metadata = (file.raw_metadata || {}) as Record<string, unknown>;
+  const uploaderEmail =
+    (typeof metadata.owner_email === 'string' && metadata.owner_email) ||
+    (typeof metadata.uploader_email === 'string' && metadata.uploader_email) ||
+    (typeof metadata.last_modifying_user_email === 'string' && metadata.last_modifying_user_email) ||
+    undefined;
+  const uploaderName =
+    (typeof metadata.owner_name === 'string' && metadata.owner_name) ||
+    (typeof metadata.uploader_name === 'string' && metadata.uploader_name) ||
+    (typeof metadata.last_modifying_user_name === 'string' && metadata.last_modifying_user_name) ||
+    undefined;
+  const uploadedAt =
+    (typeof metadata.created_time === 'string' && metadata.created_time) ||
+    (typeof metadata.uploaded_at === 'string' && metadata.uploaded_at) ||
+    undefined;
+  const attributionSource: 'drive_metadata' | 'request_context' | 'unknown' = uploaderEmail || uploaderName
+    ? 'drive_metadata'
+    : context?.repId || context?.affiliateCode || context?.submittedByUserId
+      ? 'request_context'
+      : 'unknown';
+  return {
+    attributionSource,
+    driveUploaderEmail: uploaderEmail,
+    driveUploaderName: uploaderName,
+    uploadedAt,
+    modifiedAt: file.modified_time,
+    intakeSubmittedBy: context?.submittedByUserId,
+    affiliateCode: context?.affiliateCode,
+    repId: context?.repId,
+    sourceChannel: context?.sourceChannel || 'drive_upload',
+    batchId: context?.batchId,
+    capturedAt: new Date().toISOString()
   };
 }
 
@@ -224,6 +276,23 @@ type MealScoutPreviewOcrDiagnostic = {
   extractedTextSnippet: string;
   extractionError?: string;
 };
+
+type MealScoutBatchRunSkipReason =
+  | 'already_processed'
+  | 'unsupported_type'
+  | 'empty_bytes'
+  | 'ocr_unavailable'
+  | 'not_selected';
+
+function normalizeBatchClassification(
+  detectedType: string
+): 'profile' | 'menu' | 'logo' | 'social' | 'unknown' {
+  if (detectedType === 'profile' || detectedType === 'menu' || detectedType === 'logo' || detectedType === 'social') {
+    return detectedType;
+  }
+  if (detectedType === 'profile_screenshot') return 'profile';
+  return 'unknown';
+}
 
 type HydratedMealScoutPreviewResult = {
   files: DriveFileInfo[];
@@ -878,6 +947,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutReviewDecisionsForTest();
   resetMealScoutPublishPlansForTest();
   resetMealScoutPublishExecutionForTest();
+  resetMealScoutBatchProcessedStateForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -1404,6 +1474,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       loadFromDriveFolder?: boolean;
       includeUnsupportedDriveFiles?: boolean;
       includeDebugOcr?: boolean;
+      submittedByUserId?: string;
+      affiliateCode?: string;
+      repId?: string;
+      sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
       existingProfiles?: Array<{
         id: string;
         truckName?: string;
@@ -1450,7 +1524,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         const hydratedPreview = await hydrateDriveFilesForPreviewWithDiagnostics(filteredFiles, driveClient);
         const hydratedFiles = hydratedPreview.files;
         driveOcrDiagnostics = hydratedPreview.diagnostics;
-        inputs = hydratedFiles.map(convertDriveFileToMealScoutScreenshotInput);
+        inputs = hydratedFiles.map((file) => ({
+          ...convertDriveFileToMealScoutScreenshotInput(file),
+          sourceFileAttribution: resolveDriveFileAttribution(file, {
+            submittedByUserId: typeof payload.submittedByUserId === 'string' ? payload.submittedByUserId : undefined,
+            affiliateCode: typeof payload.affiliateCode === 'string' ? payload.affiliateCode : undefined,
+            repId: typeof payload.repId === 'string' ? payload.repId : undefined,
+            sourceChannel: payload.sourceChannel
+          })
+        }));
         driveSource = {
           folderId: resolved.folderId,
           folderSource: resolved.source,
@@ -1560,6 +1642,198 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         draftCount: drafts.length
       }
     });
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/intake/batches/run') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const payload = (body || {}) as {
+      folderId?: unknown;
+      mode?: unknown;
+      reprocess?: unknown;
+      maxFiles?: unknown;
+      operatorId?: unknown;
+      submittedByUserId?: unknown;
+      affiliateCode?: unknown;
+      repId?: unknown;
+      sourceChannel?: unknown;
+    };
+    const mode = payload.mode === 'preview' || payload.mode === 'process' ? payload.mode : undefined;
+    if (!mode) {
+      return responseJson(res, { error: 'mode must be preview or process', mutationAllowed: false }, 400);
+    }
+    const reprocess = payload.reprocess === true;
+    const maxFilesRaw = typeof payload.maxFiles === 'number' ? payload.maxFiles : Number(payload.maxFiles);
+    const maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : 50;
+
+    const batchId = `ms-intake-batch-${randomUUID()}`;
+    const skippedFiles: Array<{ fileId: string; fileName: string; reason: MealScoutBatchRunSkipReason }> = [];
+    const processedFiles: Array<{
+      fileId: string;
+      fileName: string;
+      byteLength: number;
+      ocrAttempted: boolean;
+      ocrSucceeded: boolean;
+      classification: 'profile' | 'menu' | 'logo' | 'social' | 'unknown';
+      sourceFileAttribution?: MealScoutScreenshotInput['sourceFileAttribution'];
+    }> = [];
+    const errors: Array<{ fileId?: string; message: string }> = [];
+
+    let resolvedFolderId = '';
+    let scannedFileCount = 0;
+    let eligibleFileCount = 0;
+
+    try {
+      const resolved = await resolveMealScoutPreviewDriveFolderId(typeof payload.folderId === 'string' ? payload.folderId : undefined);
+      if (!resolved.ok) {
+        return responseJson(res, { error: resolved.reason, mutationAllowed: false, diagnostic: resolved.diagnostic }, 409);
+      }
+      resolvedFolderId = resolved.folderId;
+      const driveClient = getDriveClient();
+      const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      scannedFileCount = listedFiles.length;
+      const supported = listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file));
+      eligibleFileCount = supported.length;
+      for (const file of listedFiles) {
+        if (!isSupportedMealScoutPreviewFile(file)) {
+          skippedFiles.push({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            reason: 'unsupported_type'
+          });
+        }
+      }
+
+      const selected = supported.slice(0, maxFiles);
+      for (const file of supported.slice(maxFiles)) {
+        skippedFiles.push({
+          fileId: file.drive_file_id,
+          fileName: file.file_name,
+          reason: 'not_selected'
+        });
+      }
+
+      const evidenceFiles = [];
+      for (const file of selected) {
+        if (!reprocess && getMealScoutBatchProcessedRecord(file.drive_file_id)) {
+          skippedFiles.push({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            reason: 'already_processed'
+          });
+          continue;
+        }
+        try {
+          const hydrated = await hydrateDriveFilesForPreviewWithDiagnostics([file], driveClient);
+          const hydratedFile = hydrated.files[0];
+          const diagnostic = hydrated.diagnostics[0];
+          if (!diagnostic) {
+            errors.push({ fileId: file.drive_file_id, message: 'missing_diagnostic' });
+            continue;
+          }
+          if (!diagnostic.ocrSucceeded && (diagnostic.byteLength <= 0 || diagnostic.extractionError === 'FILE_BYTES_EMPTY')) {
+            skippedFiles.push({ fileId: file.drive_file_id, fileName: file.file_name, reason: 'empty_bytes' });
+            continue;
+          }
+          if (!diagnostic.ocrSucceeded && diagnostic.extractionError === 'TESSERACT_NOT_FOUND') {
+            skippedFiles.push({ fileId: file.drive_file_id, fileName: file.file_name, reason: 'ocr_unavailable' });
+            continue;
+          }
+          const input = convertDriveFileToMealScoutScreenshotInput(hydratedFile);
+          input.sourceFileAttribution = resolveDriveFileAttribution(hydratedFile, {
+            batchId,
+            submittedByUserId: typeof payload.submittedByUserId === 'string' ? payload.submittedByUserId : undefined,
+            affiliateCode: typeof payload.affiliateCode === 'string' ? payload.affiliateCode : undefined,
+            repId: typeof payload.repId === 'string' ? payload.repId : undefined,
+            sourceChannel:
+              payload.sourceChannel === 'manual_upload' || payload.sourceChannel === 'admin_import'
+                ? payload.sourceChannel
+                : 'drive_upload'
+          });
+          const evidence = createMealScoutEvidenceFromScreenshotInput(input);
+          evidenceFiles.push(evidence);
+          const refs = Object.entries(evidence.extractedSignals || {})
+            .filter(([, value]) => {
+              if (Array.isArray(value)) return value.length > 0;
+              return Boolean(value);
+            })
+            .map(([key]) => key);
+          rememberMealScoutBatchProcessedRecord({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            processedAt: new Date().toISOString(),
+            batchId,
+            classification: normalizeBatchClassification(evidence.detectedType),
+            ocrSucceeded: diagnostic.ocrSucceeded,
+            extractedTextLength: diagnostic.extractedTextLength,
+            sourceEvidenceRefs: refs,
+            sourceFileAttribution: input.sourceFileAttribution
+          });
+          processedFiles.push({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            byteLength: diagnostic.byteLength,
+            ocrAttempted: diagnostic.ocrAttempted,
+            ocrSucceeded: diagnostic.ocrSucceeded,
+            classification: normalizeBatchClassification(evidence.detectedType),
+            sourceFileAttribution: input.sourceFileAttribution
+          });
+        } catch (error) {
+          errors.push({
+            fileId: file.drive_file_id,
+            message: error instanceof Error ? error.message : 'file_processing_failed'
+          });
+        }
+      }
+
+      const clusters = clusterMealScoutEvidenceFiles(evidenceFiles, []);
+      const drafts = buildMealScoutDraftsFromClusters(clusters, []);
+      const status = errors.length > 0 ? 'partial' : 'completed';
+      return responseJson(res, {
+        batchId,
+        status,
+        mutationAllowed: false,
+        folderId: resolvedFolderId,
+        scannedFileCount,
+        eligibleFileCount,
+        processedFileCount: processedFiles.length,
+        skippedFileCount: skippedFiles.length,
+        failedFileCount: errors.length,
+        skippedFiles,
+        processedFiles,
+        draftCount: drafts.length,
+        reviewQueueUrl: '/admin/mealscout-review-queue',
+        errors
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Drive batch intake failed';
+      return responseJson(
+        res,
+        {
+          batchId,
+          status: 'failed',
+          mutationAllowed: false,
+          folderId: resolvedFolderId,
+          scannedFileCount,
+          eligibleFileCount,
+          processedFileCount: processedFiles.length,
+          skippedFileCount: skippedFiles.length,
+          failedFileCount: Math.max(1, errors.length),
+          skippedFiles,
+          processedFiles,
+          draftCount: 0,
+          errors: [...errors, { message }]
+        },
+        409
+      );
+    }
   }
 
   if (method === 'POST' && pathname === '/api/mealscout/intake/publish-plan/execute') {

@@ -84,6 +84,12 @@ test('publishReady create_new record can execute with audit', async () => {
         plannedAction: 'create_new',
         publishReady: true,
         draftIds: ['d-create-1'],
+        sourceAttribution: {
+          primarySourceRepId: 'rep-1',
+          contributingRepIds: ['rep-1'],
+          sourceFileIds: ['f-create-1'],
+          attributionPolicy: 'first_required_field_contributor'
+        },
         profileFields: {
           truckName: { value: 'Orbit Taco', evidenceRefs: ['name'], sourceFileIds: ['f-create-1'] },
           cityArea: { value: 'Kenner', evidenceRefs: ['city'], sourceFileIds: ['f-create-1'] },
@@ -97,7 +103,7 @@ test('publishReady create_new record can execute with audit', async () => {
   const exec = await requestJson<{
     mutationAllowed: boolean;
     results: Array<{ result: string; auditId: string; targetId?: string }>;
-    auditEntries: Array<{ result: string; auditId: string; fieldsWritten: string[] }>;
+    auditEntries: Array<{ result: string; auditId: string; fieldsWritten: string[]; sourceAttribution?: { contributingRepIds: string[] } }>;
   }>('/api/mealscout/intake/publish-plan/execute', {
     method: 'POST',
     headers: { 'x-operator-role': 'admin' },
@@ -115,6 +121,7 @@ test('publishReady create_new record can execute with audit', async () => {
   assert.ok(exec.body.results[0].targetId);
   assert.equal(exec.body.auditEntries[0].result, 'success');
   assert.equal(exec.body.auditEntries[0].fieldsWritten.length > 0, true);
+  assert.equal(Array.isArray(exec.body.auditEntries[0].sourceAttribution?.contributingRepIds), true);
 });
 
 test('execution blocks blocked/needs_review/conflict and requires confirmation', async () => {

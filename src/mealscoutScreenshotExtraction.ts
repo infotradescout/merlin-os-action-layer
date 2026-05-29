@@ -14,6 +14,19 @@ export type MealScoutScreenshotInput = {
   modifiedTime?: string;
   extractedText?: string;
   visualLabels?: string[];
+  sourceFileAttribution?: {
+    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    driveUploaderEmail?: string;
+    driveUploaderName?: string;
+    uploadedAt?: string;
+    modifiedAt?: string;
+    intakeSubmittedBy?: string;
+    affiliateCode?: string;
+    repId?: string;
+    sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
+    batchId?: string;
+    capturedAt?: string;
+  };
 };
 
 const CUISINE_KEYWORDS: Array<{ keyword: RegExp; value: string }> = [
@@ -180,6 +193,7 @@ export function createMealScoutEvidenceFromScreenshotInput(input: MealScoutScree
     sourceFolder: input.sourceFolder || '',
     extractedSignals: parsed.extractedSignals,
     rawExtractedText: input.extractedText,
-    visualHints: hints
+    visualHints: hints,
+    sourceFileAttribution: input.sourceFileAttribution
   });
 }
