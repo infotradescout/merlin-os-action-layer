@@ -199,6 +199,47 @@ test('preview endpoint includes merge assist recommendations without mutation', 
   }
 });
 
+test('preview endpoint includes publish plan preview with mutation safety', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    publishPlan: {
+      mutationAllowed: boolean;
+      records: Array<{
+        plannedAction: string;
+        publishReady: boolean;
+        profileFields: Record<string, { evidenceRefs: string[]; sourceFileIds: string[] }>;
+      }>;
+    };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'plan-file-1',
+          fileName: 'profile.png',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/unknown/plan/',
+          extractedText: 'Plan Tacos\nPhone: 985-999-1234\nCity: Kenner\nTacos\nQuesadilla $10.00'
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.publishPlan.mutationAllowed, false);
+  assert.equal(Array.isArray(response.body.publishPlan.records), true);
+  assert.equal(response.body.publishPlan.records.length >= 1, true);
+  const first = response.body.publishPlan.records[0];
+  assert.equal(['create_new', 'update_existing', 'blocked', 'needs_review'].includes(first.plannedAction), true);
+  const anyField = Object.values(first.profileFields)[0];
+  if (anyField) {
+    assert.equal(Array.isArray(anyField.evidenceRefs), true);
+    assert.equal(Array.isArray(anyField.sourceFileIds), true);
+  }
+});
+
 test('extracts menu items with decimal prices without dollar sign', () => {
   const parsed = parseMealScoutSignalsFromText(['Chicken Adobo 10.95', 'Pork Fried 10.45'].join('\n'));
   assert.equal((parsed.extractedSignals.menuItems || []).length, 2);

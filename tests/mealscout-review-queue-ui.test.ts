@@ -65,6 +65,9 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
   assert.ok(response.body.includes('Preview-only operator station'));
   assert.ok(response.body.includes('OCR Draft Profiles'));
   assert.ok(response.body.includes('Duplicate / Merge Assist'));
+  assert.ok(response.body.includes('Publish Plan Preview'));
+  assert.ok(response.body.includes('Preview only - no records will be published.'));
+  assert.ok(response.body.includes('Publish (Disabled)'));
   assert.ok(response.body.includes('Mark as same truck'));
   assert.ok(response.body.includes('Keep separate'));
   assert.ok(response.body.includes('Needs review'));
@@ -212,7 +215,8 @@ test('mealscout review queue client uses preview endpoint and local review state
       '/approve-updates',
       '/merge',
       '/link-existing',
-      '/create-new-draft'
+      '/create-new-draft',
+      '/api/mealscout/publish'
     ];
     for (const pattern of blockedPatterns) {
       assert.equal(calls.some((entry) => entry.url.includes(pattern)), false, `unexpected mutation call: ${pattern}`);

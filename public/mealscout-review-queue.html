@@ -122,6 +122,16 @@
           <div id="merge-list" class="list"></div>
         </section>
       </div>
+
+      <div class="layout" style="margin-top:0.8rem;">
+        <section class="panel" style="grid-column: 1 / -1;">
+          <h2>Publish Plan Preview</h2>
+          <p class="subtitle"><strong>Preview only - no records will be published.</strong></p>
+          <div id="plan-summary" class="mini">Loading plan...</div>
+          <div id="plan-list" class="list" style="margin-top:0.6rem;"></div>
+          <button id="publish-disabled" disabled title="Disabled in preview mode">Publish (Disabled)</button>
+        </section>
+      </div>
     </div>
 
     <script type="module">
@@ -425,6 +435,63 @@
         }
       }
 
+      function renderPublishPlan(payload) {
+        const plan = payload.publishPlan || { records: [], mutationAllowed: false };
+        const records = Array.isArray(plan.records) ? plan.records : [];
+        const summary = {
+          total: records.length,
+          create_new: records.filter((row) => row.plannedAction === 'create_new').length,
+          update_existing: records.filter((row) => row.plannedAction === 'update_existing').length,
+          blocked: records.filter((row) => row.plannedAction === 'blocked').length,
+          needs_review: records.filter((row) => row.plannedAction === 'needs_review').length
+        };
+        const summaryNode = document.getElementById('plan-summary');
+        summaryNode.textContent =
+          `records:${summary.total} create:${summary.create_new} update:${summary.update_existing} blocked:${summary.blocked} needs_review:${summary.needs_review} mutationAllowed:${plan.mutationAllowed}`;
+
+        const list = document.getElementById('plan-list');
+        list.innerHTML = '';
+        if (!records.length) {
+          list.innerHTML = '<div class="draft-card">No plan records generated.</div>';
+          return;
+        }
+
+        for (const record of records) {
+          const fields = Object.entries(record.profileFields || {}).map(([key, value]) => {
+            return `<li><strong>${safe(key)}</strong>: ${safe(value.value)}<div class="mini">confidence:${safe(value.confidence)} · evidence:${safe((value.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((value.sourceFileIds || []).join(', '))}</div></li>`;
+          }).join('');
+          const menu = (record.menuItems || []).map((item) => {
+            return `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}<div class="mini">evidence:${safe((item.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((item.sourceFileIds || []).join(', '))}</div></li>`;
+          }).join('');
+          const block = document.createElement('div');
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill">${safe(record.plannedAction)}</span>
+              <span class="pill ${record.publishReady ? 'ok' : 'danger'}">publishReady:${safe(record.publishReady)}</span>
+              <span class="pill">mutationAllowed:false</span>
+            </div>
+            <div class="mini">draftIds: ${safe((record.draftIds || []).join(', '))}</div>
+            <div class="mini">existingTruckId: ${safe(record.existingTruckId)}</div>
+            <div class="field-row"><h4>Planned Fields</h4><ul>${fields || '<li class="mini">No fields</li>'}</ul></div>
+            <div class="field-row"><h4>Menu Items</h4><ul>${menu || '<li class="mini">No menu items</li>'}</ul></div>
+            <div class="field-row">
+              <h4>Blocked Reasons</h4>
+              <ul>${(record.blockedReasons || []).map((item) => `<li>${safe(item)}</li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Warnings</h4>
+              <ul>${(record.warnings || []).map((item) => `<li>${safe(item)}</li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Conflicts</h4>
+              <ul>${(record.conflicts || []).map((item) => `<li>${safe(item.field)}: ${safe((item.values || []).join(' vs '))}<div class="mini">sourceDraftIds:${safe((item.sourceDraftIds || []).join(', '))}</div></li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+          `;
+          list.appendChild(block);
+        }
+      }
+
       function hydrateSavedDecisions(payload, decisions) {
         draftDecisionIndex.clear();
         mergeDecisionIndex.clear();
@@ -476,6 +543,7 @@
         renderSummary(payload);
         renderDrafts(payload);
         renderMergeAssist(payload);
+        renderPublishPlan(payload);
       }
 
       hydrate().catch((error) => {

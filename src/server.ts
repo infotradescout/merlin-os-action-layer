@@ -90,6 +90,7 @@ import type { MealScoutIntakeDiscovery } from './mealscoutDriveIntake.js';
 import { clusterMealScoutEvidenceFiles } from './mealscoutEvidenceClustering.js';
 import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInput } from './mealscoutScreenshotExtraction.js';
 import { runMealScoutLocalOcr } from './mealscoutOcrAdapter.js';
+import { buildMealScoutPublishPlanPreview } from './mealscoutPublishPlan.js';
 import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
@@ -1497,6 +1498,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }));
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
     const mergeAssist = buildMealScoutMergeAssist(drafts);
+    const reviewDecisions = listMealScoutReviewDecisions();
+    const publishPlan = buildMealScoutPublishPlanPreview(drafts, reviewDecisions);
     const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
     const debugOcr =
       includeDebugOcr && driveOcrDiagnostics
@@ -1540,6 +1543,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       clusters,
       drafts,
       mergeAssist,
+      publishPlan,
       summary: {
         inputs: inputs.length,
         evidenceCount: evidenceFiles.length,
