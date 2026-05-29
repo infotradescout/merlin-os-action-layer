@@ -151,6 +151,41 @@ test('preview endpoint requires inputs and does not mutate live profiles', async
   assert.equal(bad.body.error.includes('inputs is required'), true);
 });
 
+test('extracts menu items with decimal prices without dollar sign', () => {
+  const parsed = parseMealScoutSignalsFromText(['Chicken Adobo 10.95', 'Pork Fried 10.45'].join('\n'));
+  assert.equal((parsed.extractedSignals.menuItems || []).length, 2);
+  assert.equal(parsed.extractedSignals.menuItems?.[0].price, '$10.95');
+});
+
+test('menu price lines are not selected as truckName', () => {
+  const parsed = parseMealScoutSignalsFromText(
+    ['Al Pastor Taco - $4.25', 'Birria Taco - $5.25', 'Quesadilla - $8.00'].join('\n')
+  );
+
+  assert.equal(parsed.extractedSignals.truckName, undefined);
+  assert.equal((parsed.extractedSignals.menuItems || []).length, 3);
+});
+
+test('OCR text classifies profile screenshot', () => {
+  const evidence = createMealScoutEvidenceFromScreenshotInput({
+    fileId: 'ocr-profile-classify',
+    fileName: 'profile.png',
+    sourceFolder: '/incoming/unknown',
+    extractedText: 'Lettys Backyard\nPhone: 850-333-1212\nCity: East Milton, FL\nCuisine: Filipino'
+  });
+  assert.equal(evidence.detectedType, 'profile');
+});
+
+test('OCR text classifies menu screenshot', () => {
+  const evidence = createMealScoutEvidenceFromScreenshotInput({
+    fileId: 'ocr-menu-classify',
+    fileName: 'menu.png',
+    sourceFolder: '/incoming/unknown',
+    extractedText: 'Chicken Adobo 10.95\nPork Fried 10.45'
+  });
+  assert.equal(evidence.detectedType, 'menu');
+});
+
 test('pilot 1 payload consolidates to one cluster and one draft in preview-only mode', async () => {
   const response = await requestJson<{
     status: string;

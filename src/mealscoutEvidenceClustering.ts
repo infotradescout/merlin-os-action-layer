@@ -1,4 +1,5 @@
 export type MealScoutDetectedType =
+  | 'profile'
   | 'profile_screenshot'
   | 'menu'
   | 'logo'
@@ -31,6 +32,7 @@ export type MealScoutEvidenceFile = {
   sourceFolder: string;
   detectedType: MealScoutDetectedType;
   extractedSignals: MealScoutExtractedSignals;
+  rawExtractedText?: string;
   confidence: number;
 };
 
@@ -115,7 +117,7 @@ export function classifyMealScoutDetectedType(input: {
     return { detectedType: 'schedule', confidence: 0.8 };
   }
   if (hasProfileSignals) {
-    return { detectedType: 'profile_screenshot', confidence: 0.8 };
+    return { detectedType: 'profile', confidence: 0.8 };
   }
   if (hints.hasSocialUi || signals.facebook || signals.instagram) {
     return { detectedType: 'social', confidence: 0.78 };
@@ -306,12 +308,14 @@ function bridgeAuxiliaryFiles(
   if (clusters.length <= 1) return clusters;
 
   const anchorCandidates = clusters.filter((cluster) =>
-    cluster.files.some((file) => file.detectedType === 'profile_screenshot' && hasStrongIdentity(file))
+    cluster.files.some((file) => (file.detectedType === 'profile_screenshot' || file.detectedType === 'profile') && hasStrongIdentity(file))
   );
 
   if (anchorCandidates.length !== 1) return clusters;
   const anchor = anchorCandidates[0];
-  const anchorStrong = anchor.files.find((file) => file.detectedType === 'profile_screenshot' && hasStrongIdentity(file));
+  const anchorStrong = anchor.files.find(
+    (file) => (file.detectedType === 'profile_screenshot' || file.detectedType === 'profile') && hasStrongIdentity(file)
+  );
   if (!anchorStrong) return clusters;
 
   const keep: MealScoutEvidenceCluster[] = [];
@@ -367,6 +371,57 @@ function bridgeAuxiliaryFiles(
   return refreshed;
 }
 
+function mergeSimilarProfileClusters(
+  clusters: MealScoutEvidenceCluster[],
+  existingProfiles: MealScoutExistingProfileHint[]
+): MealScoutEvidenceCluster[] {
+  if (clusters.length <= 1) return clusters;
+  const next = [...clusters];
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    outer: for (let i = 0; i < next.length; i += 1) {
+      for (let j = i + 1; j < next.length; j += 1) {
+        const left = next[i];
+        const right = next[j];
+        const leftName = normalizeText(left.likelyTruckName || left.files[0]?.extractedSignals.truckName);
+        const rightName = normalizeText(right.likelyTruckName || right.files[0]?.extractedSignals.truckName);
+        if (!leftName || !rightName || !similarName(leftName, rightName)) continue;
+
+        const hasConflict = left.files.some((lf) => right.files.some((rf) => hasConflictingIdentity(lf, rf)));
+        if (hasConflict) continue;
+
+        const mergedFiles = [...left.files, ...right.files];
+        const aggregate = aggregateClusterSignals(mergedFiles);
+        next[i] = {
+          ...left,
+          files: mergedFiles,
+          likelyTruckName: aggregate.truckName,
+          confidence: aggregate.confidence,
+          matchSignals: Array.from(new Set([...left.matchSignals, ...right.matchSignals, ...aggregate.matchSignals, 'name_merge']))
+        };
+        next.splice(j, 1);
+        changed = true;
+        break outer;
+      }
+    }
+  }
+
+  return next.map((cluster, index) => {
+    const aggregate = aggregateClusterSignals(cluster.files);
+    const refreshed: MealScoutEvidenceCluster = {
+      ...cluster,
+      clusterId: `cluster-${index + 1}`,
+      likelyTruckName: aggregate.truckName,
+      confidence: aggregate.confidence,
+      matchSignals: Array.from(new Set([...cluster.matchSignals, ...aggregate.matchSignals]))
+    };
+    refreshed.reviewStatus = deriveClusterReviewStatus(refreshed, existingProfiles);
+    return refreshed;
+  });
+}
+
 export function clusterMealScoutEvidenceFiles(
   files: MealScoutEvidenceFile[],
   existingProfiles: MealScoutExistingProfileHint[] = []
@@ -406,7 +461,8 @@ export function clusterMealScoutEvidenceFiles(
     clusters.push(cluster);
   }
 
-  return bridgeAuxiliaryFiles(clusters, existingProfiles);
+  const bridged = bridgeAuxiliaryFiles(clusters, existingProfiles);
+  return mergeSimilarProfileClusters(bridged, existingProfiles);
 }
 
 export function createMealScoutEvidenceFile(input: {
@@ -415,6 +471,7 @@ export function createMealScoutEvidenceFile(input: {
   drivePath: string;
   sourceFolder: string;
   extractedSignals?: MealScoutExtractedSignals;
+  rawExtractedText?: string;
   visualHints?: { hasLogo?: boolean; hasMenuLayout?: boolean; hasHoursGrid?: boolean; hasSocialUi?: boolean };
   detectedType?: MealScoutDetectedType;
   confidence?: number;
@@ -432,6 +489,7 @@ export function createMealScoutEvidenceFile(input: {
     sourceFolder: input.sourceFolder,
     detectedType: input.detectedType || auto.detectedType,
     extractedSignals: input.extractedSignals || {},
+    rawExtractedText: input.rawExtractedText,
     confidence: Number(Math.max(0, Math.min(1, input.confidence ?? auto.confidence)).toFixed(2))
   };
 }

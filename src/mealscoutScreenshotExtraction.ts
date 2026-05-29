@@ -90,9 +90,11 @@ function extractTruckName(text: string): string | undefined {
     const alphaCount = (line.match(/[a-z]/gi) || []).length;
     if (alphaCount < 3) continue;
     if (/[@]|https?:\/\/|www\.|^\$/.test(line)) continue;
-    if (/\$\s?\d+(?:\.\d{2})?/.test(line)) continue;
+    if (/\$?\s?\d{1,3}(?:\.\d{2})\b/.test(line)) continue;
     if (/phone|email|menu|hours|location|city|facebook|instagram|tiktok/i.test(line)) continue;
-    return line;
+    const cleaned = line.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '').trim();
+    if (!cleaned) continue;
+    return cleaned;
   }
   return undefined;
 }
@@ -104,11 +106,12 @@ function extractMenuItems(text: string): MealScoutExtractedMenuItem[] {
     .filter(Boolean);
   const out: MealScoutExtractedMenuItem[] = [];
   for (const line of lines) {
-    const price = line.match(/\$\s?\d+(?:\.\d{2})?/);
+    const price = line.match(/(?:^|[\s-])(\$?\s?\d{1,3}(?:\.\d{2}))(?:\b|$)/);
     if (!price) continue;
-    const name = line.replace(price[0], '').replace(/[-–:]+$/, '').trim();
+    const priceValue = price[1].replace(/\s+/g, '');
+    const name = line.replace(price[0], ' ').replace(/[-–:]+$/, '').trim();
     if (!name) continue;
-    out.push({ name, price: price[0].replace(/\s+/g, '') });
+    out.push({ name, price: priceValue.startsWith('$') ? priceValue : `$${priceValue}` });
   }
   return out;
 }
@@ -176,6 +179,7 @@ export function createMealScoutEvidenceFromScreenshotInput(input: MealScoutScree
     drivePath: input.drivePath || input.fileName,
     sourceFolder: input.sourceFolder || '',
     extractedSignals: parsed.extractedSignals,
+    rawExtractedText: input.extractedText,
     visualHints: hints
   });
 }

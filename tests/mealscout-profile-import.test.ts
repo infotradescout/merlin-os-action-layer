@@ -29,9 +29,12 @@ test('creates draft from complete extracted signal', () => {
   ]);
 
   assert.equal(draft.reviewStatus, 'ready_for_review');
+  assert.equal(draft.draftType, 'create_new');
   assert.equal(draft.missingFields.length, 0);
   assert.equal(draft.menu.length, 1);
   assert.equal(draft.menu[0].sourceFileId, 'file-1');
+  assert.equal(draft.extractedFieldEvidence.truckName?.sourceFileId, 'file-1');
+  assert.equal(draft.extractedFieldEvidence.menuItems?.length, 1);
 });
 
 test('flags missing required fields', () => {
@@ -123,6 +126,8 @@ test('detects duplicate by phone email social website', () => {
 
   assert.equal(draft.duplicateCandidates.length > 0, true);
   assert.equal(draft.reviewStatus, 'duplicate_possible');
+  assert.equal(draft.draftType, 'update_existing');
+  assert.equal(draft.existingTruckId, 'existing-1');
   assert.equal(draft.duplicateCandidates[0].existingProfileId, 'existing-1');
 });
 
@@ -149,7 +154,8 @@ test('detects duplicate by similar name and same city', () => {
   );
 
   assert.equal(draft.duplicateCandidates.length, 1);
-  assert.equal(draft.reviewStatus, 'duplicate_possible');
+  assert.equal(draft.reviewStatus, 'uncertain_match');
+  assert.equal(draft.draftType, 'uncertain_match');
 });
 
 test('review status priority favors missing_required over duplicate_possible', () => {
@@ -174,6 +180,29 @@ test('review status priority favors missing_required over duplicate_possible', (
   assert.equal(draft.duplicateCandidates.length > 0, true);
   assert.equal(draft.missingFields.length > 0, true);
   assert.equal(draft.reviewStatus, 'missing_required');
+});
+
+test('ambiguous top matches stay uncertain_match', () => {
+  const draft = buildMealScoutProfileDraft(
+    [
+      {
+        sourceFileId: 'file-ambiguous',
+        sourceType: 'screenshot',
+        truckName: 'Taco Orbit',
+        phone: '985-111-2222',
+        cityArea: 'Kenner',
+        cuisine: 'Mexican',
+        menuItems: [{ name: 'Taco' }]
+      }
+    ],
+    [
+      { id: 'existing-a', truckName: 'Taco Orbit', phone: '9851112222' },
+      { id: 'existing-b', truckName: 'Taco Orbit', phone: '9851112222' }
+    ]
+  );
+
+  assert.equal(draft.draftType, 'uncertain_match');
+  assert.equal(draft.reviewStatus, 'uncertain_match');
 });
 
 test('sets mutationAllowed false', () => {

@@ -3,8 +3,10 @@ import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js'
 
 export type MealScoutExtractedSignal = {
   sourceFileId: string;
+  sourceFileName?: string;
   sourcePath?: string;
   sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown';
+  rawExtractedText?: string;
   truckName?: string;
   phone?: string;
   email?: string;
@@ -33,6 +35,8 @@ export type MealScoutDuplicateCandidate = {
 
 export type MealScoutProfileDraft = {
   draftId: string;
+  draftType: 'create_new' | 'update_existing' | 'uncertain_match';
+  existingTruckId?: string;
   truckName?: string;
   phone?: string;
   email?: string;
@@ -60,6 +64,28 @@ export type MealScoutProfileDraft = {
   duplicateCandidates: MealScoutDuplicateCandidate[];
   confidence: number;
   reviewStatus: 'ready_for_review' | 'missing_required' | 'duplicate_possible' | 'uncertain_match';
+  extractedFieldEvidence: Partial<
+    Record<
+      'truckName' | 'phone' | 'email' | 'website' | 'facebook' | 'instagram' | 'cityArea' | 'cuisine' | 'hours' | 'serviceArea' | 'notesBio',
+      {
+        value: string;
+        sourceFileId: string;
+        sourceFileName?: string;
+        extractionMethod: 'ocr';
+        confidence: number;
+        rawSnippet: string;
+      }
+    >
+  > & {
+    menuItems?: Array<{
+      value: string;
+      sourceFileId: string;
+      sourceFileName?: string;
+      extractionMethod: 'ocr';
+      confidence: number;
+      rawSnippet: string;
+    }>;
+  };
   mutationAllowed: false;
 };
 
@@ -210,6 +236,46 @@ function pickFirst<T>(signals: MealScoutExtractedSignal[], selector: (s: MealSco
   return undefined;
 }
 
+function buildRawSnippet(rawText: string | undefined, value: string | undefined): string {
+  if (!value) return '';
+  const safeRaw = (rawText || '').trim();
+  if (!safeRaw) return value.slice(0, 120);
+  const index = safeRaw.toLowerCase().indexOf(value.toLowerCase());
+  if (index < 0) return safeRaw.slice(0, 120);
+  const start = Math.max(0, index - 30);
+  const end = Math.min(safeRaw.length, index + value.length + 30);
+  return safeRaw.slice(start, end);
+}
+
+function buildFieldEvidence(
+  signals: MealScoutExtractedSignal[],
+  selector: (signal: MealScoutExtractedSignal) => string | undefined,
+  confidence: number
+):
+  | {
+      value: string;
+      sourceFileId: string;
+      sourceFileName?: string;
+      extractionMethod: 'ocr';
+      confidence: number;
+      rawSnippet: string;
+    }
+  | undefined {
+  for (const signal of signals) {
+    const value = (selector(signal) || '').trim();
+    if (!value) continue;
+    return {
+      value,
+      sourceFileId: signal.sourceFileId,
+      sourceFileName: signal.sourceFileName,
+      extractionMethod: 'ocr',
+      confidence,
+      rawSnippet: buildRawSnippet(signal.rawExtractedText, value)
+    };
+  }
+  return undefined;
+}
+
 function resolveReviewStatus(missingFields: string[], duplicateCandidates: MealScoutDuplicateCandidate[], warnings: string[]): MealScoutProfileDraft['reviewStatus'] {
   if (missingFields.length > 0) return 'missing_required';
   if (duplicateCandidates.length > 0) return 'duplicate_possible';
@@ -235,6 +301,7 @@ export function buildMealScoutProfileDraft(
 
   const draft: MealScoutProfileDraft = {
     draftId: `ms-draft-${randomUUID()}`,
+    draftType: 'create_new',
     truckName: pickFirst(safeSignals, (s) => (s.truckName || '').trim() || undefined),
     phone: pickFirst(safeSignals, (s) => (s.phone || '').trim() || undefined),
     email: pickFirst(safeSignals, (s) => (s.email || '').trim() || undefined),
@@ -257,6 +324,7 @@ export function buildMealScoutProfileDraft(
     duplicateCandidates: [],
     confidence: scoreConfidence(safeSignals),
     reviewStatus: 'ready_for_review',
+    extractedFieldEvidence: {},
     mutationAllowed: false
   };
 
@@ -271,6 +339,43 @@ export function buildMealScoutProfileDraft(
   }
 
   draft.reviewStatus = resolveReviewStatus(draft.missingFields, draft.duplicateCandidates, draft.warnings);
+
+  const topDuplicate = draft.duplicateCandidates[0];
+  const secondDuplicate = draft.duplicateCandidates[1];
+  if (topDuplicate && topDuplicate.confidence >= 0.95 && (!secondDuplicate || topDuplicate.confidence - secondDuplicate.confidence >= 0.05)) {
+    draft.draftType = 'update_existing';
+    draft.existingTruckId = topDuplicate.existingProfileId;
+  } else if (topDuplicate) {
+    draft.draftType = 'uncertain_match';
+    draft.reviewStatus = 'uncertain_match';
+    if (!draft.warnings.includes('ambiguous existing match')) {
+      draft.warnings.push('ambiguous existing match');
+    }
+  }
+
+  draft.extractedFieldEvidence.truckName = buildFieldEvidence(safeSignals, (s) => s.truckName, 0.85);
+  draft.extractedFieldEvidence.phone = buildFieldEvidence(safeSignals, (s) => s.phone, 0.98);
+  draft.extractedFieldEvidence.email = buildFieldEvidence(safeSignals, (s) => s.email, 0.98);
+  draft.extractedFieldEvidence.website = buildFieldEvidence(safeSignals, (s) => s.website, 0.9);
+  draft.extractedFieldEvidence.facebook = buildFieldEvidence(safeSignals, (s) => s.socials?.facebook, 0.9);
+  draft.extractedFieldEvidence.instagram = buildFieldEvidence(safeSignals, (s) => s.socials?.instagram, 0.9);
+  draft.extractedFieldEvidence.cityArea = buildFieldEvidence(safeSignals, (s) => s.cityArea, 0.75);
+  draft.extractedFieldEvidence.cuisine = buildFieldEvidence(safeSignals, (s) => s.cuisine, 0.7);
+
+  const menuEvidence = safeSignals.flatMap((signal) =>
+    (signal.menuItems || []).map((item) => ({
+      value: `${item.name}${item.price ? ` ${item.price}` : ''}`.trim(),
+      sourceFileId: signal.sourceFileId,
+      sourceFileName: signal.sourceFileName,
+      extractionMethod: 'ocr' as const,
+      confidence: 0.8,
+      rawSnippet: buildRawSnippet(signal.rawExtractedText, item.name)
+    }))
+  );
+  if (menuEvidence.length > 0) {
+    draft.extractedFieldEvidence.menuItems = menuEvidence;
+  }
+
   return draft;
 }
 
@@ -290,6 +395,8 @@ export function buildMealScoutDraftsFromClusters(
             : file.detectedType === 'unknown'
               ? 'unknown'
               : 'screenshot',
+      sourceFileName: file.fileName,
+      rawExtractedText: file.rawExtractedText,
       truckName: file.extractedSignals.truckName,
       phone: file.extractedSignals.phone,
       email: file.extractedSignals.email,
