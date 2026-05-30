@@ -96,6 +96,16 @@ test('publishReady create_new record can execute with audit', async () => {
           phone: { value: '985-111-2222', evidenceRefs: ['phone'], sourceFileIds: ['f-create-1'] }
         },
         menuItems: [{ name: 'Quesadilla', price: '$10.00', evidenceRefs: ['menu'], sourceFileIds: ['f-create-1'] }]
+        ,
+        attachedMedia: [
+          {
+            mediaType: 'logo',
+            sourceFileId: 'f-create-logo',
+            sourceFileName: 'logo.png',
+            confidence: 0.8,
+            evidenceRefs: ['logo asset']
+          }
+        ]
       }
     ]
   });
@@ -103,7 +113,13 @@ test('publishReady create_new record can execute with audit', async () => {
   const exec = await requestJson<{
     mutationAllowed: boolean;
     results: Array<{ result: string; auditId: string; targetId?: string }>;
-    auditEntries: Array<{ result: string; auditId: string; fieldsWritten: string[]; sourceAttribution?: { contributingRepIds: string[] } }>;
+    auditEntries: Array<{
+      result: string;
+      auditId: string;
+      fieldsWritten: string[];
+      sourceAttribution?: { contributingRepIds: string[] };
+      attachedMedia?: Array<{ mediaType: string; sourceFileId: string }>;
+    }>;
   }>('/api/mealscout/intake/publish-plan/execute', {
     method: 'POST',
     headers: { 'x-operator-role': 'admin' },
@@ -122,6 +138,7 @@ test('publishReady create_new record can execute with audit', async () => {
   assert.equal(exec.body.auditEntries[0].result, 'success');
   assert.equal(exec.body.auditEntries[0].fieldsWritten.length > 0, true);
   assert.equal(Array.isArray(exec.body.auditEntries[0].sourceAttribution?.contributingRepIds), true);
+  assert.equal(exec.body.auditEntries[0].attachedMedia?.[0]?.mediaType, 'logo');
 });
 
 test('execution blocks blocked/needs_review/conflict and requires confirmation', async () => {

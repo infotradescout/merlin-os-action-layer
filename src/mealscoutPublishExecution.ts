@@ -32,6 +32,11 @@ export type MealScoutPublishAuditEntry = {
   sourceAttribution?: MealScoutPublishPlanRecord['sourceAttribution'];
   previousValues?: Record<string, string | undefined>;
   newValues?: Record<string, string | undefined>;
+  attachedMedia?: Array<{
+    mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+    sourceFileId: string;
+    sourceFileName?: string;
+  }>;
   targetId?: string;
   operatorId?: string;
   executedAt: string;
@@ -287,6 +292,12 @@ export function executeMealScoutPublishPlan(input: {
         operatorId: input.operatorId,
         executedAt,
         result: 'success'
+        ,
+        attachedMedia: (record.attachedMedia || []).map((item) => ({
+          mediaType: item.mediaType,
+          sourceFileId: item.sourceFileId,
+          sourceFileName: item.sourceFileName
+        }))
       };
       results.push(success);
       audits.push(audit);

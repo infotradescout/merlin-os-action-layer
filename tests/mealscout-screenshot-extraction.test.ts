@@ -89,6 +89,36 @@ test('classifies logo-only evidence without auto-attachment', () => {
   assert.equal(evidence.extractedSignals.truckName, undefined);
 });
 
+test('logo-only preview evidence remains unattached media and does not create standalone draft', async () => {
+  const response = await requestJson<{
+    status: string;
+    mutationAllowed: boolean;
+    drafts: Array<{ draftId: string }>;
+    unattachedMedia: Array<{ sourceFileId: string; mediaType: string }>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'logo-only-1',
+          fileName: 'brand-logo.png',
+          sourceFolder: '/Merlin/MealScout Intake/incoming/logos/',
+          extractedText: '',
+          visualLabels: ['logo', 'brand']
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, 'ok');
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.drafts.length, 0);
+  assert.equal(response.body.unattachedMedia.length, 1);
+  assert.equal(response.body.unattachedMedia[0].sourceFileId, 'logo-only-1');
+  assert.equal(response.body.unattachedMedia[0].mediaType, 'logo');
+});
+
 test('classifies social screenshot', () => {
   const evidence = createMealScoutEvidenceFromScreenshotInput({
     fileId: 'social-1',
@@ -398,7 +428,7 @@ test('pilot 2 mixed multi-truck dump stays separated and mutation-safe in previe
   assert.equal(response.body.status, 'ok');
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.summary.clusterCount >= 2 && response.body.summary.clusterCount <= 3, true);
-  assert.equal(response.body.summary.draftCount, response.body.summary.clusterCount);
+  assert.equal(response.body.summary.draftCount <= response.body.summary.clusterCount, true);
   assert.equal(response.body.drafts.every((item) => item.mutationAllowed === false), true);
 
   const bayouCluster = response.body.clusters.find((cluster) =>
@@ -436,7 +466,7 @@ test('pilot 3 existing truck evidence maps to existing candidate without duplica
       draftId: string;
       truckName?: string;
       mutationAllowed: boolean;
-      sourceFiles: Array<{ sourceFileId: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown' }>;
+      sourceFiles: Array<{ sourceFileId: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'unknown' | 'unknown_media' }>;
       duplicateCandidates: Array<{ existingProfileId: string; reason: string; confidence: number }>;
     }>;
     summary: { clusterCount: number; draftCount: number };
@@ -520,7 +550,7 @@ test('pilot 4 drive-style batch preview groups existing and new trucks without m
       draftId: string;
       truckName?: string;
       mutationAllowed: boolean;
-      sourceFiles: Array<{ sourceFileId: string; sourcePath?: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown' }>;
+      sourceFiles: Array<{ sourceFileId: string; sourcePath?: string; sourceType: 'screenshot' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'unknown' | 'unknown_media' }>;
       duplicateCandidates: Array<{ existingProfileId: string; reason: string; confidence: number }>;
     }>;
     summary: { clusterCount: number; draftCount: number };
@@ -585,7 +615,7 @@ test('pilot 4 drive-style batch preview groups existing and new trucks without m
   assert.equal(response.body.status, 'ok');
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.summary.clusterCount, 3);
-  assert.equal(response.body.summary.draftCount, 3);
+  assert.equal(response.body.summary.draftCount, 2);
   assert.equal(response.body.drafts.every((draft) => draft.mutationAllowed === false), true);
 
   const existingDrafts = response.body.drafts.filter((draft) =>
@@ -640,11 +670,11 @@ test('pilot 4 drive-style batch preview groups existing and new trucks without m
     'pilot-4-existing-profile',
     'pilot-4-existing-menu',
     'pilot-4-new-profile',
-    'pilot-4-new-menu',
-    'pilot-4-orphan-logo'
+    'pilot-4-new-menu'
   ]) {
     assert.equal(draftSourceFileIds.includes(expected), true);
   }
+  assert.equal(draftSourceFileIds.includes('pilot-4-orphan-logo'), false);
 
   // Preview payload must not include any Drive mutation artifacts.
   const previewPayload = response.body as unknown as Record<string, unknown>;

@@ -6,7 +6,7 @@ export type MealScoutExtractedSignal = {
   sourceFileId: string;
   sourceFileName?: string;
   sourcePath?: string;
-  sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown';
+  sourceType: 'screenshot' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'unknown' | 'unknown_media';
   rawExtractedText?: string;
   truckName?: string;
   phone?: string;
@@ -71,7 +71,15 @@ export type MealScoutProfileDraft = {
   sourceFiles: Array<{
     sourceFileId: string;
     sourcePath?: string;
-    sourceType: 'screenshot' | 'menu' | 'logo' | 'unknown';
+    sourceType: 'screenshot' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'unknown' | 'unknown_media';
+    sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
+  }>;
+  attachedMedia: Array<{
+    mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+    sourceFileId: string;
+    sourceFileName?: string;
+    sourcePath?: string;
+    confidence: number;
     sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
   }>;
   missingFields: string[];
@@ -150,6 +158,15 @@ export type MealScoutMergeAssistCandidateGroup = {
 
 export type MealScoutMergeAssist = {
   candidateGroups: MealScoutMergeAssistCandidateGroup[];
+};
+
+export type MealScoutUnattachedMedia = {
+  mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+  sourceFileId: string;
+  sourceFileName?: string;
+  sourcePath?: string;
+  reason: 'weak_linkage' | 'logo_only' | 'unknown_media';
+  sourceAttribution?: MealScoutExtractedSignal['sourceFileAttribution'];
 };
 
 export type MealScoutExistingProfile = {
@@ -446,6 +463,16 @@ export function buildMealScoutProfileDraft(
       sourceType: signal.sourceType,
       sourceAttribution: signal.sourceFileAttribution
     })),
+    attachedMedia: safeSignals
+      .filter((signal) => ['logo', 'truck_photo', 'food_photo', 'unknown_media'].includes(signal.sourceType))
+      .map((signal) => ({
+        mediaType: signal.sourceType === 'unknown' ? 'unknown_media' : (signal.sourceType as 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media'),
+        sourceFileId: signal.sourceFileId,
+        sourceFileName: signal.sourceFileName,
+        sourcePath: signal.sourcePath,
+        confidence: 0.7,
+        sourceAttribution: signal.sourceFileAttribution
+      })),
     missingFields: [],
     warnings: [],
     duplicateCandidates: [],
@@ -512,7 +539,23 @@ export function buildMealScoutDraftsFromClusters(
   clusters: MealScoutEvidenceCluster[],
   profiles: MealScoutExistingProfile[] = []
 ): MealScoutProfileDraft[] {
-  return clusters.map((cluster) => {
+  const drafts: MealScoutProfileDraft[] = [];
+  for (const cluster of clusters) {
+    const singleton = cluster.files.length === 1 ? cluster.files[0] : undefined;
+    if (singleton) {
+      const mediaOnlyType = ['logo', 'truck_photo', 'food_photo', 'unknown'].includes(singleton.detectedType);
+      const hasIdentity = Boolean(
+        (singleton.extractedSignals.truckName || '').trim() ||
+          (singleton.extractedSignals.phone || '').trim() ||
+          (singleton.extractedSignals.email || '').trim() ||
+          (singleton.extractedSignals.website || '').trim() ||
+          (singleton.extractedSignals.facebook || '').trim() ||
+          (singleton.extractedSignals.instagram || '').trim()
+      );
+      if (mediaOnlyType && !hasIdentity) {
+        continue;
+      }
+    }
     const signals: MealScoutExtractedSignal[] = cluster.files.map((file) => ({
       sourceFileId: file.fileId,
       sourcePath: file.drivePath,
@@ -521,6 +564,10 @@ export function buildMealScoutDraftsFromClusters(
           ? 'menu'
           : file.detectedType === 'logo'
             ? 'logo'
+            : file.detectedType === 'truck_photo'
+              ? 'truck_photo'
+              : file.detectedType === 'food_photo'
+                ? 'food_photo'
             : file.detectedType === 'unknown'
               ? 'unknown'
               : 'screenshot',
@@ -546,8 +593,39 @@ export function buildMealScoutDraftsFromClusters(
         draft.warnings.push('uncertain cluster match');
       }
     }
-    return draft;
-  });
+    drafts.push(draft);
+  }
+  return drafts;
+}
+
+export function buildMealScoutUnattachedMediaFromClusters(clusters: MealScoutEvidenceCluster[]): MealScoutUnattachedMedia[] {
+  const out: MealScoutUnattachedMedia[] = [];
+  for (const cluster of clusters) {
+    if (cluster.files.length !== 1) continue;
+    const file = cluster.files[0];
+    if (!['logo', 'truck_photo', 'food_photo', 'unknown'].includes(file.detectedType)) continue;
+    const hasIdentity = Boolean(
+      (file.extractedSignals.truckName || '').trim() ||
+        (file.extractedSignals.phone || '').trim() ||
+        (file.extractedSignals.email || '').trim() ||
+        (file.extractedSignals.website || '').trim() ||
+        (file.extractedSignals.facebook || '').trim() ||
+        (file.extractedSignals.instagram || '').trim()
+    );
+    if (hasIdentity) continue;
+    out.push({
+      mediaType:
+        file.detectedType === 'unknown'
+          ? 'unknown_media'
+          : (file.detectedType as 'logo' | 'truck_photo' | 'food_photo'),
+      sourceFileId: file.fileId,
+      sourceFileName: file.fileName,
+      sourcePath: file.drivePath,
+      reason: file.detectedType === 'logo' ? 'logo_only' : file.detectedType === 'unknown' ? 'unknown_media' : 'weak_linkage',
+      sourceAttribution: file.sourceFileAttribution
+    });
+  }
+  return out;
 }
 
 export function buildMealScoutMergeAssist(drafts: MealScoutProfileDraft[]): MealScoutMergeAssist {

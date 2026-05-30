@@ -96,6 +96,7 @@ import {
   addMealScoutScreenshotEvidence,
   approveMealScoutDraft,
   buildMealScoutDraftsFromClusters,
+  buildMealScoutUnattachedMediaFromClusters,
   buildMealScoutMergeAssist,
   createMealScoutBatch,
   createNewDraftFromCluster,
@@ -289,8 +290,15 @@ type MealScoutBatchRunSkipReason =
 
 function normalizeBatchClassification(
   detectedType: string
-): 'profile' | 'menu' | 'logo' | 'social' | 'unknown' {
-  if (detectedType === 'profile' || detectedType === 'menu' || detectedType === 'logo' || detectedType === 'social') {
+): 'profile' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'social' | 'unknown' {
+  if (
+    detectedType === 'profile' ||
+    detectedType === 'menu' ||
+    detectedType === 'logo' ||
+    detectedType === 'truck_photo' ||
+    detectedType === 'food_photo' ||
+    detectedType === 'social'
+  ) {
     return detectedType;
   }
   if (detectedType === 'profile_screenshot') return 'profile';
@@ -1556,6 +1564,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         evidenceFiles: [],
         clusters: [],
         drafts: [],
+        unattachedMedia: [],
         summary: {
           inputs: 0,
           evidenceCount: 0,
@@ -1591,6 +1600,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       socials: profile.socials
     }));
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
+    const unattachedMedia = buildMealScoutUnattachedMediaFromClusters(clusters);
     const mergeAssist = buildMealScoutMergeAssist(drafts);
     const reviewDecisions = listMealScoutReviewDecisions();
     const publishPlan = rememberMealScoutPublishPlan(buildMealScoutPublishPlanPreview(drafts, reviewDecisions));
@@ -1636,6 +1646,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       evidenceFiles,
       clusters,
       drafts,
+      unattachedMedia,
       mergeAssist,
       publishPlan,
       summary: {
@@ -1686,7 +1697,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       ocrAttempted: boolean;
       ocrSucceeded: boolean;
       extractedTextLength: number;
-      classification: 'profile' | 'menu' | 'logo' | 'social' | 'unknown';
+      classification: 'profile' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'social' | 'unknown';
       sourceFileAttribution?: MealScoutScreenshotInput['sourceFileAttribution'];
     }> = [];
     const errors: Array<{ fileId?: string; message: string }> = [];

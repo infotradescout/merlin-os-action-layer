@@ -157,6 +157,8 @@
               <option value="profile">profile</option>
               <option value="menu">menu</option>
               <option value="logo">logo</option>
+              <option value="truck_photo">truck_photo</option>
+              <option value="food_photo">food_photo</option>
               <option value="social">social</option>
               <option value="unknown">unknown</option>
             </select>
@@ -186,6 +188,11 @@
           <h2>Duplicate / Merge Assist</h2>
           <p class="subtitle">Evidence-based recommendations only. Operator decides.</p>
           <div id="merge-list" class="list"></div>
+          <div class="field-row">
+            <h3>Unattached Media</h3>
+            <p class="subtitle">Media that did not have safe linkage to a truck draft.</p>
+            <div id="unattached-media-list" class="list"></div>
+          </div>
         </section>
       </div>
 
@@ -578,6 +585,10 @@
           const menuRows = Array.isArray(draft.menu) && draft.menu.length
             ? draft.menu.map((item) => `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}</li>`).join('')
             : '<li class="mini">Not found in screenshot</li>';
+          const attachedMedia = Array.isArray(draft.attachedMedia) ? draft.attachedMedia : [];
+          const mediaRows = attachedMedia.length
+            ? attachedMedia.map((item) => `<li class="mini">${safe(item.mediaType)} · <span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName)}<div class="mini">by:${safe(item.sourceAttribution?.driveUploaderEmail || item.sourceAttribution?.repId)} · affiliate:${safe(item.sourceAttribution?.affiliateCode)} · source:${safe(item.sourceAttribution?.attributionSource)}</div></li>`).join('')
+            : '<li class="mini">No media attached.</li>';
 
           const evidenceRefs = Object.keys(evidence || {});
           const sourceFileIds = sourceFiles.map((file) => file.sourceFileId).filter(Boolean);
@@ -627,6 +638,10 @@
               <ul>${sourceRows || '<li class="mini">No source files listed.</li>'}</ul>
             </div>
             <div class="field-row">
+              <h4>Attached Media</h4>
+              <ul>${mediaRows}</ul>
+            </div>
+            <div class="field-row">
               <h4>Operator Review Action</h4>
               <textarea id="draft-reason-${safe(draft.draftId)}" class="mini" placeholder="Optional reason for decision"></textarea>
               <div class="actions">
@@ -641,6 +656,23 @@
           wireDraftActions(draft.draftId);
           renderDraftActionState(draft.draftId);
         }
+      }
+
+      function renderUnattachedMedia(payload) {
+        const container = document.getElementById('unattached-media-list');
+        if (!container) return;
+        const rows = Array.isArray(payload.unattachedMedia) ? payload.unattachedMedia : [];
+        if (!rows.length) {
+          container.innerHTML = '<div class="draft-card mini">No unattached media.</div>';
+          return;
+        }
+        container.innerHTML = rows.map((item) => `
+          <div class="draft-card">
+            <div><span class="pill warn">${safe(item.mediaType || 'unknown_media')}</span> <span class="pill">${safe(item.reason || 'weak_linkage')}</span></div>
+            <div class="mini"><span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName || '')}</div>
+            <div class="mini">source:${safe(item.sourceAttribution?.attributionSource)} · by:${safe(item.sourceAttribution?.driveUploaderEmail || item.sourceAttribution?.repId)} · affiliate:${safe(item.sourceAttribution?.affiliateCode)}</div>
+          </div>
+        `).join('');
       }
 
       function wireMergeActions(groupId) {
@@ -793,6 +825,9 @@
           const menu = (record.menuItems || []).map((item) => {
             return `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}<div class="mini">evidence:${safe((item.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((item.sourceFileIds || []).join(', '))}</div></li>`;
           }).join('');
+          const media = (record.attachedMedia || []).map((item) => {
+            return `<li>${safe(item.mediaType)} · <span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName)}<div class="mini">confidence:${safe(item.confidence)} · evidence:${safe((item.evidenceRefs || []).join(' | '))}</div></li>`;
+          }).join('');
           const selectable = isSelectableRecord(record);
           const checked = executionState.selectedRecordIds.has(record.recordId) ? 'checked' : '';
           const block = document.createElement('div');
@@ -814,6 +849,7 @@
             <div class="mini">existingTruckId: ${safe(record.existingTruckId)}</div>
             <div class="field-row"><h4>Planned Fields</h4><ul>${fields || '<li class="mini">No fields</li>'}</ul></div>
             <div class="field-row"><h4>Menu Items</h4><ul>${menu || '<li class="mini">No menu items</li>'}</ul></div>
+            <div class="field-row"><h4>Attached Media</h4><ul>${media || '<li class="mini">No attached media</li>'}</ul></div>
             <div class="field-row">
               <h4>Blocked Reasons</h4>
               <ul>${(record.blockedReasons || []).map((item) => `<li>${safe(item)}</li>`).join('') || '<li class="mini">None</li>'}</ul>
@@ -960,6 +996,7 @@
         renderSummary(payload);
         renderDrafts(payload);
         renderMergeAssist(payload);
+        renderUnattachedMedia(payload);
         renderPublishPlan(payload);
         await refreshPublishAudit();
         renderBatchResult(batchState.lastResult);

@@ -3,6 +3,8 @@ export type MealScoutDetectedType =
   | 'profile_screenshot'
   | 'menu'
   | 'logo'
+  | 'truck_photo'
+  | 'food_photo'
   | 'schedule'
   | 'social'
   | 'unknown';
@@ -109,11 +111,13 @@ function menuOverlap(left: MealScoutExtractedMenuItem[] | undefined, right: Meal
 }
 
 export function classifyMealScoutDetectedType(input: {
+  fileName?: string;
   sourceFolder?: string;
   extractedSignals?: MealScoutExtractedSignals;
   visualHints?: { hasLogo?: boolean; hasMenuLayout?: boolean; hasHoursGrid?: boolean; hasSocialUi?: boolean };
 }): { detectedType: MealScoutDetectedType; confidence: number } {
   const folder = normalizeText(input.sourceFolder);
+  const fileName = normalizeText(input.fileName);
   const signals = input.extractedSignals || {};
   const hints = input.visualHints || {};
   const hasProfileSignals = Boolean(
@@ -125,6 +129,14 @@ export function classifyMealScoutDetectedType(input: {
   }
   if (folder.includes('/menus') || folder.endsWith('menus') || hints.hasMenuLayout || (signals.menuItems || []).length > 0) {
     return { detectedType: 'menu', confidence: 0.9 };
+  }
+  if (folder.includes('/photos') || folder.endsWith('photos') || hints.hasSocialUi) {
+    if (fileName.includes('food') || fileName.includes('menu') || (signals.menuItems || []).length > 0) {
+      return { detectedType: 'food_photo', confidence: 0.72 };
+    }
+    if (fileName.includes('truck') || fileName.includes('trailer') || fileName.includes('cart')) {
+      return { detectedType: 'truck_photo', confidence: 0.72 };
+    }
   }
   if (hints.hasHoursGrid) {
     return { detectedType: 'schedule', confidence: 0.8 };
@@ -344,7 +356,12 @@ function bridgeAuxiliaryFiles(
     }
 
     const single = cluster.files[0];
-    const auxiliaryType = single.detectedType === 'menu' || single.detectedType === 'logo' || single.detectedType === 'schedule';
+    const auxiliaryType =
+      single.detectedType === 'menu' ||
+      single.detectedType === 'logo' ||
+      single.detectedType === 'schedule' ||
+      single.detectedType === 'truck_photo' ||
+      single.detectedType === 'food_photo';
     if (!auxiliaryType) {
       keep.push(cluster);
       continue;
@@ -356,7 +373,11 @@ function bridgeAuxiliaryFiles(
     const nameAligned = candidateName && anchorName && similarName(candidateName, anchorName);
     const safeToAttach =
       !hasConflictingIdentity(single, anchorStrong) &&
-      (nameAligned || (!candidateHasStrong && (single.extractedSignals.menuItems || []).length > 0) || single.detectedType === 'logo');
+      (nameAligned ||
+        (!candidateHasStrong && (single.extractedSignals.menuItems || []).length > 0) ||
+        single.detectedType === 'logo' ||
+        single.detectedType === 'truck_photo' ||
+        single.detectedType === 'food_photo');
 
     if (safeToAttach) {
       anchor.files.push(single);
@@ -491,6 +512,7 @@ export function createMealScoutEvidenceFile(input: {
   sourceFileAttribution?: MealScoutEvidenceFile['sourceFileAttribution'];
 }): MealScoutEvidenceFile {
   const auto = classifyMealScoutDetectedType({
+    fileName: input.fileName,
     sourceFolder: input.sourceFolder,
     extractedSignals: input.extractedSignals,
     visualHints: input.visualHints

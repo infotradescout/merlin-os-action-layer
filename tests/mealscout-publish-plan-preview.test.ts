@@ -165,3 +165,26 @@ test('publish plan preserves contributor attribution and primary source', () => 
   assert.equal(attribution?.contributingRepIds.includes('rep-1'), true);
   assert.equal(attribution?.contributingRepIds.includes('rep-2'), true);
 });
+
+test('publish plan carries attached media when present on draft', () => {
+  const d1 = makeDraft({ id: 'd11', truckName: 'Media Truck', cityArea: 'Kenner', phone: '999', menuName: 'Plate', repId: 'rep-1' });
+  d1.attachedMedia = [
+    {
+      mediaType: 'logo',
+      sourceFileId: 'd11-logo',
+      sourceFileName: 'logo.png',
+      sourcePath: '/incoming/logos/logo.png',
+      confidence: 0.82,
+      sourceAttribution: {
+        attributionSource: 'request_context',
+        repId: 'rep-1',
+        sourceChannel: 'manual_upload'
+      }
+    }
+  ];
+  const plan = buildMealScoutPublishPlanPreview([d1], []);
+  assert.equal(plan.records.length, 1);
+  assert.equal(Array.isArray(plan.records[0].attachedMedia), true);
+  assert.equal(plan.records[0].attachedMedia?.[0]?.mediaType, 'logo');
+  assert.equal(plan.records[0].attachedMedia?.[0]?.sourceFileId, 'd11-logo');
+});

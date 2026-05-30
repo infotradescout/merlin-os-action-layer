@@ -20,6 +20,21 @@ type PlannedMenuItem = {
   sourceFileIds: string[];
 };
 
+type PlannedMediaItem = {
+  mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+  sourceFileId: string;
+  sourceFileName?: string;
+  attribution?: {
+    primarySourceRepId?: string;
+    contributingRepIds: string[];
+    sourceFileIds: string[];
+    attributionPolicy: string;
+    createdFromBatchId?: string;
+  };
+  evidenceRefs: string[];
+  confidence: number;
+};
+
 export type MealScoutPublishPlanRecord = {
   recordId: string;
   plannedAction: PlannedAction;
@@ -28,6 +43,7 @@ export type MealScoutPublishPlanRecord = {
   existingTruckId?: string;
   profileFields: Record<string, PlannedField>;
   menuItems: PlannedMenuItem[];
+  attachedMedia?: PlannedMediaItem[];
   blockedReasons?: string[];
   warnings?: string[];
   conflicts?: Array<{
@@ -207,6 +223,23 @@ function buildMenuItems(drafts: MealScoutProfileDraft[]): PlannedMenuItem[] {
   return Array.from(map.values());
 }
 
+function buildAttachedMedia(drafts: MealScoutProfileDraft[]): PlannedMediaItem[] {
+  const media: PlannedMediaItem[] = [];
+  for (const draft of drafts) {
+    for (const item of draft.attachedMedia || []) {
+      media.push({
+        mediaType: item.mediaType,
+        sourceFileId: item.sourceFileId,
+        sourceFileName: item.sourceFileName,
+        attribution: draft.sourceAttribution,
+        evidenceRefs: [item.sourcePath || item.sourceFileName || item.sourceFileId],
+        confidence: item.confidence
+      });
+    }
+  }
+  return media;
+}
+
 export function buildMealScoutPublishPlanPreview(
   drafts: MealScoutProfileDraft[],
   decisions: MealScoutReviewDecisionRecord[]
@@ -254,6 +287,7 @@ export function buildMealScoutPublishPlanPreview(
     }
 
     const menuItems = buildMenuItems(groupDrafts);
+    const attachedMedia = buildAttachedMedia(groupDrafts);
     const menuDeferred = groupDrafts.some((draft) => draft.menuDeferred === true);
 
     if (!profileFields.truckName?.value) blockedReasons.push('missing_truck_name');
@@ -294,6 +328,7 @@ export function buildMealScoutPublishPlanPreview(
       existingTruckId: existingTruckIds[0],
       profileFields,
       menuItems,
+      attachedMedia: attachedMedia.length ? attachedMedia : undefined,
       blockedReasons: blockedReasons.length ? blockedReasons : undefined,
       warnings: warnings.length ? warnings : undefined,
       conflicts: conflicts.length ? conflicts : undefined,

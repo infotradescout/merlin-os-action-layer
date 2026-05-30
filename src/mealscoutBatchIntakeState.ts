@@ -17,7 +17,7 @@ export type MealScoutBatchProcessedRecord = {
   fileName: string;
   processedAt: string;
   batchId: string;
-  classification: 'profile' | 'menu' | 'logo' | 'social' | 'unknown';
+  classification: 'profile' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'social' | 'unknown';
   ocrSucceeded: boolean;
   extractedTextLength: number;
   sourceEvidenceRefs: string[];
