@@ -112,11 +112,14 @@
       <section class="panel" style="margin-bottom:0.8rem;">
         <h2>Drive Batch Intake</h2>
         <p class="subtitle">Operator-controlled batch intake. Batch intake does not publish records.</p>
+        <p class="subtitle">Safe Mode processes tiny batches with stricter grouping. Best for today's real intake.</p>
         <div class="actions">
-          <label class="mini">maxFiles <input id="batch-max-files" type="number" min="1" max="500" value="50" /></label>
+          <label class="mini"><input id="batch-safe-mode" type="checkbox" checked /> Safe Mode</label>
+          <label class="mini">maxFiles <input id="batch-max-files" type="number" min="1" max="500" value="5" /></label>
           <label class="mini"><input id="batch-reprocess" type="checkbox" /> reprocess files</label>
           <button id="run-batch-intake-btn">Run batch intake</button>
         </div>
+        <div id="batch-safe-mode-warning" class="mini" style="margin-top:0.25rem;color:#9a5f00;"></div>
         <div id="batch-intake-summary" class="mini" style="margin-top:0.5rem;">No batch run yet.</div>
         <div id="batch-intake-lists" class="grid-two" style="margin-top:0.6rem;">
           <div class="draft-card">
@@ -331,7 +334,10 @@
           return;
         }
         summaryNode.textContent =
-          `status:${safe(result.status)} scanned:${safe(result.scannedFileCount)} eligible:${safe(result.eligibleFileCount)} processed:${safe(result.processedFileCount)} skipped:${safe(result.skippedFileCount)} failed:${safe(result.failedFileCount)} drafts:${safe(result.draftCount)} mutationAllowed:${safe(result.mutationAllowed)}`;
+          `status:${safe(result.status)} safeMode:${safe(result.safeMode)} scanned:${safe(result.scannedFileCount)} eligible:${safe(result.eligibleFileCount)} processed:${safe(result.processedFileCount)} skipped:${safe(result.skippedFileCount)} failed:${safe(result.failedFileCount)} drafts:${safe(result.draftCount)} mutationAllowed:${safe(result.mutationAllowed)}`;
+        if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+          summaryNode.textContent += ` warnings:${result.warnings.join('|')}`;
+        }
         processedNode.innerHTML = '';
         const processed = Array.isArray(result.processedFiles) ? result.processedFiles : [];
         if (!processed.length) {
@@ -379,7 +385,9 @@
           li.innerHTML = `
             <div><span class="pill">${safe(batch.status)}</span> <span class="pill">drafts:${safe(batch.draftCount)}</span></div>
             <div class="mini"><strong>${safe(batch.batchId)}</strong> folder:${safe(batch.folderId)}</div>
+            <div class="mini">safeMode:${safe(batch.safeMode)}</div>
             <div class="mini">scanned:${safe(batch.scannedFileCount)} processed:${safe(batch.processedFileCount)} skipped:${safe(batch.skippedFileCount)} failed:${safe(batch.failedFileCount)}</div>
+            <div class="mini">ocrFailure:${safe(batch.ocrFailureCount)} unknownAttrib:${safe(batch.unknownAttributionCount)} unattachedMedia:${safe(batch.unattachedMediaCount)}</div>
             <div class="mini">reps:${safe((batch.repIds || []).join(', '))} · affiliates:${safe((batch.affiliateCodes || []).join(', '))}</div>
             <div class="mini">attribution:${safe((batch.attributionSources || []).join(', '))}</div>
             <button data-batch-select="${safe(batch.batchId)}">Filter to batch</button>
@@ -412,16 +420,33 @@
 
       function wireBatchControls() {
         const runButton = document.getElementById('run-batch-intake-btn');
+        const safeModeNode = document.getElementById('batch-safe-mode');
+        const maxFilesNode = document.getElementById('batch-max-files');
+        const warningNode = document.getElementById('batch-safe-mode-warning');
+        const syncSafeModeWarning = () => {
+          const safeMode = Boolean(safeModeNode?.checked);
+          const maxFiles = Number(maxFilesNode?.value || 0);
+          if (warningNode) {
+            warningNode.textContent =
+              safeMode && maxFiles > 8
+                ? 'Safe Mode caps maxFiles to 8. Reduce to 8 or lower for strict low-batch processing.'
+                : '';
+          }
+        };
+        if (safeModeNode) safeModeNode.addEventListener('change', syncSafeModeWarning);
+        if (maxFilesNode) maxFilesNode.addEventListener('input', syncSafeModeWarning);
+        syncSafeModeWarning();
         if (!runButton) return;
         runButton.addEventListener('click', async () => {
-          const maxFilesNode = document.getElementById('batch-max-files');
           const reprocessNode = document.getElementById('batch-reprocess');
+          const safeMode = Boolean(safeModeNode?.checked);
           const maxFiles = Number(maxFilesNode?.value || 50);
           const reprocess = Boolean(reprocessNode?.checked);
           batchState.lastError = '';
           try {
             const result = await client.runBatchIntake({
               mode: 'process',
+              safeMode,
               maxFiles,
               reprocess,
               operatorId: 'operator'

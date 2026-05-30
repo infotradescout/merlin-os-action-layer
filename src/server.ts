@@ -288,6 +288,65 @@ type MealScoutBatchRunSkipReason =
   | 'ocr_unavailable'
   | 'not_selected';
 
+const MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES = 5;
+const MEALSCOUT_SAFE_MODE_HARD_MAX_FILES = 8;
+
+function isLikelyWeakOcrTruckName(value: string | undefined): boolean {
+  const name = (value || '').trim();
+  if (!name) return true;
+  if (name.length < 4) return true;
+  if (/^\d{1,2}:\d{2}/.test(name)) return true;
+  if (/^(title|starters|ree|q eco|w hi|yee)$/i.test(name)) return true;
+  if (/^(all photos|details|menu|profile)$/i.test(name)) return true;
+  const alpha = (name.match(/[A-Za-z]/g) || []).length;
+  if (alpha < 3) return true;
+  return false;
+}
+
+function applySafeModeDraftGuardrails(
+  drafts: Array<{
+    reviewStatus: 'ready_for_review' | 'missing_required' | 'duplicate_possible' | 'uncertain_match';
+    warnings: string[];
+    truckName?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    socials?: { facebook?: string; instagram?: string };
+    sourceFiles?: Array<{ sourceType?: string }>;
+  }>
+): void {
+  for (const draft of drafts) {
+    const hasIdentity = Boolean(
+      (draft.phone || '').trim() ||
+        (draft.email || '').trim() ||
+        (draft.website || '').trim() ||
+        (draft.socials?.facebook || '').trim() ||
+        (draft.socials?.instagram || '').trim()
+    );
+    const weakName = isLikelyWeakOcrTruckName(draft.truckName);
+    const hasAuxMediaOnly = (draft.sourceFiles || []).every((file) =>
+      ['logo', 'truck_photo', 'food_photo', 'unknown', 'unknown_media'].includes(file.sourceType || 'unknown')
+    );
+
+    if (weakName && !draft.warnings.includes('weak_ocr_name')) {
+      draft.warnings.push('weak_ocr_name');
+    }
+    if (!hasIdentity && !draft.warnings.includes('missing_required_identity')) {
+      draft.warnings.push('missing_required_identity');
+    }
+    if (hasAuxMediaOnly && !draft.warnings.includes('weak_media_linkage')) {
+      draft.warnings.push('weak_media_linkage');
+    }
+    if ((draft.sourceFiles || []).length > 1 && weakName && !hasIdentity && !draft.warnings.includes('uncertain_merge')) {
+      draft.warnings.push('uncertain_merge');
+    }
+
+    if (weakName || !hasIdentity || hasAuxMediaOnly) {
+      draft.reviewStatus = 'uncertain_match';
+    }
+  }
+}
+
 function normalizeBatchClassification(
   detectedType: string
 ): 'profile' | 'menu' | 'logo' | 'truck_photo' | 'food_photo' | 'social' | 'unknown' {
@@ -1671,6 +1730,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const payload = (body || {}) as {
       folderId?: unknown;
       mode?: unknown;
+      safeMode?: unknown;
       reprocess?: unknown;
       maxFiles?: unknown;
       operatorId?: unknown;
@@ -1683,9 +1743,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (!mode) {
       return responseJson(res, { error: 'mode must be preview or process', mutationAllowed: false }, 400);
     }
+    const safeMode = payload.safeMode !== false;
     const reprocess = payload.reprocess === true;
     const maxFilesRaw = typeof payload.maxFiles === 'number' ? payload.maxFiles : Number(payload.maxFiles);
-    const maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : 50;
+    let maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : safeMode ? MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES : 50;
+    const safeModeWarnings: string[] = [];
+    if (safeMode && maxFiles > MEALSCOUT_SAFE_MODE_HARD_MAX_FILES) {
+      safeModeWarnings.push(`safe_mode_max_files_capped_to_${MEALSCOUT_SAFE_MODE_HARD_MAX_FILES}`);
+      maxFiles = MEALSCOUT_SAFE_MODE_HARD_MAX_FILES;
+    }
 
     const batchId = `ms-intake-batch-${randomUUID()}`;
     const startedAt = new Date().toISOString();
@@ -1810,8 +1876,20 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         }
       }
 
-      const clusters = clusterMealScoutEvidenceFiles(evidenceFiles, []);
+      const clusters = safeMode
+        ? evidenceFiles.map((file, index) => ({
+            clusterId: `safe-cluster-${index + 1}`,
+            files: [file],
+            likelyTruckName: file.extractedSignals.truckName,
+            matchSignals: ['safe_mode_singleton'],
+            confidence: file.confidence,
+            reviewStatus: 'uncertain_match' as const
+          }))
+        : clusterMealScoutEvidenceFiles(evidenceFiles, []);
       const drafts = buildMealScoutDraftsFromClusters(clusters, []);
+      if (safeMode) {
+        applySafeModeDraftGuardrails(drafts);
+      }
       const status = errors.length > 0 ? 'partial' : 'completed';
       const completedAt = new Date().toISOString();
       const attributionSources = Array.from(
@@ -1847,9 +1925,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         blocked: drafts.filter((draft) => draft.reviewStatus === 'missing_required').length,
         executed: 0
       };
+      const ocrFailureCount = processedFiles.filter((row) => row.ocrSucceeded === false).length;
+      const unknownAttributionCount = processedFiles.filter((row) => row.sourceFileAttribution?.attributionSource === 'unknown').length;
+      const unattachedMediaCount = processedFiles.filter((row) =>
+        ['logo', 'truck_photo', 'food_photo', 'unknown'].includes(row.classification)
+      ).length;
       rememberMealScoutBatchHistory({
         batchId,
         folderId: resolvedFolderId,
+        safeMode,
         status,
         startedAt,
         completedAt,
@@ -1859,6 +1943,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         processedFileCount: processedFiles.length,
         skippedFileCount: skippedFiles.length,
         failedFileCount: errors.length,
+        ocrFailureCount,
+        unknownAttributionCount,
+        unattachedMediaCount,
         draftCount: drafts.length,
         attributionSources,
         repIds,
@@ -1884,6 +1971,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       });
       return responseJson(res, {
         batchId,
+        safeMode,
+        safeModeLimits: {
+          defaultMaxFiles: MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES,
+          hardMaxFiles: MEALSCOUT_SAFE_MODE_HARD_MAX_FILES,
+          groupingMode: safeMode ? 'strict' : 'standard'
+        },
+        warnings: safeModeWarnings,
         status,
         startedAt,
         completedAt,
@@ -1906,6 +2000,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       rememberMealScoutBatchHistory({
         batchId,
         folderId: resolvedFolderId,
+        safeMode,
         status: 'failed',
         startedAt,
         completedAt,
@@ -1915,6 +2010,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         processedFileCount: processedFiles.length,
         skippedFileCount: skippedFiles.length,
         failedFileCount: Math.max(1, errors.length),
+        ocrFailureCount: processedFiles.filter((row) => row.ocrSucceeded === false).length,
+        unknownAttributionCount: processedFiles.filter((row) => row.sourceFileAttribution?.attributionSource === 'unknown').length,
+        unattachedMediaCount: processedFiles.filter((row) =>
+          ['logo', 'truck_photo', 'food_photo', 'unknown'].includes(row.classification)
+        ).length,
         draftCount: 0,
         attributionSources: [],
         repIds: [],
@@ -1940,6 +2040,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         res,
         {
           batchId,
+          safeMode,
+          safeModeLimits: {
+            defaultMaxFiles: MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES,
+            hardMaxFiles: MEALSCOUT_SAFE_MODE_HARD_MAX_FILES,
+            groupingMode: safeMode ? 'strict' : 'standard'
+          },
+          warnings: safeModeWarnings,
           status: 'failed',
           startedAt,
           completedAt,

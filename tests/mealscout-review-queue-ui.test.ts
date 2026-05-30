@@ -68,6 +68,8 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
   assert.ok(response.body.includes('Unattached Media'));
   assert.ok(response.body.includes('Publish Plan Preview'));
   assert.ok(response.body.includes('Drive Batch Intake'));
+  assert.ok(response.body.includes('Safe Mode'));
+  assert.ok(response.body.includes('stricter grouping'));
   assert.ok(response.body.includes('Run batch intake'));
   assert.ok(response.body.includes('Batch intake does not publish records.'));
   assert.ok(response.body.includes('Batch History'));

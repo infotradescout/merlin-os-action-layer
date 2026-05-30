@@ -48,6 +48,7 @@ export type MealScoutBatchReviewStatusCounts = {
 export type MealScoutBatchHistoryEntry = {
   batchId: string;
   folderId: string;
+  safeMode?: boolean;
   status: 'completed' | 'partial' | 'failed';
   startedAt: string;
   completedAt: string;
@@ -57,6 +58,9 @@ export type MealScoutBatchHistoryEntry = {
   processedFileCount: number;
   skippedFileCount: number;
   failedFileCount: number;
+  ocrFailureCount: number;
+  unknownAttributionCount: number;
+  unattachedMediaCount: number;
   draftCount: number;
   attributionSources: Array<'drive_metadata' | 'request_context' | 'unknown'>;
   repIds: string[];
@@ -101,6 +105,7 @@ export function listMealScoutBatchHistory(): MealScoutBatchHistoryEntry[] {
     .map((entry) => ({
       batchId: entry.batchId,
       folderId: entry.folderId,
+      safeMode: entry.safeMode,
       status: entry.status,
       startedAt: entry.startedAt,
       completedAt: entry.completedAt,
@@ -110,6 +115,9 @@ export function listMealScoutBatchHistory(): MealScoutBatchHistoryEntry[] {
       processedFileCount: entry.processedFileCount,
       skippedFileCount: entry.skippedFileCount,
       failedFileCount: entry.failedFileCount,
+      ocrFailureCount: entry.ocrFailureCount,
+      unknownAttributionCount: entry.unknownAttributionCount,
+      unattachedMediaCount: entry.unattachedMediaCount,
       draftCount: entry.draftCount,
       attributionSources: entry.attributionSources,
       repIds: entry.repIds,

@@ -277,3 +277,147 @@ test('batch history and detail are role-gated and return summaries', async () =>
   assert.equal(Array.isArray(detail.body.batch.processedFiles), true);
   assert.equal(Array.isArray(detail.body.batch.skippedFiles), true);
 });
+
+test('safeMode defaults maxFiles to 5 and includes safe mode metadata', async () => {
+  const manyClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return Array.from({ length: 12 }).map((_, index) => ({
+        drive_file_id: `safe-default-${index + 1}`,
+        file_name: `safe-default-${index + 1}.png`,
+        mime_type: 'image/png',
+        folder_id: folderId,
+        web_url: `https://example.com/safe-default-${index + 1}`,
+        modified_time: '2026-05-29T01:00:00.000Z',
+        raw_metadata: {
+          folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown',
+          extracted_text: `Truck ${index + 1}\nPhone: 504-333-90${String(index).padStart(2, '0')}\nCity: Metairie`
+        }
+      }));
+    },
+    async downloadFileContent(fileId: string) {
+      return `Truck ${fileId}\nPhone: 504-333-9000\nCity: Metairie`;
+    }
+  };
+  setDriveClientFactory(() => manyClient);
+  const response = await requestJson<{
+    safeMode: boolean;
+    safeModeLimits: { defaultMaxFiles: number; hardMaxFiles: number; groupingMode: string };
+    processedFileCount: number;
+    skippedFiles: Array<{ reason: string }>;
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process' })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.safeMode, true);
+  assert.equal(response.body.safeModeLimits.defaultMaxFiles, 5);
+  assert.equal(response.body.safeModeLimits.hardMaxFiles, 8);
+  assert.equal(response.body.safeModeLimits.groupingMode, 'strict');
+  assert.equal(response.body.processedFileCount, 5);
+  assert.equal(response.body.skippedFiles.some((row) => row.reason === 'not_selected'), true);
+});
+
+test('safeMode caps maxFiles above 8', async () => {
+  const manyClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return Array.from({ length: 12 }).map((_, index) => ({
+        drive_file_id: `safe-cap-${index + 1}`,
+        file_name: `safe-cap-${index + 1}.png`,
+        mime_type: 'image/png',
+        folder_id: folderId,
+        web_url: `https://example.com/safe-cap-${index + 1}`,
+        modified_time: '2026-05-29T01:00:00.000Z',
+        raw_metadata: {
+          folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown',
+          extracted_text: `Truck Cap ${index + 1}\nPhone: 504-333-90${String(index).padStart(2, '0')}\nCity: Metairie`
+        }
+      }));
+    },
+    async downloadFileContent(fileId: string) {
+      return `Truck ${fileId}\nPhone: 504-333-9000\nCity: Metairie`;
+    }
+  };
+  setDriveClientFactory(() => manyClient);
+  const response = await requestJson<{
+    safeMode: boolean;
+    warnings: string[];
+    processedFileCount: number;
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', safeMode: true, maxFiles: 20 })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.safeMode, true);
+  assert.equal(response.body.processedFileCount, 8);
+  assert.equal(response.body.warnings.some((item) => item.includes('capped_to_8')), true);
+});
+
+test('safeMode strict grouping avoids merge-by-similar-name and weak OCR names become needs_review', async () => {
+  const strictClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'strict-1',
+          file_name: 'strict-1.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/strict-1',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown',
+            extracted_text: 'Title oO\nPhone: 504-333-9001\nCity: Metairie\nQuesadilla $10.00'
+          }
+        },
+        {
+          drive_file_id: 'strict-2',
+          file_name: 'strict-2.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/strict-2',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown',
+            extracted_text: 'Title oO\nPhone: 504-333-9001\nCity: Metairie\nTaco $4.00'
+          }
+        }
+      ];
+    },
+    async downloadFileContent(fileId: string) {
+      return fileId === 'strict-1'
+        ? 'Title oO\nPhone: 504-333-9001\nCity: Metairie\nQuesadilla $10.00'
+        : 'Title oO\nPhone: 504-333-9001\nCity: Metairie\nTaco $4.00';
+    }
+  };
+  setDriveClientFactory(() => strictClient);
+  const run = await requestJson<{ batchId: string; processedFileCount: number }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', safeMode: true, maxFiles: 8 })
+  });
+  assert.equal(run.status, 200);
+  assert.equal(run.body.processedFileCount, 2);
+
+  const detail = await requestJson<{
+    batch: {
+      draftCount: number;
+      reviewStatusCounts: { needs_review: number; publish_ready: number };
+      safeMode?: boolean;
+    };
+  }>(`/api/mealscout/intake/batches/${encodeURIComponent(run.body.batchId)}`, {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.batch.safeMode, true);
+  assert.equal(detail.body.batch.draftCount >= 1, true);
+  assert.equal(detail.body.batch.reviewStatusCounts.needs_review >= 1, true);
+  assert.equal(detail.body.batch.reviewStatusCounts.publish_ready, 0);
+});
