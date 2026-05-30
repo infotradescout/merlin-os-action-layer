@@ -25,7 +25,7 @@ type PlannedMenuItem = {
 };
 
 type PlannedMediaItem = {
-  mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+  mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media' | 'menu';
   sourceFileId: string;
   sourceFileName?: string;
   attribution?: {
@@ -48,6 +48,9 @@ export type MealScoutPublishPlanRecord = {
   profileFields: Record<string, PlannedField>;
   menuItems: PlannedMenuItem[];
   attachedMedia?: PlannedMediaItem[];
+  menuEvidenceAttached?: boolean;
+  menuEvidenceSourceFileIds?: string[];
+  menuEvidenceRefs?: string[];
   blockedReasons?: string[];
   warnings?: string[];
   conflicts?: Array<{
@@ -387,28 +390,10 @@ export function buildMealScoutPublishPlanPreview(
       }
     }
 
-    // Recompute blocked/publish status after corrections
-    const nextBlocked = new Set(record.blockedReasons || []);
-    if (!record.profileFields.truckName?.value) nextBlocked.add('missing_truck_name');
-    else nextBlocked.delete('missing_truck_name');
-    if (!record.profileFields.cityArea?.value) nextBlocked.add('missing_city_or_service_area');
-    else nextBlocked.delete('missing_city_or_service_area');
-    const hasContact =
-      Boolean(record.profileFields.phone?.value) ||
-      Boolean(record.profileFields.email?.value) ||
-      Boolean(record.profileFields.website?.value) ||
-      Boolean(record.profileFields.facebook?.value) ||
-      Boolean(record.profileFields.instagram?.value);
-    if (!hasContact) nextBlocked.add('missing_contact_or_web_or_social');
-    else nextBlocked.delete('missing_contact_or_web_or_social');
-    record.blockedReasons = Array.from(nextBlocked);
-    record.publishReady = record.blockedReasons.length === 0 && record.plannedAction !== 'needs_review';
-    if (!record.publishReady && record.plannedAction !== 'needs_review') {
-      record.plannedAction = 'blocked';
-    }
-
     // operator media attachment visibility for plan
     const draftAttachmentRows = record.draftIds.flatMap((draftId) => attachmentByDraft.get(draftId) || []);
+    const menuEvidenceSourceFileIds = new Set<string>();
+    const menuEvidenceRefs = new Set<string>();
     if (draftAttachmentRows.length > 0) {
       record.appliedAttachmentDecisionIds = draftAttachmentRows.map((row) => row.attachmentDecisionId);
       const mediaMap = new Map<string, PlannedMediaItem>();
@@ -427,8 +412,16 @@ export function buildMealScoutPublishPlanPreview(
           decision.action === 'mark_as_menu' ||
           decision.action === 'mark_as_profile_evidence'
         ) {
+          if (
+            decision.action === 'mark_as_menu'
+          ) {
+            menuEvidenceSourceFileIds.add(decision.sourceFileId);
+            menuEvidenceRefs.add(decision.reason);
+          }
           const mediaType =
-            decision.mediaType === 'logo'
+            decision.action === 'mark_as_menu'
+              ? 'menu'
+              : decision.mediaType === 'logo'
               ? 'logo'
               : decision.mediaType === 'truck_photo'
                 ? 'truck_photo'
@@ -447,6 +440,39 @@ export function buildMealScoutPublishPlanPreview(
       }
       record.attachedMedia = Array.from(mediaMap.values());
     }
+    if (menuEvidenceSourceFileIds.size > 0) {
+      record.menuEvidenceAttached = true;
+      record.menuEvidenceSourceFileIds = Array.from(menuEvidenceSourceFileIds);
+      record.menuEvidenceRefs = Array.from(menuEvidenceRefs);
+      if (!record.warnings?.includes('menu_image_attached_pending_structuring')) {
+        record.warnings = [...(record.warnings || []), 'menu_image_attached_pending_structuring'];
+      }
+    }
+
+    // Recompute full blocked/publish status after corrections and manual attachments
+    const nextBlocked = new Set(record.blockedReasons || []);
+    if (!record.profileFields.truckName?.value) nextBlocked.add('missing_truck_name');
+    else nextBlocked.delete('missing_truck_name');
+    if (!record.profileFields.cityArea?.value) nextBlocked.add('missing_city_or_service_area');
+    else nextBlocked.delete('missing_city_or_service_area');
+    const hasContact =
+      Boolean(record.profileFields.phone?.value) ||
+      Boolean(record.profileFields.email?.value) ||
+      Boolean(record.profileFields.website?.value) ||
+      Boolean(record.profileFields.facebook?.value) ||
+      Boolean(record.profileFields.instagram?.value);
+    if (!hasContact) nextBlocked.add('missing_contact_or_web_or_social');
+    else nextBlocked.delete('missing_contact_or_web_or_social');
+    const hasMenuSupport = (record.menuItems || []).length > 0 || record.menuEvidenceAttached === true;
+    if (!hasMenuSupport) nextBlocked.add('missing_menu_or_menu_deferred');
+    else nextBlocked.delete('missing_menu_or_menu_deferred');
+    record.blockedReasons = Array.from(nextBlocked);
+    record.publishReady = record.blockedReasons.length === 0 && record.plannedAction !== 'needs_review';
+    if (!record.publishReady && record.plannedAction !== 'needs_review') {
+      record.plannedAction = 'blocked';
+    } else if (record.publishReady && record.plannedAction !== 'needs_review') {
+      record.plannedAction = record.existingTruckId ? 'update_existing' : 'create_new';
+    }
   }
 
   const reviewDecisionVersion = getMealScoutReviewDecisionVersion();
@@ -462,6 +488,9 @@ export function buildMealScoutPublishPlanPreview(
       profileFields: record.profileFields,
       menuItems: record.menuItems,
       attachedMedia: record.attachedMedia,
+      menuEvidenceAttached: record.menuEvidenceAttached,
+      menuEvidenceSourceFileIds: record.menuEvidenceSourceFileIds,
+      menuEvidenceRefs: record.menuEvidenceRefs,
       blockedReasons: record.blockedReasons,
       conflicts: record.conflicts,
       correctionVersion,

@@ -166,7 +166,7 @@ test('operator corrections replace/remove fields and stale prior signature', asy
   assert.notEqual(preview.body.publishPlan.signature, refreshed.body.publishPlan.signature);
 });
 
-test('manual attachment decision promotes unattached media into plan attachedMedia', async () => {
+test('manual menu attachment satisfies menu requirement without inventing menu items', async () => {
   const preview = await requestJson<{
     drafts: Array<{ draftId: string }>;
     unattachedMedia: Array<{ sourceFileId: string }>;
@@ -199,17 +199,28 @@ test('manual attachment decision promotes unattached media into plan attachedMed
       draftId,
       sourceFileId,
       sourceFileName: 'logo2.jpg',
-      action: 'mark_as_logo_candidate',
-      mediaType: 'logo',
-      reason: 'manual_link_to_truck',
+      action: 'mark_as_menu',
+      mediaType: 'menu',
+      reason: 'manual_menu_evidence',
       operatorId: 'MANUAL_OPERATOR'
     })
   });
   assert.equal(attach.status, 201);
-  assert.equal(attach.body.attachmentDecision.action, 'mark_as_logo_candidate');
+  assert.equal(attach.body.attachmentDecision.action, 'mark_as_menu');
 
   const refreshed = await requestJson<{
-    publishPlan: { records: Array<{ draftIds: string[]; attachedMedia?: Array<{ sourceFileId: string; mediaType: string }> }> };
+    publishPlan: {
+      records: Array<{
+        draftIds: string[];
+        publishReady: boolean;
+        menuItems: Array<{ name: string }>;
+        blockedReasons?: string[];
+        menuEvidenceAttached?: boolean;
+        menuEvidenceSourceFileIds?: string[];
+        menuEvidenceRefs?: string[];
+        attachedMedia?: Array<{ sourceFileId: string; mediaType: string }>;
+      }>;
+    };
   }>('/api/mealscout/intake/preview', {
     method: 'POST',
     body: JSON.stringify({
@@ -231,6 +242,76 @@ test('manual attachment decision promotes unattached media into plan attachedMed
   });
   const record = refreshed.body.publishPlan.records.find((row) => row.draftIds.includes(draftId));
   assert.ok(record);
-  assert.equal((record!.attachedMedia || []).some((item) => item.sourceFileId === sourceFileId && item.mediaType === 'logo'), true);
+  assert.equal((record!.attachedMedia || []).some((item) => item.sourceFileId === sourceFileId && item.mediaType === 'menu'), true);
+  assert.equal(record!.menuEvidenceAttached, true);
+  assert.equal((record!.menuEvidenceSourceFileIds || []).includes(sourceFileId), true);
+  assert.equal((record!.menuEvidenceRefs || []).includes('manual_menu_evidence'), true);
+  assert.equal((record!.blockedReasons || []).includes('missing_menu_or_menu_deferred'), false);
+  assert.equal(record!.publishReady, true);
+  assert.equal(record!.menuItems.length, 0);
 });
 
+test('logo candidate alone does not satisfy menu requirement', async () => {
+  const preview = await requestJson<{
+    drafts: Array<{ draftId: string }>;
+    unattachedMedia: Array<{ sourceFileId: string }>;
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'p3',
+          fileName: 'profile3.jpg',
+          sourceFolder: '/incoming/unknown',
+          extractedText: "Wing King Mobile Kitchen\nPhone: 850-999-1111\nPensacola, FL\ninstagram: @wingking"
+        },
+        {
+          fileId: 'logo3',
+          fileName: 'logo3.jpg',
+          sourceFolder: '/incoming/unknown',
+          extractedText: ''
+        }
+      ]
+    })
+  });
+  const draftId = preview.body.drafts[0].draftId;
+  const sourceFileId = preview.body.unattachedMedia[0].sourceFileId;
+  await requestJson('/api/mealscout/attachment-decisions', {
+    method: 'POST',
+    body: JSON.stringify({
+      draftId,
+      sourceFileId,
+      sourceFileName: 'logo3.jpg',
+      action: 'mark_as_logo_candidate',
+      mediaType: 'logo',
+      reason: 'manual_logo_candidate',
+      operatorId: 'MANUAL_OPERATOR'
+    })
+  });
+  const refreshed = await requestJson<{
+    publishPlan: { records: Array<{ draftIds: string[]; publishReady: boolean; blockedReasons?: string[]; menuEvidenceAttached?: boolean }> };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'p3',
+          fileName: 'profile3.jpg',
+          sourceFolder: '/incoming/unknown',
+          extractedText: "Wing King Mobile Kitchen\nPhone: 850-999-1111\nPensacola, FL\ninstagram: @wingking"
+        },
+        {
+          fileId: 'logo3',
+          fileName: 'logo3.jpg',
+          sourceFolder: '/incoming/unknown',
+          extractedText: ''
+        }
+      ]
+    })
+  });
+  const record = refreshed.body.publishPlan.records.find((row) => row.draftIds.includes(draftId));
+  assert.ok(record);
+  assert.equal(record!.menuEvidenceAttached, undefined);
+  assert.equal(record!.publishReady, false);
+  assert.equal((record!.blockedReasons || []).includes('missing_menu_or_menu_deferred'), true);
+});

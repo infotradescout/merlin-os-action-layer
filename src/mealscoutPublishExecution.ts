@@ -35,7 +35,7 @@ export type MealScoutPublishAuditEntry = {
   previousValues?: Record<string, string | undefined>;
   newValues?: Record<string, string | undefined>;
   attachedMedia?: Array<{
-    mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+    mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media' | 'menu';
     sourceFileId: string;
     sourceFileName?: string;
   }>;
@@ -98,7 +98,7 @@ function validateRecord(record: MealScoutPublishPlanRecord): string | undefined 
     Boolean(record.profileFields.facebook?.value) ||
     Boolean(record.profileFields.instagram?.value);
   if (!hasContact) return 'missing_contact_or_web_or_social';
-  if ((record.menuItems || []).length === 0) return 'missing_menu_items';
+  if ((record.menuItems || []).length === 0 && record.menuEvidenceAttached !== true) return 'missing_menu_items';
   for (const [fieldName, field] of Object.entries(record.profileFields || {})) {
     if (!field.value) continue;
     if (!Array.isArray(field.evidenceRefs) || field.evidenceRefs.length === 0) return `missing_field_evidence:${fieldName}`;
