@@ -100,6 +100,16 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
       const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
       return requestJson(endpoint(`/api/mealscout/intake/file-audit${query}`));
     },
+    importCandidateSummary(payload) {
+      return requestJson(endpoint('/api/mealscout/intake/candidate-import'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
+    getFolderContext({ folderId } = {}) {
+      const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
+      return requestJson(endpoint(`/api/mealscout/intake/folder-context${query}`));
+    },
     getPublishAudit(filters = {}) {
       const params = new URLSearchParams();
       if (filters.planId) params.set('planId', String(filters.planId));

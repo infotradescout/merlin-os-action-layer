@@ -151,6 +151,7 @@ import {
   resetMealScoutPublishExecutionForTest
 } from './mealscoutPublishExecution.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
+import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
 
 loadEnvFromDotFile();
 
@@ -404,6 +405,26 @@ type MealScoutDuplicateType =
   | 'content_hash_duplicate'
   | 'needs_review';
 
+type MealScoutFolderContextCluster = {
+  clusterId: string;
+  assumedTruckName?: string;
+  confidence: number;
+  sourceFileIds: string[];
+  profileFiles: string[];
+  menuFiles: string[];
+  logoCandidates: string[];
+  socialFiles: string[];
+  duplicateFileIds: string[];
+  attributionSummary: {
+    attributionSources: Array<'drive_metadata' | 'request_context' | 'unknown'>;
+    repIds: string[];
+    affiliateCodes: string[];
+  };
+  reasons: string[];
+  blockers: string[];
+  status: 'ready_for_safe_processing' | 'reviewed_cluster' | 'needs_review' | 'weak_cluster';
+};
+
 function normalizedBaseFileName(fileName: string): string {
   const dot = fileName.lastIndexOf('.');
   const stem = dot > 0 ? fileName.slice(0, dot) : fileName;
@@ -456,6 +477,13 @@ function buildMealScoutDuplicateGroups(files: DriveFileInfo[]): Array<{
   for (const [name, group] of byName.entries()) {
     if (group.length < 2) continue;
     const ordered = [...group].sort((a, b) => {
+      const aProcessed = getMealScoutBatchProcessedRecord(a.drive_file_id) ? 1 : 0;
+      const bProcessed = getMealScoutBatchProcessedRecord(b.drive_file_id) ? 1 : 0;
+      if (aProcessed !== bProcessed) return bProcessed - aProcessed;
+      const aCreated = String((a.raw_metadata as Record<string, unknown> | undefined)?.created_time || '');
+      const bCreated = String((b.raw_metadata as Record<string, unknown> | undefined)?.created_time || '');
+      const ct = aCreated.localeCompare(bCreated);
+      if (ct !== 0) return ct;
       const mt = (a.modified_time || '').localeCompare(b.modified_time || '');
       if (mt !== 0) return mt;
       return a.drive_file_id.localeCompare(b.drive_file_id);
@@ -471,6 +499,262 @@ function buildMealScoutDuplicateGroups(files: DriveFileInfo[]): Array<{
     });
   }
   return out.sort((a, b) => a.duplicateGroupId.localeCompare(b.duplicateGroupId));
+}
+
+function buildMealScoutFolderContextClusters(files: DriveFileInfo[]): MealScoutFolderContextCluster[] {
+  const supported = files.filter((file) => isSupportedMealScoutPreviewFile(file));
+  const evidence = supported.map((file) => {
+    const input = convertDriveFileToMealScoutScreenshotInput(file);
+    input.sourceFileAttribution = resolveDriveFileAttribution(file);
+    return { file, evidence: createMealScoutEvidenceFromScreenshotInput(input) };
+  });
+  const baseClusters = clusterMealScoutEvidenceFiles(evidence.map((row) => row.evidence), []);
+  const evidenceByFileId = new Map(evidence.map((row) => [row.evidence.fileId, row.evidence]));
+  const duplicateGroups = buildMealScoutDuplicateGroups(supported);
+  const duplicateCandidateIds = new Set<string>();
+  for (const group of duplicateGroups) {
+    for (const file of group.files) {
+      if (file.drive_file_id !== group.recommendedPrimaryFileId) duplicateCandidateIds.add(file.drive_file_id);
+    }
+  }
+  const adjacency = new Map<string, Set<string>>();
+  const reasonByPair = new Map<string, Set<string>>();
+  const allFileIds = supported.map((file) => file.drive_file_id);
+  const correctionNameByFileId = new Map<string, string>();
+
+  const addEdge = (a: string, b: string, reason: string) => {
+    if (!a || !b || a === b) return;
+    if (!adjacency.has(a)) adjacency.set(a, new Set<string>());
+    if (!adjacency.has(b)) adjacency.set(b, new Set<string>());
+    adjacency.get(a)?.add(b);
+    adjacency.get(b)?.add(a);
+    const key = a < b ? `${a}::${b}` : `${b}::${a}`;
+    if (!reasonByPair.has(key)) reasonByPair.set(key, new Set<string>());
+    reasonByPair.get(key)?.add(reason);
+  };
+
+  for (const cluster of baseClusters) {
+    const ids = cluster.files.map((file) => file.fileId);
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) addEdge(ids[i], ids[j], 'same_base_cluster');
+    }
+  }
+
+  const byPhone = new Map<string, string[]>();
+  const byTruckName = new Map<string, string[]>();
+  for (const row of evidence) {
+    const fileId = row.evidence.fileId;
+    const phone = (row.evidence.extractedSignals.phone || '').trim();
+    const name = (row.evidence.extractedSignals.truckName || '').trim().toLowerCase();
+    if (phone) {
+      const list = byPhone.get(phone) || [];
+      list.push(fileId);
+      byPhone.set(phone, list);
+    }
+    if (name) {
+      const list = byTruckName.get(name) || [];
+      list.push(fileId);
+      byTruckName.set(name, list);
+    }
+  }
+  for (const ids of byPhone.values()) {
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) addEdge(ids[i], ids[j], 'phone_match');
+    }
+  }
+  for (const ids of byTruckName.values()) {
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) addEdge(ids[i], ids[j], 'name_match');
+    }
+  }
+
+  const corrections = listMealScoutFieldCorrections();
+  const correctionSourceByDraft = new Map<string, string[]>();
+  for (const row of corrections) {
+    const sourceFileId = row.sourceFileId || '';
+    if (sourceFileId && row.fieldName === 'truckName' && row.correctedValue) {
+      correctionNameByFileId.set(sourceFileId, row.correctedValue);
+    }
+    for (const draftId of row.draftIds || []) {
+      if (!sourceFileId) continue;
+      const list = correctionSourceByDraft.get(draftId) || [];
+      list.push(sourceFileId);
+      correctionSourceByDraft.set(draftId, list);
+    }
+    if (!sourceFileId) continue;
+    for (const draftId of row.draftIds || []) {
+      const draft = getMealScoutDraft(draftId);
+      if (!draft) continue;
+      const related = (draft.sourceFiles || []).map((file) => file.sourceFileId).filter(Boolean);
+      for (const other of related) {
+        addEdge(sourceFileId, other, row.fieldName === 'truckName' ? 'corrected_business_name' : 'correction_link');
+      }
+    }
+  }
+  for (const idsRaw of correctionSourceByDraft.values()) {
+    const ids = Array.from(new Set(idsRaw));
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) addEdge(ids[i], ids[j], 'corrected_business_name');
+    }
+  }
+
+  const attachmentDecisions = listMealScoutAttachmentDecisions();
+  const attachmentByDraftId = new Map<string, typeof attachmentDecisions>();
+  for (const row of attachmentDecisions) {
+    const list = attachmentByDraftId.get(row.draftId) || [];
+    list.push(row);
+    attachmentByDraftId.set(row.draftId, list);
+    const sourceFileId = row.sourceFileId;
+    const draft = getMealScoutDraft(row.draftId);
+    if (!draft) continue;
+    for (const source of draft.sourceFiles || []) {
+      const reason =
+        row.action === 'mark_as_menu'
+          ? 'manual_menu_attachment'
+          : row.action === 'mark_as_logo_candidate' || row.action === 'approve_logo'
+            ? 'logo_candidate_attachment'
+            : row.action === 'mark_as_profile_evidence'
+              ? 'manual_profile_attachment'
+              : 'manual_attachment';
+      addEdge(sourceFileId, source.sourceFileId, reason);
+    }
+  }
+  for (const rows of attachmentByDraftId.values()) {
+    const ids = Array.from(new Set(rows.map((row) => row.sourceFileId).filter(Boolean)));
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) {
+        const hasMenu = rows.some((row) => row.action === 'mark_as_menu');
+        const hasLogo = rows.some((row) => row.action === 'mark_as_logo_candidate' || row.action === 'approve_logo');
+        addEdge(ids[i], ids[j], hasMenu ? 'manual_menu_attachment' : 'manual_attachment');
+        if (hasLogo) addEdge(ids[i], ids[j], 'logo_candidate_attachment');
+      }
+    }
+  }
+
+  const publishAudit = queryMealScoutPublishExecutionAudit();
+  for (const row of publishAudit) {
+    const ids = Array.from(new Set((row.sourceFileIds || []).filter(Boolean)));
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) addEdge(ids[i], ids[j], 'executed_profile_match');
+    }
+  }
+
+  for (const id of allFileIds) {
+    if (!adjacency.has(id)) adjacency.set(id, new Set<string>());
+  }
+  const visited = new Set<string>();
+  const components: string[][] = [];
+  for (const id of allFileIds) {
+    if (visited.has(id)) continue;
+    const queue = [id];
+    visited.add(id);
+    const group: string[] = [];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      group.push(cur);
+      for (const next of adjacency.get(cur) || []) {
+        if (visited.has(next)) continue;
+        visited.add(next);
+        queue.push(next);
+      }
+    }
+    components.push(group);
+  }
+
+  const clusterRows: MealScoutFolderContextCluster[] = [];
+  for (let index = 0; index < components.length; index += 1) {
+    const groupIds = components[index];
+    const files = groupIds
+      .map((id) => evidenceByFileId.get(id))
+      .filter((file): file is ReturnType<typeof createMealScoutEvidenceFromScreenshotInput> => Boolean(file));
+    if (files.length === 0) continue;
+    const duplicateFileIds = groupIds.filter((id) => duplicateCandidateIds.has(id));
+    const activeFileIds = groupIds.filter((id) => !duplicateCandidateIds.has(id));
+    const activeSet = new Set(activeFileIds);
+    const profileFiles = files
+      .filter((file) => (file.detectedType === 'profile' || file.detectedType === 'profile_screenshot') && activeSet.has(file.fileId))
+      .map((file) => file.fileId);
+    const menuFiles = files.filter((file) => file.detectedType === 'menu' && activeSet.has(file.fileId)).map((file) => file.fileId);
+    const logoCandidates = files.filter((file) => file.detectedType === 'logo' && activeSet.has(file.fileId)).map((file) => file.fileId);
+    const socialFiles = files.filter((file) => file.detectedType === 'social' && activeSet.has(file.fileId)).map((file) => file.fileId);
+    const attributionSources = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.attributionSource || 'unknown')))
+      .filter((row): row is 'drive_metadata' | 'request_context' | 'unknown' => row === 'drive_metadata' || row === 'request_context' || row === 'unknown');
+    const repIds = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.repId || '').filter(Boolean)));
+    const affiliateCodes = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.affiliateCode || '').filter(Boolean)));
+
+    const pairReasons = new Set<string>();
+    for (let i = 0; i < groupIds.length; i += 1) {
+      for (let j = i + 1; j < groupIds.length; j += 1) {
+        const a = groupIds[i];
+        const b = groupIds[j];
+        const key = a < b ? `${a}::${b}` : `${b}::${a}`;
+        for (const reason of reasonByPair.get(key) || []) pairReasons.add(reason);
+      }
+    }
+    if (activeFileIds.length > 1) pairReasons.add('same_batch_context');
+    if (menuFiles.length > 0) pairReasons.add('menu_signal');
+    if (socialFiles.length > 0) pairReasons.add('social_signal');
+    if (profileFiles.length > 0) pairReasons.add('profile_identity_signal');
+
+    const hasPhone = files.some((file) => Boolean(file.extractedSignals.phone));
+    if (hasPhone) pairReasons.add('phone_match');
+    const correctedName = files.map((file) => correctionNameByFileId.get(file.fileId)).find(Boolean);
+    if (correctedName) pairReasons.add('corrected_business_name');
+    const assumedTruckName =
+      correctedName ||
+      files.map((file) => file.extractedSignals.truckName).find((name) => Boolean(name && name.trim())) ||
+      undefined;
+    const hasIdentity =
+      profileFiles.length > 0 ||
+      files.some((file) => Boolean(file.extractedSignals.truckName) && Boolean(file.extractedSignals.phone)) ||
+      files.some((file) => Boolean(file.extractedSignals.website) || Boolean(file.extractedSignals.instagram) || Boolean(file.extractedSignals.facebook)) ||
+      Boolean(correctedName);
+
+    const blockers: string[] = [];
+    if (!hasIdentity) blockers.push('missing_identity_signal');
+    if (!hasPhone && profileFiles.length === 0) blockers.push('missing_phone_or_profile');
+    if (activeFileIds.length === 0) blockers.push('all_files_marked_duplicate');
+
+    let confidence = Math.min(0.99, 0.2 + (hasIdentity ? 0.25 : 0) + (hasPhone ? 0.2 : 0) + (menuFiles.length > 0 ? 0.15 : 0) + (logoCandidates.length > 0 ? 0.05 : 0) + (pairReasons.has('executed_profile_match') ? 0.2 : 0) + (pairReasons.has('manual_menu_attachment') ? 0.15 : 0) + (pairReasons.has('corrected_business_name') ? 0.15 : 0));
+    confidence = Number(confidence.toFixed(2));
+
+    const status: MealScoutFolderContextCluster['status'] =
+      hasIdentity && (pairReasons.has('executed_profile_match') || pairReasons.has('manual_menu_attachment') || pairReasons.has('corrected_business_name'))
+        ? 'reviewed_cluster'
+        : hasIdentity && confidence >= 0.6
+          ? 'ready_for_safe_processing'
+          : hasIdentity
+            ? 'needs_review'
+            : 'weak_cluster';
+
+    clusterRows.push({
+      clusterId: `ctx-cluster-${index + 1}`,
+      assumedTruckName,
+      confidence,
+      sourceFileIds: activeFileIds,
+      profileFiles,
+      menuFiles,
+      logoCandidates,
+      socialFiles,
+      duplicateFileIds,
+      attributionSummary: {
+        attributionSources,
+        repIds,
+        affiliateCodes
+      },
+      reasons: Array.from(pairReasons),
+      blockers,
+      status
+    });
+  }
+
+  return clusterRows.sort((a, b) => {
+    const score = (row: MealScoutFolderContextCluster) =>
+      (row.status === 'reviewed_cluster' ? 3 : row.status === 'ready_for_safe_processing' ? 2 : row.status === 'needs_review' ? 1 : 0) * 100 +
+      row.sourceFileIds.length * 10 +
+      row.confidence;
+    return score(b) - score(a);
+  });
 }
 
 const MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES = 5;
@@ -2003,12 +2287,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       affiliateCode?: unknown;
       repId?: unknown;
       sourceChannel?: unknown;
+      processByCluster?: unknown;
+      clusterId?: unknown;
     };
     const mode = payload.mode === 'preview' || payload.mode === 'process' ? payload.mode : undefined;
     if (!mode) {
       return responseJson(res, { error: 'mode must be preview or process', mutationAllowed: false }, 400);
     }
     const safeMode = payload.safeMode !== false;
+    const processByCluster = payload.processByCluster === true;
+    const requestedClusterId = typeof payload.clusterId === 'string' ? payload.clusterId.trim() : '';
     const reprocess = payload.reprocess === true;
     const maxFilesRaw = typeof payload.maxFiles === 'number' ? payload.maxFiles : Number(payload.maxFiles);
     let maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : safeMode ? MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES : 50;
@@ -2050,6 +2338,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       resolvedFolderId = resolved.folderId;
       const driveClient = getDriveClient();
       const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      const contextClusters = buildMealScoutFolderContextClusters(listedFiles);
       scannedFileCount = listedFiles.length;
       const supported = listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file));
       eligibleFileCount = supported.length;
@@ -2075,7 +2364,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
       const selected: typeof supported = [];
       if (reprocess) {
-        const candidate = safeMode
+        let candidate = safeMode
           ? supported.filter((file) => {
               if (getMealScoutDuplicateSuppression(file.drive_file_id)) {
                 skippedDuplicateReviewCount += 1;
@@ -2098,6 +2387,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
               return false;
             })
           : supported;
+        if (processByCluster && contextClusters.length > 0) {
+          const target = requestedClusterId
+            ? contextClusters.find((row) => row.clusterId === requestedClusterId)
+            : contextClusters.find((row) => row.status === 'ready_for_safe_processing') || contextClusters[0];
+          if (target) {
+            const allow = new Set(target.sourceFileIds);
+            candidate = candidate.filter((file) => allow.has(file.drive_file_id));
+            safeModeWarnings.push(`processing_cluster:${target.clusterId}`);
+          }
+        }
         for (const file of candidate.slice(0, maxFiles)) {
           selected.push(file);
         }
@@ -2144,6 +2443,20 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         }
         for (const file of unprocessed.slice(0, maxFiles)) {
           selected.push(file);
+        }
+        if (processByCluster && contextClusters.length > 0) {
+          const target = requestedClusterId
+            ? contextClusters.find((row) => row.clusterId === requestedClusterId)
+            : contextClusters.find((row) => row.status === 'ready_for_safe_processing') || contextClusters[0];
+          if (target) {
+            const allow = new Set(target.sourceFileIds);
+            const clustered = unprocessed.filter((file) => allow.has(file.drive_file_id)).slice(0, maxFiles);
+            if (clustered.length > 0) {
+              selected.length = 0;
+              for (const file of clustered) selected.push(file);
+            }
+            safeModeWarnings.push(`processing_cluster:${target.clusterId}`);
+          }
         }
         for (const file of unprocessed.slice(maxFiles)) {
           skippedNotSelectedCount += 1;
@@ -2347,6 +2660,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         processedFiles,
         draftCount: drafts.length,
         reviewQueueUrl: '/admin/mealscout-review-queue',
+        folderContextClusters: contextClusters,
         errors
       });
     } catch (error) {
@@ -2567,6 +2881,85 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
   }
 
+  if (method === 'POST' && pathname === '/api/mealscout/intake/candidate-import') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      markdownText?: unknown;
+      sourceLabel?: unknown;
+      folderId?: unknown;
+    };
+    const markdownText = typeof payload.markdownText === 'string' ? payload.markdownText : '';
+    if (!markdownText.trim()) {
+      return responseJson(res, { error: 'markdownText is required', mutationAllowed: false }, 400);
+    }
+    try {
+      const candidates = parseGeminiVendorSummary(markdownText);
+      const resolved = await resolveMealScoutPreviewDriveFolderId(typeof payload.folderId === 'string' ? payload.folderId : undefined);
+      if (!resolved.ok) {
+        return responseJson(res, { error: resolved.reason, mutationAllowed: false, diagnostic: resolved.diagnostic }, 409);
+      }
+      const driveClient = getDriveClient();
+      const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      const supported = listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file)).slice(0, 200);
+      const evidence = [];
+      for (const file of supported) {
+        const raw = (file.raw_metadata || {}) as Record<string, unknown>;
+        let extractedText = typeof raw.extracted_text === 'string' ? raw.extracted_text : undefined;
+        if (!extractedText) {
+          try {
+            extractedText = await driveClient.downloadFileContent(file.drive_file_id);
+          } catch {
+            extractedText = undefined;
+          }
+        }
+        evidence.push({ fileId: file.drive_file_id, fileName: file.file_name, extractedText });
+      }
+      const matched = matchCandidatesToEvidence(candidates, evidence);
+      return responseJson(res, {
+        status: 'ok',
+        mutationAllowed: false,
+        source: typeof payload.sourceLabel === 'string' && payload.sourceLabel.trim() ? payload.sourceLabel.trim() : 'gemini_drive_summary',
+        parsedCandidateCount: matched.length,
+        matchedCandidateCount: matched.filter((row) => row.evidenceStatus === 'matched').length,
+        unmatchedCandidateCount: matched.filter((row) => row.evidenceStatus === 'unmatched').length,
+        candidates: matched,
+        warning: 'Candidate summaries are not evidence. Source files must confirm every field.'
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'candidate import failed';
+      return responseJson(res, { error: message, mutationAllowed: false }, 409);
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/folder-context') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    try {
+      const resolved = await resolveMealScoutPreviewDriveFolderId(query.folderId);
+      if (!resolved.ok) {
+        return responseJson(res, { error: resolved.reason, mutationAllowed: false, diagnostic: resolved.diagnostic }, 409);
+      }
+      const driveClient = getDriveClient();
+      const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      const probableTruckClusters = buildMealScoutFolderContextClusters(listedFiles);
+      return responseJson(res, {
+        status: 'ok',
+        mutationAllowed: false,
+        folderId: resolved.folderId,
+        probableTruckClusters
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'folder context failed';
+      return responseJson(res, { error: message, mutationAllowed: false }, 409);
+    }
+  }
+
   if (method === 'POST' && pathname === '/api/mealscout/intake/duplicates/remove') {
     const body = await parseBody(req);
     if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
@@ -2629,8 +3022,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         primaryFileId: string;
         attributionStatus?: string;
         affiliateCode?: string;
+        suppressionApplied?: boolean;
         auditId: string;
       }> = [];
+      let trashFailedPermissionCount = 0;
+      let markedSuppressedAfterPermissionFailureCount = 0;
 
       let quarantineFolderId = '';
       const ensureQuarantineFolder = async (): Promise<string> => {
@@ -2780,26 +3176,82 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
                 auditId: audit.auditId
               });
             } else {
+              if (typeof driveClient.trashFile !== 'function') {
+                const audit = appendMealScoutDuplicateRemovalAudit({
+                  ...baseAuditInput,
+                  action: 'failed',
+                  result: 'failed',
+                  failureReason: 'trash_mode_unsupported_by_client'
+                });
+                results.push({
+                  fileId: file.drive_file_id,
+                  originalFileName: file.file_name,
+                  duplicateGroupId: group.duplicateGroupId,
+                  action: 'failed',
+                  reason: 'trash_mode_unsupported_by_client',
+                  primaryFileId: group.recommendedPrimaryFileId,
+                  attributionStatus: sourceAttribution.attributionStatus,
+                  affiliateCode: sourceAttribution.affiliateCode,
+                  auditId: audit.auditId
+                });
+              } else {
+                await driveClient.trashFile(file.drive_file_id);
+                const audit = appendMealScoutDuplicateRemovalAudit({
+                  ...baseAuditInput,
+                  action: 'trashed',
+                  result: 'success'
+                });
+                markMealScoutDuplicateSuppressed({
+                  fileId: file.drive_file_id,
+                  status: 'trashed',
+                  removalExecutionId,
+                  auditId: audit.auditId
+                });
+                results.push({
+                  fileId: file.drive_file_id,
+                  originalFileName: file.file_name,
+                  duplicateGroupId: group.duplicateGroupId,
+                  action: 'trashed',
+                  primaryFileId: group.recommendedPrimaryFileId,
+                  attributionStatus: sourceAttribution.attributionStatus,
+                  affiliateCode: sourceAttribution.affiliateCode,
+                  auditId: audit.auditId
+                });
+              }
+            }
+          } catch (error) {
+            const failureReason = error instanceof Error ? error.message : 'duplicate_removal_failed';
+            const permissionDenied =
+              /insufficient permissions|permission|forbidden|not have sufficient permissions/i.test(failureReason);
+            if (removalMode === 'trash' && permissionDenied) {
               const audit = appendMealScoutDuplicateRemovalAudit({
                 ...baseAuditInput,
-                action: 'failed',
-                result: 'failed',
-                failureReason: 'trash_mode_not_implemented'
+                action: 'marked_duplicate',
+                result: 'failed_permission_marked_suppressed',
+                failureReason: 'duplicate_removal_blocked_permission'
               });
+              markMealScoutDuplicateSuppressed({
+                fileId: file.drive_file_id,
+                status: 'duplicate_removed_pending',
+                removalExecutionId,
+                auditId: audit.auditId
+              });
+              trashFailedPermissionCount += 1;
+              markedSuppressedAfterPermissionFailureCount += 1;
               results.push({
                 fileId: file.drive_file_id,
                 originalFileName: file.file_name,
                 duplicateGroupId: group.duplicateGroupId,
-                action: 'failed',
-                reason: 'trash_mode_not_implemented',
+                action: 'marked_duplicate',
+                reason: 'duplicate_removal_blocked_permission',
                 primaryFileId: group.recommendedPrimaryFileId,
                 attributionStatus: sourceAttribution.attributionStatus,
                 affiliateCode: sourceAttribution.affiliateCode,
+                suppressionApplied: true,
                 auditId: audit.auditId
               });
+              continue;
             }
-          } catch (error) {
-            const failureReason = error instanceof Error ? error.message : 'duplicate_removal_failed';
             const audit = appendMealScoutDuplicateRemovalAudit({
               ...baseAuditInput,
               action: 'failed',
@@ -2815,12 +3267,19 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
               primaryFileId: group.recommendedPrimaryFileId,
               attributionStatus: sourceAttribution.attributionStatus,
               affiliateCode: sourceAttribution.affiliateCode,
+              suppressionApplied: false,
               auditId: audit.auditId
             });
           }
         }
       }
-      return responseJson(res, { mutationAllowed: true, removalExecutionId, results });
+      return responseJson(res, {
+        mutationAllowed: true,
+        removalExecutionId,
+        trashFailedPermissionCount,
+        markedSuppressedAfterPermissionFailureCount,
+        results
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'duplicate removal failed';
       return responseJson(res, { error: message, mutationAllowed: false }, 409);

@@ -189,6 +189,26 @@
         <ul id="file-audit-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">Loading file audit...</li></ul>
       </section>
 
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Candidate Import Assist</h2>
+        <p class="subtitle">Candidate summaries are not evidence. Source files must confirm every field.</p>
+        <textarea id="candidate-import-text" rows="7" style="width:100%;" placeholder="Paste Gemini vendor markdown here..."></textarea>
+        <div class="actions">
+          <button id="candidate-import-btn">Parse Candidate Summary</button>
+        </div>
+        <div id="candidate-import-summary" class="mini" style="margin-top:0.5rem;">No candidate import yet.</div>
+        <ul id="candidate-import-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No candidates loaded.</li></ul>
+      </section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Folder Context Assist</h2>
+        <p class="subtitle">Probable truck clusters from whole-folder context. Preview only.</p>
+        <div class="actions">
+          <button id="refresh-folder-context-btn">Refresh Folder Context</button>
+        </div>
+        <ul id="folder-context-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No folder context loaded.</li></ul>
+      </section>
+
       <div class="layout">
         <section class="panel">
           <h2>OCR Draft Profiles</h2>
@@ -251,6 +271,8 @@
         classification: '',
         reviewDecision: ''
       };
+      let candidateImportResult = null;
+      let folderContextResult = null;
 
       const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
       const sourceClassByFileId = new Map();
@@ -277,6 +299,91 @@
           card.innerHTML = `<div class="k">${item.k}</div><div class="v">${item.v}</div>`;
           container.appendChild(card);
         }
+      }
+
+      function renderCandidateImport() {
+        const summaryNode = document.getElementById('candidate-import-summary');
+        const listNode = document.getElementById('candidate-import-list');
+        if (!summaryNode || !listNode) return;
+        if (!candidateImportResult) {
+          summaryNode.textContent = 'No candidate import yet.';
+          listNode.innerHTML = '<li class="draft-card">No candidates loaded.</li>';
+          return;
+        }
+        summaryNode.textContent = `parsed:${safe(candidateImportResult.parsedCandidateCount)} matched:${safe(candidateImportResult.matchedCandidateCount)} unmatched:${safe(candidateImportResult.unmatchedCandidateCount)} mutationAllowed:${safe(candidateImportResult.mutationAllowed)}`;
+        const candidates = Array.isArray(candidateImportResult.candidates) ? candidateImportResult.candidates : [];
+        listNode.innerHTML = '';
+        for (const candidate of candidates) {
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(candidate.evidenceStatus)}</span> <span class="pill">${safe(candidate.source)}</span></div>
+            <div><strong>${safe(candidate.businessName)}</strong></div>
+            <div class="mini">phone:${safe(candidate.extractedCandidateFields?.phone)} email:${safe(candidate.extractedCandidateFields?.email)} location:${safe(candidate.extractedCandidateFields?.location)}</div>
+            <div class="mini">cuisine:${safe(candidate.extractedCandidateFields?.cuisine)} social:${safe(candidate.extractedCandidateFields?.socialHandle)}</div>
+            <div class="mini">menuItems:${safe((candidate.extractedCandidateFields?.menuItems || []).length)}</div>
+            <div class="mini">matches:${safe((candidate.matches || []).map((m) => `${m.fileName}(${m.matchScore})`).join(' | '))}</div>
+          `;
+          listNode.appendChild(li);
+        }
+      }
+
+      function renderFolderContext() {
+        const listNode = document.getElementById('folder-context-list');
+        if (!listNode) return;
+        if (!folderContextResult) {
+          listNode.innerHTML = '<li class="draft-card">No folder context loaded.</li>';
+          return;
+        }
+        const clusters = Array.isArray(folderContextResult.probableTruckClusters) ? folderContextResult.probableTruckClusters : [];
+        listNode.innerHTML = '';
+        if (!clusters.length) {
+          listNode.innerHTML = '<li class="draft-card">No probable clusters found.</li>';
+          return;
+        }
+        for (const cluster of clusters) {
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(cluster.status)}</span> <span class="pill">confidence:${safe(cluster.confidence)}</span></div>
+            <div><strong>${safe(cluster.assumedTruckName)}</strong> · <span class="mono">${safe(cluster.clusterId)}</span></div>
+            <div class="mini">files:${safe((cluster.sourceFileIds || []).join(', '))}</div>
+            <div class="mini">profile:${safe((cluster.profileFiles || []).length)} menu:${safe((cluster.menuFiles || []).length)} logo:${safe((cluster.logoCandidates || []).length)} social:${safe((cluster.socialFiles || []).length)}</div>
+            <div class="mini">duplicates:${safe((cluster.duplicateFileIds || []).length)} reps:${safe((cluster.attributionSummary?.repIds || []).join(', '))} affiliates:${safe((cluster.attributionSummary?.affiliateCodes || []).join(', '))}</div>
+            <div class="mini">reasons:${safe((cluster.reasons || []).join(' | '))}</div>
+            <div class="mini">blockers:${safe((cluster.blockers || []).join(' | '))}</div>
+            <div class="actions"><button data-process-cluster-id="${safe(cluster.clusterId)}">Process this cluster</button></div>
+          `;
+          listNode.appendChild(li);
+        }
+        for (const btn of document.querySelectorAll('button[data-process-cluster-id]')) {
+          btn.addEventListener('click', async () => {
+            const clusterId = btn.getAttribute('data-process-cluster-id');
+            if (!clusterId) return;
+            const safeMode = document.getElementById('batch-safe-mode')?.checked !== false;
+            const maxFilesRaw = Number(document.getElementById('batch-max-files')?.value || '5');
+            const maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : 5;
+            const reprocess = document.getElementById('batch-reprocess')?.checked === true;
+            const result = await client.runBatchIntake({ mode: 'process', safeMode, maxFiles, reprocess, processByCluster: true, clusterId });
+            batchState.lastResult = result;
+            batchState.lastError = '';
+            renderBatchResult(result);
+            await hydrate();
+          });
+        }
+      }
+
+      async function refreshFolderContext() {
+        try {
+          folderContextResult = await client.getFolderContext({});
+        } catch (error) {
+          folderContextResult = {
+            probableTruckClusters: [],
+            mutationAllowed: false,
+            error: error instanceof Error ? error.message : 'folder context failed'
+          };
+        }
+        renderFolderContext();
       }
 
       function updateFilterStateFromInputs() {
@@ -1096,6 +1203,7 @@
         renderBatchResult(batchState.lastResult);
         await loadBatchHistory();
         await refreshFileAudit();
+        await refreshFolderContext();
         renderActiveFilterChips();
       }
 
@@ -1185,10 +1293,40 @@
       });
       wireBatchControls();
       wireFilterControls();
+      const candidateImportBtn = document.getElementById('candidate-import-btn');
+      if (candidateImportBtn) {
+        candidateImportBtn.addEventListener('click', async () => {
+          const text = document.getElementById('candidate-import-text')?.value || '';
+          if (!text.trim()) return;
+          try {
+            candidateImportResult = await client.importCandidateSummary({
+              markdownText: text,
+              sourceLabel: 'gemini_drive_summary'
+            });
+          } catch (error) {
+            candidateImportResult = {
+              parsedCandidateCount: 0,
+              matchedCandidateCount: 0,
+              unmatchedCandidateCount: 0,
+              mutationAllowed: false,
+              candidates: [],
+              error: error instanceof Error ? error.message : 'candidate import failed'
+            };
+          }
+          renderCandidateImport();
+        });
+      }
+      renderCandidateImport();
       const refreshFileAuditBtn = document.getElementById('refresh-file-audit-btn');
       if (refreshFileAuditBtn) {
         refreshFileAuditBtn.addEventListener('click', () => {
           refreshFileAudit().catch(() => {});
+        });
+      }
+      const refreshFolderContextBtn = document.getElementById('refresh-folder-context-btn');
+      if (refreshFolderContextBtn) {
+        refreshFolderContextBtn.addEventListener('click', () => {
+          refreshFolderContext().catch(() => {});
         });
       }
     </script>

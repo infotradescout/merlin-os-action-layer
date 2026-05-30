@@ -73,6 +73,8 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
   assert.ok(response.body.includes('Run batch intake'));
   assert.ok(response.body.includes('Batch intake does not publish records.'));
   assert.ok(response.body.includes('Batch History'));
+  assert.ok(response.body.includes('Candidate Import Assist'));
+  assert.ok(response.body.includes('Folder Context Assist'));
   assert.ok(response.body.includes('Clear filters'));
   assert.ok(response.body.includes('Preview only - no records will be published.'));
   assert.ok(response.body.includes('Publish (Disabled)'));
@@ -290,6 +292,30 @@ test('mealscout review queue client uses preview endpoint and local review state
         );
       }
 
+      if (target.includes('/api/mealscout/intake/candidate-import') && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            mutationAllowed: false,
+            parsedCandidateCount: 1,
+            matchedCandidateCount: 1,
+            unmatchedCandidateCount: 0,
+            candidates: [
+              {
+                candidateId: 'ms-candidate-1',
+                businessName: "Traci's Cherished Creations LLC",
+                extractedCandidateFields: { phone: '850-255-8396', location: 'Pensacola, FL' },
+                confidence: 0.8,
+                source: 'gemini_drive_summary',
+                evidenceStatus: 'matched',
+                matches: [{ fileId: 'file-1', fileName: 'traci.png', matchScore: 0.9, reasons: ['business_name_match'] }]
+              }
+            ]
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        );
+      }
+
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
@@ -343,6 +369,10 @@ test('mealscout review queue client uses preview endpoint and local review state
     assert.equal(history.mutationAllowed, false);
     assert.equal(Array.isArray(history.batches), true);
     assert.equal(history.batches[0].batchId, 'ms-intake-batch-1');
+
+    const imported = await client.importCandidateSummary({ markdownText: '## Traci\\nPhone: 850-255-8396' });
+    assert.equal(imported.mutationAllowed, false);
+    assert.equal(imported.parsedCandidateCount, 1);
 
     const previewCalls = calls.filter((entry) => entry.url.includes('/api/mealscout/intake/preview'));
     assert.equal(previewCalls.length, 1);

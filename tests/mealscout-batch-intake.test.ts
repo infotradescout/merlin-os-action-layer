@@ -588,6 +588,257 @@ test('safe mode skips duplicate candidates and reports duplicate skip counters',
   assert.equal(run.body.skippedFiles.some((row) => row.fileId === 'dup-copy' && row.reason === 'already_duplicate'), true);
 });
 
+test('folder context endpoint is role-gated and returns probable truck clusters', async () => {
+  const clusterClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'traci-profile',
+          file_name: 'Screenshot_20260527_115713_Facebook.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-profile',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: {
+            extracted_text: "Traci's Cherished Creations LLC\nPhone: 850-255-8396\nPensacola, FL",
+            owner_email: 'rep1@example.com'
+          }
+        },
+        {
+          drive_file_id: 'traci-menu',
+          file_name: 'Messenger_creation_9527970C.jpeg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-menu',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: {
+            extracted_text: "TRACI'S CHERISHED CREATIONS\nPH. 850-255-8396\nDINNERS"
+          }
+        },
+        {
+          drive_file_id: 'traci-logo',
+          file_name: 'FB_IMG_1779901042554.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-logo',
+          modified_time: '2026-05-29T01:02:00.000Z',
+          raw_metadata: {}
+        }
+      ];
+    },
+    async downloadFileContent(fileId: string) {
+      if (fileId === 'traci-profile') return "Traci's Cherished Creations LLC\nPhone: 850-255-8396\nPensacola, FL";
+      if (fileId === 'traci-menu') return "TRACI'S CHERISHED CREATIONS\nPH. 850-255-8396\nDINNERS";
+      return undefined;
+    }
+  };
+  setDriveClientFactory(() => clusterClient);
+
+  const preview = await requestJson<{
+    drafts: Array<{ draftId: string; sourceFiles?: Array<{ sourceFileId: string }> }>;
+    publishPlan?: { records?: Array<{ recordId: string; draftIds?: string[]; profileFields?: Record<string, { sourceFileIds?: string[]; value?: string }> }> };
+  }>('/api/mealscout/intake/preview', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ loadFromDriveFolder: true, includeDebugOcr: true })
+  });
+  assert.equal(preview.status, 200);
+  const traciDraft = (preview.body.drafts || []).find((draft) =>
+    (draft.sourceFiles || []).some((file) => file.sourceFileId === 'traci-profile')
+  );
+  assert.ok(traciDraft);
+  if (!traciDraft) throw new Error('expected Traci draft');
+  await requestJson('/api/mealscout/attachment-decisions', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({
+      draftId: traciDraft.draftId,
+      sourceFileId: 'traci-menu',
+      sourceFileName: 'Messenger_creation_9527970C.jpeg',
+      action: 'mark_as_menu',
+      mediaType: 'menu',
+      reason: 'manual_menu_attachment',
+      operatorId: 'MANUAL_OPERATOR'
+    })
+  });
+  await requestJson('/api/mealscout/attachment-decisions', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({
+      draftId: traciDraft.draftId,
+      sourceFileId: 'traci-logo',
+      sourceFileName: 'FB_IMG_1779901042554.jpg',
+      action: 'mark_as_logo_candidate',
+      mediaType: 'logo',
+      reason: 'logo_candidate_attachment',
+      operatorId: 'MANUAL_OPERATOR'
+    })
+  });
+  const planRecord = (preview.body.publishPlan?.records || []).find((record) => (record.draftIds || []).includes(traciDraft.draftId));
+  if (planRecord) {
+    await requestJson('/api/mealscout/review-corrections', {
+      method: 'POST',
+      headers: { 'x-operator-role': 'admin' },
+      body: JSON.stringify({
+        recordId: planRecord.recordId,
+        draftIds: [traciDraft.draftId],
+        fieldName: 'truckName',
+        action: 'replace_field',
+        originalValue: planRecord.profileFields?.truckName?.value || "Traci's Cherished",
+        correctedValue: "Traci's Cherished Creations LLC",
+        reason: 'corrected_business_name',
+        evidenceRef: 'facebook_profile_screenshot',
+        sourceFileId: 'traci-profile',
+        operatorId: 'MANUAL_OPERATOR'
+      })
+    });
+  }
+
+  const denied = await requestJson<{ mutationAllowed: boolean; error: string }>('/api/mealscout/intake/folder-context', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'viewer' }
+  });
+  assert.equal(denied.status, 403);
+  assert.equal(denied.body.mutationAllowed, false);
+
+  const ok = await requestJson<{
+    mutationAllowed: boolean;
+    probableTruckClusters: Array<{
+      clusterId: string;
+      sourceFileIds: string[];
+      profileFiles: string[];
+      menuFiles: string[];
+      logoCandidates: string[];
+      reasons: string[];
+      status: string;
+    }>;
+  }>('/api/mealscout/intake/folder-context', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.mutationAllowed, false);
+  assert.equal(ok.body.probableTruckClusters.length >= 1, true);
+  const traciCluster = ok.body.probableTruckClusters.find((cluster) => cluster.sourceFileIds.includes('traci-profile'));
+  assert.ok(traciCluster);
+  assert.equal((traciCluster?.sourceFileIds || []).includes('traci-menu'), true);
+  assert.equal((traciCluster?.sourceFileIds || []).includes('traci-logo'), true);
+  assert.equal((traciCluster?.reasons || []).includes('manual_menu_attachment'), true);
+  assert.equal((traciCluster?.reasons || []).includes('logo_candidate_attachment'), true);
+  assert.equal((traciCluster?.reasons || []).includes('corrected_business_name'), true);
+  assert.equal((traciCluster?.status || '') !== 'weak_cluster', true);
+});
+
+test('safe mode processByCluster selects cluster files instead of arbitrary next slice', async () => {
+  const clusterClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'other-1',
+          file_name: 'aaa-other-1.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/other-1',
+          modified_time: '2026-05-29T00:00:00.000Z',
+          raw_metadata: { extracted_text: 'Unrelated\nPhone: 111-111-1111\nCity: Elsewhere' }
+        },
+        {
+          drive_file_id: 'other-2',
+          file_name: 'aaa-other-2.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/other-2',
+          modified_time: '2026-05-29T00:00:10.000Z',
+          raw_metadata: { extracted_text: 'Unrelated\nPhone: 111-111-1112\nCity: Elsewhere' }
+        },
+        {
+          drive_file_id: 'traci-profile',
+          file_name: 'Screenshot_20260527_115713_Facebook.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-profile',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { extracted_text: "Traci's Cherished Creations LLC\nPhone: 850-255-8396\nPensacola, FL" }
+        },
+        {
+          drive_file_id: 'traci-menu',
+          file_name: 'Messenger_creation_9527970C.jpeg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-menu',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { extracted_text: "TRACI'S CHERISHED CREATIONS\nPH. 850-255-8396\nDINNERS" }
+        },
+        {
+          drive_file_id: 'traci-logo',
+          file_name: 'FB_IMG_1779901042554.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/traci-logo',
+          modified_time: '2026-05-29T01:02:00.000Z',
+          raw_metadata: {}
+        },
+        {
+          drive_file_id: 'other-3',
+          file_name: 'zzz-other-3.jpg',
+          mime_type: 'image/jpeg',
+          folder_id: folderId,
+          web_url: 'https://example.com/other-3',
+          modified_time: '2026-05-29T02:00:00.000Z',
+          raw_metadata: { extracted_text: 'Unrelated\nPhone: 111-111-1113\nCity: Elsewhere' }
+        }
+      ];
+    },
+    async downloadFileContent(fileId: string) {
+      if (fileId === 'traci-profile') return "Traci's Cherished Creations LLC\nPhone: 850-255-8396\nPensacola, FL";
+      if (fileId === 'traci-menu') return "TRACI'S CHERISHED CREATIONS\nPH. 850-255-8396\nDINNERS";
+      if (fileId === 'other-1') return 'Unrelated\nPhone: 111-111-1111\nCity: Elsewhere';
+      if (fileId === 'other-2') return 'Unrelated\nPhone: 111-111-1112\nCity: Elsewhere';
+      if (fileId === 'other-3') return 'Unrelated\nPhone: 111-111-1113\nCity: Elsewhere';
+      return undefined;
+    }
+  };
+  setDriveClientFactory(() => clusterClient);
+
+  const context = await requestJson<{
+    probableTruckClusters: Array<{ clusterId: string; sourceFileIds: string[] }>;
+  }>('/api/mealscout/intake/folder-context', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(context.status, 200);
+  const target = context.body.probableTruckClusters.find((cluster) => cluster.sourceFileIds.includes('traci-profile'));
+  assert.ok(target);
+
+  const run = await requestJson<{
+    mutationAllowed: boolean;
+    processedFiles: Array<{ fileId: string }>;
+    warnings?: string[];
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({
+      mode: 'process',
+      safeMode: true,
+      maxFiles: 5,
+      reprocess: false,
+      processByCluster: true,
+      clusterId: target?.clusterId
+    })
+  });
+  assert.equal(run.status, 200);
+  assert.equal(run.body.mutationAllowed, false);
+  const processedIds = new Set(run.body.processedFiles.map((row) => row.fileId));
+  assert.equal(processedIds.has('traci-profile'), true);
+  assert.equal(processedIds.has('traci-menu') || processedIds.has('traci-logo'), true);
+  assert.equal(processedIds.has('other-1'), false);
+  assert.equal((run.body.warnings || []).some((row) => row.includes('processing_cluster:')), true);
+});
+
 test('file audit matches uploader email to affiliate and flags ambiguous/unmatched attribution', async () => {
   const attributionClient: DriveClient = {
     ...buildDriveClient(),
@@ -749,4 +1000,94 @@ test('duplicate removal endpoint blocks primary removal and marks duplicate for 
   });
   assert.equal(run.status, 200);
   assert.equal(run.body.skippedFiles.some((row) => row.fileId === 'rm-dup' && row.reason === 'already_duplicate'), true);
+});
+
+test('duplicate removal rejects unauthorized caller', async () => {
+  setDriveClientFactory(() => buildDriveClient());
+  const res = await requestJson<{ error: string; mutationAllowed: boolean }>('/api/mealscout/intake/duplicates/remove', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'viewer' },
+    body: JSON.stringify({ confirmation: true, removalMode: 'mark_only', operatorId: 'MANUAL_OPERATOR' })
+  });
+  assert.equal(res.status, 403);
+  assert.equal(res.body.mutationAllowed, false);
+});
+
+test('trash permission failure falls back to suppression mark_only behavior', async () => {
+  process.env.MEALSCOUT_ENABLE_DANGEROUS_TRASH_MODE = 'true';
+  const dupClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'rm2-primary',
+          file_name: 'IMG_4645.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/rm2-primary',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        },
+        {
+          drive_file_id: 'rm2-dup',
+          file_name: 'IMG_4645.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/rm2-dup',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        }
+      ];
+    },
+    async trashFile() {
+      throw new Error('The user does not have sufficient permissions for this file.');
+    },
+    async downloadFileContent(fileId: string) {
+      return fileId === 'rm2-primary'
+        ? 'Truck A\nPhone: 504-000-0001\nCity: Metairie'
+        : 'Truck A\nPhone: 504-000-0001\nCity: Metairie';
+    }
+  };
+  setDriveClientFactory(() => dupClient);
+  const audit = await requestJson<{ duplicateGroups: Array<{ duplicateGroupId: string }> }>('/api/mealscout/intake/file-audit', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(audit.status, 200);
+  const groupId = audit.body.duplicateGroups[0]?.duplicateGroupId;
+  assert.ok(groupId);
+  const remove = await requestJson<{
+    mutationAllowed: boolean;
+    trashFailedPermissionCount: number;
+    markedSuppressedAfterPermissionFailureCount: number;
+    results: Array<{ fileId: string; action: string; reason?: string; suppressionApplied?: boolean }>;
+  }>('/api/mealscout/intake/duplicates/remove', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({
+      duplicateGroupIds: [groupId],
+      fileIds: ['rm2-dup'],
+      removalMode: 'trash',
+      confirmation: true,
+      operatorId: 'MANUAL_OPERATOR',
+      forceReviewApproved: true,
+      attributionConflictApproval: true
+    })
+  });
+  assert.equal(remove.status, 200);
+  assert.equal(remove.body.mutationAllowed, true);
+  assert.equal(remove.body.trashFailedPermissionCount, 1);
+  assert.equal(remove.body.markedSuppressedAfterPermissionFailureCount, 1);
+  assert.equal(
+    remove.body.results.some((row) => row.fileId === 'rm2-dup' && row.action === 'marked_duplicate' && row.reason === 'duplicate_removal_blocked_permission' && row.suppressionApplied === true),
+    true
+  );
+  const run = await requestJson<{ skippedFiles: Array<{ fileId: string; reason: string }> }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', safeMode: true, maxFiles: 5 })
+  });
+  assert.equal(run.status, 200);
+  assert.equal(run.body.skippedFiles.some((row) => row.fileId === 'rm2-dup' && row.reason === 'already_duplicate'), true);
 });
