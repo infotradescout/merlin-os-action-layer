@@ -1771,6 +1771,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     let resolvedFolderId = '';
     let scannedFileCount = 0;
     let eligibleFileCount = 0;
+    let skippedAlreadyProcessedCount = 0;
+    let skippedNotSelectedCount = 0;
+    let skippedUnsupportedCount = 0;
 
     try {
       const resolved = await resolveMealScoutPreviewDriveFolderId(typeof payload.folderId === 'string' ? payload.folderId : undefined);
@@ -1785,6 +1788,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       eligibleFileCount = supported.length;
       for (const file of listedFiles) {
         if (!isSupportedMealScoutPreviewFile(file)) {
+          skippedUnsupportedCount += 1;
           skippedFiles.push({
             fileId: file.drive_file_id,
             fileName: file.file_name,
@@ -1793,25 +1797,49 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         }
       }
 
-      const selected = supported.slice(0, maxFiles);
-      for (const file of supported.slice(maxFiles)) {
-        skippedFiles.push({
-          fileId: file.drive_file_id,
-          fileName: file.file_name,
-          reason: 'not_selected'
-        });
+      const selected: typeof supported = [];
+      if (reprocess) {
+        const candidate = supported;
+        for (const file of candidate.slice(0, maxFiles)) {
+          selected.push(file);
+        }
+        for (const file of candidate.slice(maxFiles)) {
+          skippedNotSelectedCount += 1;
+          skippedFiles.push({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            reason: 'not_selected'
+          });
+        }
+      } else {
+        const unprocessed: typeof supported = [];
+        for (const file of supported) {
+          if (getMealScoutBatchProcessedRecord(file.drive_file_id)) {
+            skippedAlreadyProcessedCount += 1;
+            skippedFiles.push({
+              fileId: file.drive_file_id,
+              fileName: file.file_name,
+              reason: 'already_processed'
+            });
+          } else {
+            unprocessed.push(file);
+          }
+        }
+        for (const file of unprocessed.slice(0, maxFiles)) {
+          selected.push(file);
+        }
+        for (const file of unprocessed.slice(maxFiles)) {
+          skippedNotSelectedCount += 1;
+          skippedFiles.push({
+            fileId: file.drive_file_id,
+            fileName: file.file_name,
+            reason: 'not_selected'
+          });
+        }
       }
 
       const evidenceFiles = [];
       for (const file of selected) {
-        if (!reprocess && getMealScoutBatchProcessedRecord(file.drive_file_id)) {
-          skippedFiles.push({
-            fileId: file.drive_file_id,
-            fileName: file.file_name,
-            reason: 'already_processed'
-          });
-          continue;
-        }
         try {
           const hydrated = await hydrateDriveFilesForPreviewWithDiagnostics([file], driveClient);
           const hydratedFile = hydrated.files[0];
@@ -1942,6 +1970,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         eligibleFileCount,
         processedFileCount: processedFiles.length,
         skippedFileCount: skippedFiles.length,
+        skippedAlreadyProcessedCount,
+        skippedNotSelectedCount,
+        skippedUnsupportedCount,
         failedFileCount: errors.length,
         ocrFailureCount,
         unknownAttributionCount,
@@ -1987,6 +2018,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         eligibleFileCount,
         processedFileCount: processedFiles.length,
         skippedFileCount: skippedFiles.length,
+        skippedAlreadyProcessedCount,
+        skippedNotSelectedCount,
+        skippedUnsupportedCount,
         failedFileCount: errors.length,
         skippedFiles,
         processedFiles,
@@ -2056,6 +2090,9 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
           eligibleFileCount,
           processedFileCount: processedFiles.length,
           skippedFileCount: skippedFiles.length,
+          skippedAlreadyProcessedCount,
+          skippedNotSelectedCount,
+          skippedUnsupportedCount,
           failedFileCount: Math.max(1, errors.length),
           skippedFiles,
           processedFiles,

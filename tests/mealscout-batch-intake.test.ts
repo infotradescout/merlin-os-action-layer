@@ -104,6 +104,20 @@ function buildDriveClient(): DriveClient {
           raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
         },
         {
+          drive_file_id: 'batch-profile-2',
+          file_name: 'profile-2.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/profile-2',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown',
+            extracted_text: 'Delta Bites\nPhone: 504-444-9191\nCity: Metairie',
+            owner_email: 'rep2@example.com',
+            owner_name: 'Rep Two'
+          }
+        },
+        {
           drive_file_id: 'batch-unsupported-1',
           file_name: 'notes.txt',
           mime_type: 'text/plain',
@@ -120,6 +134,7 @@ function buildDriveClient(): DriveClient {
     async downloadFileContent(fileId: string) {
       if (fileId === 'batch-profile-1') return 'Orbit Tacos\nPhone: 504-333-9090\nCity: Metairie';
       if (fileId === 'batch-menu-1') return 'Quesadilla $10.00\nBirria Taco $4.25';
+      if (fileId === 'batch-profile-2') return 'Delta Bites\nPhone: 504-444-9191\nCity: Metairie';
       return undefined;
     },
     async downloadFileBinary(fileId: string) {
@@ -165,6 +180,9 @@ test('authorized batch run processes eligible files and reports skips with attri
     eligibleFileCount: number;
     processedFileCount: number;
     skippedFileCount: number;
+    skippedAlreadyProcessedCount: number;
+    skippedNotSelectedCount: number;
+    skippedUnsupportedCount: number;
     processedFiles: Array<{ fileId: string; classification: string; sourceFileAttribution?: { attributionSource: string; driveUploaderEmail?: string } }>;
     skippedFiles: Array<{ fileId: string; reason: string }>;
     draftCount: number;
@@ -175,9 +193,11 @@ test('authorized batch run processes eligible files and reports skips with attri
   });
   assert.equal(response.status, 200);
   assert.equal(response.body.mutationAllowed, false);
-  assert.equal(response.body.scannedFileCount, 4);
-  assert.equal(response.body.eligibleFileCount, 3);
+  assert.equal(response.body.scannedFileCount, 5);
+  assert.equal(response.body.eligibleFileCount, 4);
   assert.equal(response.body.processedFileCount >= 2, true);
+  assert.equal(response.body.skippedUnsupportedCount, 1);
+  assert.equal(response.body.skippedAlreadyProcessedCount, 0);
   assert.equal(response.body.skippedFiles.some((row) => row.reason === 'unsupported_type'), true);
   assert.equal(response.body.skippedFiles.some((row) => row.reason === 'empty_bytes'), true);
   assert.equal(response.body.processedFiles.some((row) => row.classification !== 'unknown'), true);
@@ -206,7 +226,7 @@ test('batch run uses request-level attribution fallback when drive metadata is m
   assert.equal(['drive_metadata', 'request_context'].includes(attr.attributionSource), true);
 });
 
-test('second run skips already processed unless reprocess true', async () => {
+test('second run processes next unprocessed slice and reports skip breakdown unless reprocess true', async () => {
   setDriveClientFactory(() => buildDriveClient());
   const first = await requestJson<{ processedFileCount: number }>('/api/mealscout/intake/batches/run', {
     method: 'POST',
@@ -214,13 +234,22 @@ test('second run skips already processed unless reprocess true', async () => {
     body: JSON.stringify({ mode: 'process', maxFiles: 2 })
   });
   assert.equal(first.status, 200);
+  assert.equal(first.body.processedFileCount, 2);
 
-  const second = await requestJson<{ skippedFiles: Array<{ reason: string }> }>('/api/mealscout/intake/batches/run', {
+  const second = await requestJson<{
+    processedFileCount: number;
+    skippedAlreadyProcessedCount: number;
+    skippedNotSelectedCount: number;
+    skippedFiles: Array<{ reason: string }>;
+  }>('/api/mealscout/intake/batches/run', {
     method: 'POST',
     headers: { 'x-operator-role': 'admin' },
     body: JSON.stringify({ mode: 'process', maxFiles: 2 })
   });
   assert.equal(second.status, 200);
+  assert.equal(second.body.processedFileCount >= 1, true);
+  assert.equal(second.body.skippedAlreadyProcessedCount >= 2, true);
+  assert.equal(second.body.skippedNotSelectedCount >= 0, true);
   assert.equal(second.body.skippedFiles.some((row) => row.reason === 'already_processed'), true);
 
   const third = await requestJson<{ processedFileCount: number }>('/api/mealscout/intake/batches/run', {

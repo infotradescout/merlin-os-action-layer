@@ -57,6 +57,9 @@ export type MealScoutBatchHistoryEntry = {
   eligibleFileCount: number;
   processedFileCount: number;
   skippedFileCount: number;
+  skippedAlreadyProcessedCount?: number;
+  skippedNotSelectedCount?: number;
+  skippedUnsupportedCount?: number;
   failedFileCount: number;
   ocrFailureCount: number;
   unknownAttributionCount: number;
@@ -114,6 +117,9 @@ export function listMealScoutBatchHistory(): MealScoutBatchHistoryEntry[] {
       eligibleFileCount: entry.eligibleFileCount,
       processedFileCount: entry.processedFileCount,
       skippedFileCount: entry.skippedFileCount,
+      skippedAlreadyProcessedCount: entry.skippedAlreadyProcessedCount,
+      skippedNotSelectedCount: entry.skippedNotSelectedCount,
+      skippedUnsupportedCount: entry.skippedUnsupportedCount,
       failedFileCount: entry.failedFileCount,
       ocrFailureCount: entry.ocrFailureCount,
       unknownAttributionCount: entry.unknownAttributionCount,
