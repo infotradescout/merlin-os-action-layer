@@ -138,6 +138,13 @@ import {
   resetMealScoutBatchProcessedStateForTest
 } from './mealscoutBatchIntakeState.js';
 import {
+  appendMealScoutDuplicateRemovalAudit,
+  getMealScoutDuplicateSuppression,
+  markMealScoutDuplicateSuppressed,
+  resetMealScoutDuplicateRemovalForTest,
+  type MealScoutDuplicateRemovalMode
+} from './mealscoutDuplicateRemoval.js';
+import {
   detectSafeMealScoutWritePath,
   executeMealScoutPublishPlan,
   queryMealScoutPublishExecutionAudit,
@@ -1265,6 +1272,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutPublishPlansForTest();
   resetMealScoutPublishExecutionForTest();
   resetMealScoutBatchProcessedStateForTest();
+  resetMealScoutDuplicateRemovalForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -2069,6 +2077,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       if (reprocess) {
         const candidate = safeMode
           ? supported.filter((file) => {
+              if (getMealScoutDuplicateSuppression(file.drive_file_id)) {
+                skippedDuplicateReviewCount += 1;
+                skippedFiles.push({
+                  fileId: file.drive_file_id,
+                  fileName: file.file_name,
+                  reason: 'already_duplicate'
+                });
+                return false;
+              }
               if (!duplicateCandidateFileIds.has(file.drive_file_id)) {
                 return true;
               }
@@ -2095,6 +2112,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       } else {
         const unprocessed: typeof supported = [];
         for (const file of supported) {
+          const suppressed = getMealScoutDuplicateSuppression(file.drive_file_id);
+          if (suppressed) {
+            skippedDuplicateCount += 1;
+            skippedFiles.push({
+              fileId: file.drive_file_id,
+              fileName: file.file_name,
+              reason: 'already_duplicate'
+            });
+            continue;
+          }
           if (safeMode && duplicateCandidateFileIds.has(file.drive_file_id)) {
             skippedDuplicateCount += 1;
             skippedFiles.push({
@@ -2432,6 +2459,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         files: group.files.map((file) => {
           const processed = getMealScoutBatchProcessedRecord(file.drive_file_id);
           const sourceAttribution = resolveDriveFileAttribution(file);
+          const suppressed = getMealScoutDuplicateSuppression(file.drive_file_id);
           const role = inferRoleFromName(file.file_name);
           const ext = file.file_name.includes('.') ? file.file_name.split('.').pop() || 'jpg' : 'jpg';
           const proposedFileName = `${sanitizeForProposedName('DUPLICATE')}__${sanitizeForProposedName(role)}__${sanitizeForProposedName('needs_review')}__${shortId(file.drive_file_id)}.${sanitizeForProposedName(ext)}`;
@@ -2459,7 +2487,14 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
             assumedRole: role,
             proposedFileName,
             recommendedAction:
-              file.drive_file_id === group.recommendedPrimaryFileId ? 'keep_primary' : group.confidence >= 0.95 ? 'skip_duplicate' : 'needs_review'
+              file.drive_file_id === group.recommendedPrimaryFileId
+                ? 'keep_primary'
+                : suppressed
+                  ? 'skip_duplicate'
+                  : group.confidence >= 0.95
+                    ? 'skip_duplicate'
+                    : 'needs_review',
+            duplicateSuppressionStatus: suppressed?.status
           };
         }),
         reasons: group.reasons,
@@ -2469,6 +2504,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       const fileAssumptions = listedFiles.map((file) => {
         const processed = getMealScoutBatchProcessedRecord(file.drive_file_id);
         const sourceAttribution = resolveDriveFileAttribution(file);
+        const suppressed = getMealScoutDuplicateSuppression(file.drive_file_id);
         const role = processed
           ? processed.classification === 'profile'
             ? 'profile_screenshot'
@@ -2511,6 +2547,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
           confidence: processed ? 0.8 : duplicateFileIds.has(file.drive_file_id) ? 0.7 : 0.4,
           status,
           reasons: duplicateFileIds.has(file.drive_file_id) ? ['duplicate filename detected with different file IDs'] : [],
+          recommendedAction: suppressed ? 'skip_duplicate' : duplicateFileIds.has(file.drive_file_id) ? 'needs_review' : 'keep_primary',
+          duplicateSuppressionStatus: suppressed?.status,
           sourceAttribution,
           proposedFileName,
           renameSafe: !duplicateFileIds.has(file.drive_file_id) && Boolean(processed),
@@ -2525,6 +2563,266 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'file audit failed';
+      return responseJson(res, { error: message, mutationAllowed: false }, 409);
+    }
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/intake/duplicates/remove') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const payload = (body || {}) as {
+      duplicateGroupIds?: unknown;
+      fileIds?: unknown;
+      removalMode?: unknown;
+      confirmation?: unknown;
+      operatorId?: unknown;
+      attributionConflictApproval?: unknown;
+      forceReviewApproved?: unknown;
+      folderId?: unknown;
+    };
+    if (payload.confirmation !== true) {
+      return responseJson(res, { error: 'confirmation required', mutationAllowed: false }, 400);
+    }
+    const removalMode: MealScoutDuplicateRemovalMode =
+      payload.removalMode === 'trash' || payload.removalMode === 'quarantine' || payload.removalMode === 'mark_only'
+        ? payload.removalMode
+        : 'quarantine';
+    if (removalMode === 'trash' && process.env.MEALSCOUT_ENABLE_DANGEROUS_TRASH_MODE !== 'true') {
+      return responseJson(res, { error: 'trash_mode_disabled', mutationAllowed: false }, 409);
+    }
+    const operatorId = typeof payload.operatorId === 'string' && payload.operatorId.trim().length > 0
+      ? payload.operatorId.trim()
+      : resolveOperatorIdentity(req).decidedBy || 'unknown_operator';
+    const duplicateGroupIds = Array.isArray(payload.duplicateGroupIds)
+      ? new Set(payload.duplicateGroupIds.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))
+      : new Set<string>();
+    const explicitFileIds = Array.isArray(payload.fileIds)
+      ? new Set(payload.fileIds.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))
+      : new Set<string>();
+    const allowAttributionConflict = payload.attributionConflictApproval === true;
+    const forceReviewApproved = payload.forceReviewApproved === true;
+
+    try {
+      const resolved = await resolveMealScoutPreviewDriveFolderId(typeof payload.folderId === 'string' ? payload.folderId : undefined);
+      if (!resolved.ok) {
+        return responseJson(res, { error: resolved.reason, mutationAllowed: false, diagnostic: resolved.diagnostic }, 409);
+      }
+      const driveClient = getDriveClient();
+      const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      const byId = new Map(listedFiles.map((file) => [file.drive_file_id, file]));
+      const groups = buildMealScoutDuplicateGroups(listedFiles);
+      const selectedGroups = groups.filter((group) => duplicateGroupIds.size === 0 || duplicateGroupIds.has(group.duplicateGroupId));
+      const removalExecutionId = `ms-dup-remove-${randomUUID()}`;
+      const results: Array<{
+        fileId: string;
+        originalFileName: string;
+        duplicateGroupId: string;
+        action: 'quarantined' | 'marked_duplicate' | 'trashed' | 'skipped' | 'failed';
+        reason?: string;
+        primaryFileId: string;
+        attributionStatus?: string;
+        affiliateCode?: string;
+        auditId: string;
+      }> = [];
+
+      let quarantineFolderId = '';
+      const ensureQuarantineFolder = async (): Promise<string> => {
+        if (quarantineFolderId) return quarantineFolderId;
+        const intakeFolder = await driveClient.getFileMetadata(resolved.folderId);
+        const intakeParentId = intakeFolder.folder_id || resolved.folderId;
+        const existing = await driveClient.findFolderByName('Duplicates Review', intakeParentId);
+        if (existing) {
+          quarantineFolderId = existing.id;
+          return quarantineFolderId;
+        }
+        const created = await driveClient.createFolderIfMissing('Duplicates Review', intakeParentId);
+        quarantineFolderId = created.id;
+        return quarantineFolderId;
+      };
+
+      for (const group of selectedGroups) {
+        for (const file of group.files) {
+          const selectedByFile = explicitFileIds.size === 0 || explicitFileIds.has(file.drive_file_id);
+          if (!selectedByFile) continue;
+          const sourceAttribution = resolveDriveFileAttribution(file);
+          const attributionConflict =
+            group.files
+              .map((item) => resolveDriveFileAttribution(item).affiliateCode || resolveDriveFileAttribution(item).driveUploaderEmail || '')
+              .filter(Boolean)
+              .filter((value, index, arr) => arr.indexOf(value) === index).length > 1;
+          const baseAuditInput = {
+            removalExecutionId,
+            duplicateGroupId: group.duplicateGroupId,
+            fileId: file.drive_file_id,
+            originalFileName: file.file_name,
+            primaryFileId: group.recommendedPrimaryFileId,
+            duplicateType: group.duplicateType,
+            confidence: group.confidence,
+            removalMode,
+            operatorId,
+            executedAt: new Date().toISOString(),
+            uploaderEmail: sourceAttribution.driveUploaderEmail,
+            affiliateCode: sourceAttribution.affiliateCode,
+            attributionConflict
+          };
+          if (file.drive_file_id === group.recommendedPrimaryFileId) {
+            const audit = appendMealScoutDuplicateRemovalAudit({
+              ...baseAuditInput,
+              action: 'skipped',
+              result: 'skipped',
+              failureReason: 'cannot_remove_primary_file'
+            });
+            results.push({
+              fileId: file.drive_file_id,
+              originalFileName: file.file_name,
+              duplicateGroupId: group.duplicateGroupId,
+              action: 'skipped',
+              reason: 'cannot_remove_primary_file',
+              primaryFileId: group.recommendedPrimaryFileId,
+              attributionStatus: sourceAttribution.attributionStatus,
+              affiliateCode: sourceAttribution.affiliateCode,
+              auditId: audit.auditId
+            });
+            continue;
+          }
+          if (group.confidence < 0.95 && !forceReviewApproved) {
+            const audit = appendMealScoutDuplicateRemovalAudit({
+              ...baseAuditInput,
+              action: 'skipped',
+              result: 'skipped',
+              failureReason: 'duplicate_confidence_below_threshold'
+            });
+            results.push({
+              fileId: file.drive_file_id,
+              originalFileName: file.file_name,
+              duplicateGroupId: group.duplicateGroupId,
+              action: 'skipped',
+              reason: 'duplicate_confidence_below_threshold',
+              primaryFileId: group.recommendedPrimaryFileId,
+              attributionStatus: sourceAttribution.attributionStatus,
+              affiliateCode: sourceAttribution.affiliateCode,
+              auditId: audit.auditId
+            });
+            continue;
+          }
+          if (attributionConflict && !allowAttributionConflict) {
+            const audit = appendMealScoutDuplicateRemovalAudit({
+              ...baseAuditInput,
+              action: 'skipped',
+              result: 'skipped',
+              failureReason: 'attribution_conflict_requires_approval'
+            });
+            results.push({
+              fileId: file.drive_file_id,
+              originalFileName: file.file_name,
+              duplicateGroupId: group.duplicateGroupId,
+              action: 'skipped',
+              reason: 'attribution_conflict_requires_approval',
+              primaryFileId: group.recommendedPrimaryFileId,
+              attributionStatus: sourceAttribution.attributionStatus,
+              affiliateCode: sourceAttribution.affiliateCode,
+              auditId: audit.auditId
+            });
+            continue;
+          }
+          try {
+            if (removalMode === 'quarantine') {
+              const folderId = await ensureQuarantineFolder();
+              await driveClient.moveFileToFolder(file.drive_file_id, folderId);
+              const audit = appendMealScoutDuplicateRemovalAudit({
+                ...baseAuditInput,
+                action: 'quarantined',
+                result: 'success'
+              });
+              markMealScoutDuplicateSuppressed({
+                fileId: file.drive_file_id,
+                status: 'quarantined',
+                removalExecutionId,
+                auditId: audit.auditId
+              });
+              results.push({
+                fileId: file.drive_file_id,
+                originalFileName: file.file_name,
+                duplicateGroupId: group.duplicateGroupId,
+                action: 'quarantined',
+                primaryFileId: group.recommendedPrimaryFileId,
+                attributionStatus: sourceAttribution.attributionStatus,
+                affiliateCode: sourceAttribution.affiliateCode,
+                auditId: audit.auditId
+              });
+            } else if (removalMode === 'mark_only') {
+              const audit = appendMealScoutDuplicateRemovalAudit({
+                ...baseAuditInput,
+                action: 'marked_duplicate',
+                result: 'success'
+              });
+              markMealScoutDuplicateSuppressed({
+                fileId: file.drive_file_id,
+                status: 'duplicate_removed_pending',
+                removalExecutionId,
+                auditId: audit.auditId
+              });
+              results.push({
+                fileId: file.drive_file_id,
+                originalFileName: file.file_name,
+                duplicateGroupId: group.duplicateGroupId,
+                action: 'marked_duplicate',
+                primaryFileId: group.recommendedPrimaryFileId,
+                attributionStatus: sourceAttribution.attributionStatus,
+                affiliateCode: sourceAttribution.affiliateCode,
+                auditId: audit.auditId
+              });
+            } else {
+              const audit = appendMealScoutDuplicateRemovalAudit({
+                ...baseAuditInput,
+                action: 'failed',
+                result: 'failed',
+                failureReason: 'trash_mode_not_implemented'
+              });
+              results.push({
+                fileId: file.drive_file_id,
+                originalFileName: file.file_name,
+                duplicateGroupId: group.duplicateGroupId,
+                action: 'failed',
+                reason: 'trash_mode_not_implemented',
+                primaryFileId: group.recommendedPrimaryFileId,
+                attributionStatus: sourceAttribution.attributionStatus,
+                affiliateCode: sourceAttribution.affiliateCode,
+                auditId: audit.auditId
+              });
+            }
+          } catch (error) {
+            const failureReason = error instanceof Error ? error.message : 'duplicate_removal_failed';
+            const audit = appendMealScoutDuplicateRemovalAudit({
+              ...baseAuditInput,
+              action: 'failed',
+              result: 'failed',
+              failureReason
+            });
+            results.push({
+              fileId: file.drive_file_id,
+              originalFileName: file.file_name,
+              duplicateGroupId: group.duplicateGroupId,
+              action: 'failed',
+              reason: failureReason,
+              primaryFileId: group.recommendedPrimaryFileId,
+              attributionStatus: sourceAttribution.attributionStatus,
+              affiliateCode: sourceAttribution.affiliateCode,
+              auditId: audit.auditId
+            });
+          }
+        }
+      }
+      return responseJson(res, { mutationAllowed: true, removalExecutionId, results });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'duplicate removal failed';
       return responseJson(res, { error: message, mutationAllowed: false }, 409);
     }
   }

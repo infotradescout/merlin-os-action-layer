@@ -657,3 +657,96 @@ test('file audit matches uploader email to affiliate and flags ambiguous/unmatch
   assert.equal(byId.get('attr-unmatched')?.attributionStatus, 'unmatched');
   assert.equal(byId.get('attr-unmatched')?.needsAttributionReview, true);
 });
+
+test('duplicate removal endpoint blocks primary removal and marks duplicate for safe-mode exclusion', async () => {
+  const dupClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'rm-primary',
+          file_name: 'IMG_4544.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/rm-primary',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        },
+        {
+          drive_file_id: 'rm-dup',
+          file_name: 'IMG_4544.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/rm-dup',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        },
+        {
+          drive_file_id: 'rm-unique',
+          file_name: 'unique.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/rm-unique',
+          modified_time: '2026-05-29T01:02:00.000Z',
+          raw_metadata: { extracted_text: 'Truck B\nPhone: 504-000-0002\nCity: Metairie' }
+        }
+      ];
+    },
+    async downloadFileContent(fileId: string) {
+      if (fileId === 'rm-primary') return 'Truck A\nPhone: 504-000-0001\nCity: Metairie';
+      if (fileId === 'rm-dup') return 'Truck A\nPhone: 504-000-0001\nCity: Metairie';
+      return 'Truck B\nPhone: 504-000-0002\nCity: Metairie';
+    },
+    async moveFileToFolder() {
+      return true;
+    },
+    async findFolderByName(name: string, parentFolderId: string) {
+      return { id: `${parentFolderId}-${name}`, name };
+    },
+    async createFolderIfMissing(name: string, parentFolderId: string) {
+      return { id: `${parentFolderId}-${name}`, name };
+    }
+  };
+  setDriveClientFactory(() => dupClient);
+  const audit = await requestJson<{
+    duplicateGroups: Array<{ duplicateGroupId: string; recommendedPrimaryFileId: string; files: Array<{ fileId: string }> }>;
+  }>('/api/mealscout/intake/file-audit', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(audit.status, 200);
+  const group = audit.body.duplicateGroups.find((item) => item.files.some((f) => f.fileId === 'rm-dup'));
+  assert.ok(group);
+  if (!group) throw new Error('expected duplicate group');
+
+  const removal = await requestJson<{
+    mutationAllowed: boolean;
+    results: Array<{ fileId: string; action: string; reason?: string }>;
+  }>('/api/mealscout/intake/duplicates/remove', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({
+      duplicateGroupIds: [group.duplicateGroupId],
+      fileIds: ['rm-primary', 'rm-dup'],
+      removalMode: 'mark_only',
+      confirmation: true,
+      operatorId: 'MANUAL_OPERATOR'
+    })
+  });
+  assert.equal(removal.status, 200);
+  assert.equal(removal.body.mutationAllowed, true);
+  assert.equal(removal.body.results.some((row) => row.fileId === 'rm-primary' && row.action === 'skipped'), true);
+  assert.equal(removal.body.results.some((row) => row.fileId === 'rm-dup' && row.action === 'marked_duplicate'), true);
+
+  const run = await requestJson<{
+    processedFileCount: number;
+    skippedFiles: Array<{ fileId: string; reason: string }>;
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', safeMode: true, maxFiles: 5 })
+  });
+  assert.equal(run.status, 200);
+  assert.equal(run.body.skippedFiles.some((row) => row.fileId === 'rm-dup' && row.reason === 'already_duplicate'), true);
+});
