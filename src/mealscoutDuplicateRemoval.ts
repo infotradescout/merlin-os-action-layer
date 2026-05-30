@@ -17,7 +17,7 @@ export type MealScoutDuplicateRemovalRecord = {
   uploaderEmail?: string;
   affiliateCode?: string;
   attributionConflict?: boolean;
-  result: 'success' | 'failed' | 'skipped';
+  result: 'success' | 'failed' | 'skipped' | 'failed_permission_marked_suppressed';
   failureReason?: string;
 };
 
@@ -78,4 +78,3 @@ export function resetMealScoutDuplicateRemovalForTest(): void {
   duplicateSuppression.clear();
   duplicateRemovalAudit.length = 0;
 }
-

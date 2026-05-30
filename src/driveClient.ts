@@ -29,6 +29,7 @@ export interface DriveClient {
   downloadFileContent(fileId: string): Promise<string | undefined>;
   downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
   moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean>;
+  trashFile?(fileId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
   listFoldersByName(name: string, parentFolderId: string): Promise<DriveFolderInfo[]>;
   createFolderIfMissing(name: string, parentFolderId: string): Promise<DriveFolderInfo>;
@@ -146,6 +147,15 @@ class GoogleDriveClient implements DriveClient {
       addParents: targetFolderId,
       removeParents,
       fields: 'id, parents'
+    });
+    return true;
+  }
+
+  async trashFile(fileId: string): Promise<boolean> {
+    await this.drive.files.update({
+      fileId,
+      requestBody: { trashed: true },
+      fields: 'id, trashed'
     });
     return true;
   }

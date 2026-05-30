@@ -1061,6 +1061,7 @@ test('trash permission failure falls back to suppression mark_only behavior', as
     mutationAllowed: boolean;
     trashFailedPermissionCount: number;
     markedSuppressedAfterPermissionFailureCount: number;
+    filesStillInDriveCount: number;
     results: Array<{ fileId: string; action: string; reason?: string; suppressionApplied?: boolean }>;
   }>('/api/mealscout/intake/duplicates/remove', {
     method: 'POST',
@@ -1079,6 +1080,7 @@ test('trash permission failure falls back to suppression mark_only behavior', as
   assert.equal(remove.body.mutationAllowed, true);
   assert.equal(remove.body.trashFailedPermissionCount, 1);
   assert.equal(remove.body.markedSuppressedAfterPermissionFailureCount, 1);
+  assert.equal(remove.body.filesStillInDriveCount, 1);
   assert.equal(
     remove.body.results.some((row) => row.fileId === 'rm2-dup' && row.action === 'marked_duplicate' && row.reason === 'duplicate_removal_blocked_permission' && row.suppressionApplied === true),
     true

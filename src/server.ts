@@ -3027,6 +3027,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       }> = [];
       let trashFailedPermissionCount = 0;
       let markedSuppressedAfterPermissionFailureCount = 0;
+      let filesStillInDriveCount = 0;
 
       let quarantineFolderId = '';
       const ensureQuarantineFolder = async (): Promise<string> => {
@@ -3238,6 +3239,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
               });
               trashFailedPermissionCount += 1;
               markedSuppressedAfterPermissionFailureCount += 1;
+              filesStillInDriveCount += 1;
               results.push({
                 fileId: file.drive_file_id,
                 originalFileName: file.file_name,
@@ -3278,6 +3280,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         removalExecutionId,
         trashFailedPermissionCount,
         markedSuppressedAfterPermissionFailureCount,
+        filesStillInDriveCount,
         results
       });
     } catch (error) {
