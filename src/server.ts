@@ -120,6 +120,16 @@ import {
   updateMealScoutReviewDecision
 } from './mealscoutReviewDecisions.js';
 import {
+  createMealScoutFieldCorrection,
+  listMealScoutFieldCorrections,
+  resetMealScoutFieldCorrectionsForTest
+} from './mealscoutReviewCorrections.js';
+import {
+  createMealScoutAttachmentDecision,
+  listMealScoutAttachmentDecisions,
+  resetMealScoutAttachmentDecisionsForTest
+} from './mealscoutAttachmentDecisions.js';
+import {
   getMealScoutBatchHistoryDetail,
   getMealScoutBatchProcessedRecord,
   listMealScoutBatchHistory,
@@ -343,6 +353,73 @@ function applySafeModeDraftGuardrails(
 
     if (weakName || !hasIdentity || hasAuxMediaOnly) {
       draft.reviewStatus = 'uncertain_match';
+    }
+  }
+}
+
+function applyManualAttachmentDecisionsToPreview(
+  drafts: Array<{
+    draftId: string;
+    sourceFiles: Array<{ sourceFileId: string; sourceType: string; sourcePath?: string; sourceAttribution?: unknown }>;
+    attachedMedia: Array<{
+      mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+      sourceFileId: string;
+      sourceFileName?: string;
+      sourcePath?: string;
+      confidence: number;
+      sourceAttribution?: unknown;
+    }>;
+  }>,
+  unattachedMedia: Array<{
+    mediaType: 'logo' | 'truck_photo' | 'food_photo' | 'unknown_media';
+    sourceFileId: string;
+    sourceFileName?: string;
+    sourcePath?: string;
+    sourceAttribution?: unknown;
+  }>,
+  decisions: ReturnType<typeof listMealScoutAttachmentDecisions>
+): void {
+  const byDraft = new Map<string, typeof decisions>();
+  for (const row of decisions) {
+    const list = byDraft.get(row.draftId) || [];
+    list.push(row);
+    byDraft.set(row.draftId, list);
+  }
+  const unattachedByFile = new Map(unattachedMedia.map((item) => [item.sourceFileId, item]));
+  for (const draft of drafts) {
+    const rows = (byDraft.get(draft.draftId) || []).sort((a, b) => a.decidedAt.localeCompare(b.decidedAt));
+    for (const row of rows) {
+      if (row.action === 'leave_unattached' || row.action === 'reject_logo' || row.action === 'detach_file_from_draft') {
+        draft.attachedMedia = draft.attachedMedia.filter((item) => item.sourceFileId !== row.sourceFileId);
+        continue;
+      }
+      if (
+        row.action === 'attach_file_to_draft' ||
+        row.action === 'mark_as_logo_candidate' ||
+        row.action === 'approve_logo' ||
+        row.action === 'mark_as_menu' ||
+        row.action === 'mark_as_profile_evidence'
+      ) {
+        const detached = unattachedByFile.get(row.sourceFileId);
+        const mediaType =
+          row.mediaType === 'logo'
+            ? 'logo'
+            : row.mediaType === 'truck_photo'
+              ? 'truck_photo'
+              : row.mediaType === 'food_photo'
+                ? 'food_photo'
+                : 'unknown_media';
+        if (!draft.attachedMedia.some((item) => item.sourceFileId === row.sourceFileId)) {
+          draft.attachedMedia.push({
+            mediaType,
+            sourceFileId: row.sourceFileId,
+            sourceFileName: row.sourceFileName || detached?.sourceFileName,
+            sourcePath: detached?.sourcePath,
+            confidence: row.action === 'approve_logo' ? 1 : 0.7,
+            sourceAttribution: detached?.sourceAttribution
+          });
+        }
+      }
     }
   }
 }
@@ -1015,6 +1092,8 @@ function resetDemoRuntimeState(): void {
   resetDriveReviewQueueForTest();
   resetMealScoutProfileImportForTest();
   resetMealScoutReviewDecisionsForTest();
+  resetMealScoutFieldCorrectionsForTest();
+  resetMealScoutAttachmentDecisionsForTest();
   resetMealScoutPublishPlansForTest();
   resetMealScoutPublishExecutionForTest();
   resetMealScoutBatchProcessedStateForTest();
@@ -1662,7 +1741,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const unattachedMedia = buildMealScoutUnattachedMediaFromClusters(clusters);
     const mergeAssist = buildMealScoutMergeAssist(drafts);
     const reviewDecisions = listMealScoutReviewDecisions();
-    const publishPlan = rememberMealScoutPublishPlan(buildMealScoutPublishPlanPreview(drafts, reviewDecisions));
+    const fieldCorrections = listMealScoutFieldCorrections();
+    const attachmentDecisions = listMealScoutAttachmentDecisions();
+    applyManualAttachmentDecisionsToPreview(drafts, unattachedMedia, attachmentDecisions);
+    const publishPlan = rememberMealScoutPublishPlan(
+      buildMealScoutPublishPlanPreview(drafts, reviewDecisions, {
+        corrections: fieldCorrections,
+        attachmentDecisions
+      })
+    );
     const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
     const debugOcr =
       includeDebugOcr && driveOcrDiagnostics
@@ -1707,6 +1794,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       drafts,
       unattachedMedia,
       mergeAssist,
+      fieldCorrections,
+      attachmentDecisions,
       publishPlan,
       summary: {
         inputs: inputs.length,
@@ -2276,6 +2365,107 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const updated = updateMealScoutReviewDecision(decisionId, updates);
     if (!updated) return responseJson(res, { error: 'Decision not found', mutationAllowed: false }, 404);
     return responseJson(res, { status: 'ok', mutationAllowed: false, decision: updated });
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/review-corrections') {
+    const recordId = query.recordId?.trim() || undefined;
+    const draftId = query.draftId?.trim() || undefined;
+    const corrections = listMealScoutFieldCorrections({ recordId, draftId });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, corrections });
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/review-corrections') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as Record<string, unknown>;
+    const recordId = typeof payload.recordId === 'string' ? payload.recordId.trim() : '';
+    const fieldName = typeof payload.fieldName === 'string' ? payload.fieldName.trim() : '';
+    const action = typeof payload.action === 'string' ? payload.action.trim() : '';
+    if (!recordId || !fieldName) {
+      return responseJson(res, { error: 'recordId and fieldName are required', mutationAllowed: false }, 400);
+    }
+    if (!['confirm_field', 'reject_field', 'remove_field', 'replace_field', 'add_field_with_evidence_note'].includes(action)) {
+      return responseJson(res, { error: 'action is invalid', mutationAllowed: false }, 400);
+    }
+    const draftIds = Array.isArray(payload.draftIds) ? payload.draftIds.filter((item): item is string => typeof item === 'string') : [];
+    const row = createMealScoutFieldCorrection({
+      recordId,
+      draftIds,
+      fieldName,
+      action: action as 'confirm_field' | 'reject_field' | 'remove_field' | 'replace_field' | 'add_field_with_evidence_note',
+      originalValue: typeof payload.originalValue === 'string' ? payload.originalValue : undefined,
+      correctedValue: typeof payload.correctedValue === 'string' ? payload.correctedValue : undefined,
+      reason: typeof payload.reason === 'string' ? payload.reason : undefined,
+      evidenceRef: typeof payload.evidenceRef === 'string' ? payload.evidenceRef : undefined,
+      sourceFileId: typeof payload.sourceFileId === 'string' ? payload.sourceFileId : undefined,
+      operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined
+    });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, correction: row }, 201);
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/attachment-decisions') {
+    const draftId = query.draftId?.trim() || undefined;
+    const sourceFileId = query.sourceFileId?.trim() || undefined;
+    const decisions = listMealScoutAttachmentDecisions({ draftId, sourceFileId });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, attachmentDecisions: decisions });
+  }
+
+  if (method === 'POST' && pathname === '/api/mealscout/attachment-decisions') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as Record<string, unknown>;
+    const draftId = typeof payload.draftId === 'string' ? payload.draftId.trim() : '';
+    const sourceFileId = typeof payload.sourceFileId === 'string' ? payload.sourceFileId.trim() : '';
+    const action = typeof payload.action === 'string' ? payload.action.trim() : '';
+    if (!draftId || !sourceFileId) {
+      return responseJson(res, { error: 'draftId and sourceFileId are required', mutationAllowed: false }, 400);
+    }
+    if (
+      ![
+        'attach_file_to_draft',
+        'detach_file_from_draft',
+        'mark_as_logo_candidate',
+        'approve_logo',
+        'reject_logo',
+        'mark_as_menu',
+        'mark_as_profile_evidence',
+        'leave_unattached',
+        'needs_review'
+      ].includes(action)
+    ) {
+      return responseJson(res, { error: 'action is invalid', mutationAllowed: false }, 400);
+    }
+    const row = createMealScoutAttachmentDecision({
+      draftId,
+      sourceFileId,
+      sourceFileName: typeof payload.sourceFileName === 'string' ? payload.sourceFileName : undefined,
+      action: action as
+        | 'attach_file_to_draft'
+        | 'detach_file_from_draft'
+        | 'mark_as_logo_candidate'
+        | 'approve_logo'
+        | 'reject_logo'
+        | 'mark_as_menu'
+        | 'mark_as_profile_evidence'
+        | 'leave_unattached'
+        | 'needs_review',
+      mediaType:
+        payload.mediaType === 'logo' ||
+        payload.mediaType === 'menu' ||
+        payload.mediaType === 'profile' ||
+        payload.mediaType === 'truck_photo' ||
+        payload.mediaType === 'food_photo' ||
+        payload.mediaType === 'unknown_media'
+          ? payload.mediaType
+          : undefined,
+      reason: typeof payload.reason === 'string' ? payload.reason : undefined,
+      operatorId: typeof payload.operatorId === 'string' ? payload.operatorId : undefined
+    });
+    return responseJson(res, { status: 'ok', mutationAllowed: false, attachmentDecision: row }, 201);
   }
 
   const batchScreenshotsMatch = pathname.match(/^\/api\/mealscout\/profile-import\/batches\/([^/]+)\/screenshots$/);

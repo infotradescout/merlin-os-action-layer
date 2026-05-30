@@ -696,8 +696,35 @@
             <div><span class="pill warn">${safe(item.mediaType || 'unknown_media')}</span> <span class="pill">${safe(item.reason || 'weak_linkage')}</span></div>
             <div class="mini"><span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName || '')}</div>
             <div class="mini">source:${safe(item.sourceAttribution?.attributionSource)} · by:${safe(item.sourceAttribution?.driveUploaderEmail || item.sourceAttribution?.repId)} · affiliate:${safe(item.sourceAttribution?.affiliateCode)}</div>
+            <div class="actions">
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="mark_as_logo_candidate">Mark logo candidate</button>
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="mark_as_menu">Mark menu evidence</button>
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="leave_unattached">Leave unattached</button>
+            </div>
           </div>
         `).join('');
+        wireMediaAttachActions();
+      }
+
+      function wireMediaAttachActions() {
+        for (const node of document.querySelectorAll('button[data-attach-source-file-id]')) {
+          node.addEventListener('click', async () => {
+            const sourceFileId = node.getAttribute('data-attach-source-file-id');
+            const action = node.getAttribute('data-attach-action');
+            if (!sourceFileId || !action) return;
+            const draftId = window.prompt('Enter target draftId for this file (required for attach decisions):', '');
+            if (!draftId) return;
+            await client.saveAttachmentDecision({
+              draftId,
+              sourceFileId,
+              action,
+              mediaType: action === 'mark_as_logo_candidate' ? 'logo' : action === 'mark_as_menu' ? 'menu' : 'unknown_media',
+              reason: 'manual_review_queue_attachment',
+              operatorId: 'MANUAL_OPERATOR'
+            });
+            await refreshPreview();
+          });
+        }
       }
 
       function wireMergeActions(groupId) {
@@ -845,7 +872,7 @@
 
         for (const record of records) {
           const fields = Object.entries(record.profileFields || {}).map(([key, value]) => {
-            return `<li><strong>${safe(key)}</strong>: ${safe(value.value)}<div class="mini">confidence:${safe(value.confidence)} · evidence:${safe((value.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((value.sourceFileIds || []).join(', '))}</div></li>`;
+            return `<li><strong>${safe(key)}</strong>: ${safe(value.value)}<div class="mini">confidence:${safe(value.confidence)} · evidence:${safe((value.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((value.sourceFileIds || []).join(', '))}</div><div class="actions"><button data-correction-record-id="${safe(record.recordId)}" data-correction-field="${safe(key)}" data-correction-action="reject_field">Reject</button><button data-correction-record-id="${safe(record.recordId)}" data-correction-field="${safe(key)}" data-correction-action="replace_field">Replace</button></div></li>`;
           }).join('');
           const menu = (record.menuItems || []).map((item) => {
             return `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}<div class="mini">evidence:${safe((item.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((item.sourceFileIds || []).join(', '))}</div></li>`;
@@ -890,6 +917,7 @@
           `;
           list.appendChild(block);
         }
+        wireCorrectionActions(records);
 
         const controls = document.createElement('div');
         controls.className = 'draft-card';
@@ -910,6 +938,38 @@
         list.appendChild(controls);
         wirePlanControls(records);
         renderExecutionStatus();
+      }
+
+      function wireCorrectionActions(records) {
+        const byRecordId = new Map((records || []).map((item) => [item.recordId, item]));
+        for (const node of document.querySelectorAll('button[data-correction-record-id]')) {
+          node.addEventListener('click', async () => {
+            const recordId = node.getAttribute('data-correction-record-id');
+            const fieldName = node.getAttribute('data-correction-field');
+            const action = node.getAttribute('data-correction-action');
+            if (!recordId || !fieldName || !action) return;
+            const record = byRecordId.get(recordId);
+            const originalValue = record?.profileFields?.[fieldName]?.value;
+            let correctedValue;
+            if (action === 'replace_field') {
+              correctedValue = window.prompt(`Replacement value for ${fieldName}`, originalValue || '');
+              if (!correctedValue) return;
+            }
+            await client.saveFieldCorrection({
+              recordId,
+              draftIds: record?.draftIds || [],
+              fieldName,
+              action,
+              originalValue,
+              correctedValue,
+              reason: 'manual_operator_correction',
+              evidenceRef: 'review queue correction',
+              sourceFileId: record?.profileFields?.[fieldName]?.sourceFileIds?.[0],
+              operatorId: 'MANUAL_OPERATOR'
+            });
+            await refreshPreview();
+          });
+        }
       }
 
       function renderExecutionStatus() {

@@ -52,6 +52,32 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
         body: JSON.stringify(payload || {})
       });
     },
+    getFieldCorrections({ recordId, draftId } = {}) {
+      const params = new URLSearchParams();
+      if (recordId) params.set('recordId', String(recordId));
+      if (draftId) params.set('draftId', String(draftId));
+      const query = params.toString();
+      return requestJson(endpoint(`/api/mealscout/review-corrections${query ? `?${query}` : ''}`));
+    },
+    saveFieldCorrection(payload) {
+      return requestJson(endpoint('/api/mealscout/review-corrections'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
+    getAttachmentDecisions({ draftId, sourceFileId } = {}) {
+      const params = new URLSearchParams();
+      if (draftId) params.set('draftId', String(draftId));
+      if (sourceFileId) params.set('sourceFileId', String(sourceFileId));
+      const query = params.toString();
+      return requestJson(endpoint(`/api/mealscout/attachment-decisions${query ? `?${query}` : ''}`));
+    },
+    saveAttachmentDecision(payload) {
+      return requestJson(endpoint('/api/mealscout/attachment-decisions'), {
+        method: 'POST',
+        body: JSON.stringify(payload || {})
+      });
+    },
     executePublishPlan(payload) {
       return requestJson(endpoint('/api/mealscout/intake/publish-plan/execute'), {
         method: 'POST',

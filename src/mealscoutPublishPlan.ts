@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import type { MealScoutProfileDraft } from './mealscoutProfileImport.js';
 import type { MealScoutReviewDecisionRecord } from './mealscoutReviewDecisions.js';
 import { getMealScoutReviewDecisionVersion } from './mealscoutReviewDecisions.js';
+import type { MealScoutFieldCorrectionRecord } from './mealscoutReviewCorrections.js';
+import { getMealScoutFieldCorrectionVersion } from './mealscoutReviewCorrections.js';
+import type { MealScoutAttachmentDecisionRecord } from './mealscoutAttachmentDecisions.js';
+import { getMealScoutAttachmentDecisionVersion } from './mealscoutAttachmentDecisions.js';
 
 type PlannedAction = 'create_new' | 'update_existing' | 'needs_review' | 'blocked';
 
@@ -58,12 +62,16 @@ export type MealScoutPublishPlanRecord = {
     attributionPolicy: string;
     createdFromBatchId?: string;
   };
+  appliedCorrectionIds?: string[];
+  appliedAttachmentDecisionIds?: string[];
 };
 
 export type MealScoutPublishPlanPreview = {
   planId: string;
   signature: string;
   reviewDecisionVersion: number;
+  correctionVersion?: number;
+  attachmentDecisionVersion?: number;
   generatedAt: string;
   mutationAllowed: false;
   records: MealScoutPublishPlanRecord[];
@@ -242,7 +250,11 @@ function buildAttachedMedia(drafts: MealScoutProfileDraft[]): PlannedMediaItem[]
 
 export function buildMealScoutPublishPlanPreview(
   drafts: MealScoutProfileDraft[],
-  decisions: MealScoutReviewDecisionRecord[]
+  decisions: MealScoutReviewDecisionRecord[],
+  options?: {
+    corrections?: MealScoutFieldCorrectionRecord[];
+    attachmentDecisions?: MealScoutAttachmentDecisionRecord[];
+  }
 ): MealScoutPublishPlanPreview {
   const draftMap = new Map(drafts.map((draft) => [draft.draftId, draft]));
   const latestByDraft = latestDecisionByDraft(drafts, decisions);
@@ -342,7 +354,104 @@ export function buildMealScoutPublishPlanPreview(
     });
   }
 
+  const correctionRows = options?.corrections || [];
+  const attachmentRows = options?.attachmentDecisions || [];
+  const correctionByRecord = new Map<string, MealScoutFieldCorrectionRecord[]>();
+  for (const row of correctionRows) {
+    const list = correctionByRecord.get(row.recordId) || [];
+    list.push(row);
+    correctionByRecord.set(row.recordId, list);
+  }
+  const attachmentByDraft = new Map<string, MealScoutAttachmentDecisionRecord[]>();
+  for (const row of attachmentRows) {
+    const list = attachmentByDraft.get(row.draftId) || [];
+    list.push(row);
+    attachmentByDraft.set(row.draftId, list);
+  }
+  for (const record of records) {
+    const corrections = (correctionByRecord.get(record.recordId) || []).sort((a, b) => a.correctedAt.localeCompare(b.correctedAt));
+    if (corrections.length > 0) {
+      record.appliedCorrectionIds = corrections.map((row) => row.correctionId);
+    }
+    for (const correction of corrections) {
+      if (correction.action === 'reject_field' || correction.action === 'remove_field') {
+        delete record.profileFields[correction.fieldName];
+      } else if (correction.action === 'replace_field' || correction.action === 'add_field_with_evidence_note') {
+        if (!correction.correctedValue) continue;
+        record.profileFields[correction.fieldName] = {
+          value: correction.correctedValue,
+          confidence: 1,
+          evidenceRefs: [correction.evidenceRef || correction.reason],
+          sourceFileIds: [correction.sourceFileId || 'operator-correction']
+        };
+      }
+    }
+
+    // Recompute blocked/publish status after corrections
+    const nextBlocked = new Set(record.blockedReasons || []);
+    if (!record.profileFields.truckName?.value) nextBlocked.add('missing_truck_name');
+    else nextBlocked.delete('missing_truck_name');
+    if (!record.profileFields.cityArea?.value) nextBlocked.add('missing_city_or_service_area');
+    else nextBlocked.delete('missing_city_or_service_area');
+    const hasContact =
+      Boolean(record.profileFields.phone?.value) ||
+      Boolean(record.profileFields.email?.value) ||
+      Boolean(record.profileFields.website?.value) ||
+      Boolean(record.profileFields.facebook?.value) ||
+      Boolean(record.profileFields.instagram?.value);
+    if (!hasContact) nextBlocked.add('missing_contact_or_web_or_social');
+    else nextBlocked.delete('missing_contact_or_web_or_social');
+    record.blockedReasons = Array.from(nextBlocked);
+    record.publishReady = record.blockedReasons.length === 0 && record.plannedAction !== 'needs_review';
+    if (!record.publishReady && record.plannedAction !== 'needs_review') {
+      record.plannedAction = 'blocked';
+    }
+
+    // operator media attachment visibility for plan
+    const draftAttachmentRows = record.draftIds.flatMap((draftId) => attachmentByDraft.get(draftId) || []);
+    if (draftAttachmentRows.length > 0) {
+      record.appliedAttachmentDecisionIds = draftAttachmentRows.map((row) => row.attachmentDecisionId);
+      const mediaMap = new Map<string, PlannedMediaItem>();
+      for (const item of record.attachedMedia || []) {
+        mediaMap.set(item.sourceFileId, item);
+      }
+      for (const decision of draftAttachmentRows.sort((a, b) => a.decidedAt.localeCompare(b.decidedAt))) {
+        if (decision.action === 'reject_logo' || decision.action === 'detach_file_from_draft' || decision.action === 'leave_unattached') {
+          mediaMap.delete(decision.sourceFileId);
+          continue;
+        }
+        if (
+          decision.action === 'mark_as_logo_candidate' ||
+          decision.action === 'approve_logo' ||
+          decision.action === 'attach_file_to_draft' ||
+          decision.action === 'mark_as_menu' ||
+          decision.action === 'mark_as_profile_evidence'
+        ) {
+          const mediaType =
+            decision.mediaType === 'logo'
+              ? 'logo'
+              : decision.mediaType === 'truck_photo'
+                ? 'truck_photo'
+                : decision.mediaType === 'food_photo'
+                  ? 'food_photo'
+                  : 'unknown_media';
+          mediaMap.set(decision.sourceFileId, {
+            mediaType,
+            sourceFileId: decision.sourceFileId,
+            sourceFileName: decision.sourceFileName,
+            attribution: record.sourceAttribution,
+            evidenceRefs: [decision.reason],
+            confidence: decision.action === 'approve_logo' ? 1 : 0.7
+          });
+        }
+      }
+      record.attachedMedia = Array.from(mediaMap.values());
+    }
+  }
+
   const reviewDecisionVersion = getMealScoutReviewDecisionVersion();
+  const correctionVersion = getMealScoutFieldCorrectionVersion();
+  const attachmentDecisionVersion = getMealScoutAttachmentDecisionVersion();
   const signature = JSON.stringify(
     records.map((record) => ({
       recordId: record.recordId,
@@ -352,8 +461,11 @@ export function buildMealScoutPublishPlanPreview(
       existingTruckId: record.existingTruckId,
       profileFields: record.profileFields,
       menuItems: record.menuItems,
+      attachedMedia: record.attachedMedia,
       blockedReasons: record.blockedReasons,
-      conflicts: record.conflicts
+      conflicts: record.conflicts,
+      correctionVersion,
+      attachmentDecisionVersion
     }))
   );
 
@@ -361,6 +473,8 @@ export function buildMealScoutPublishPlanPreview(
     planId: `ms-plan-${randomUUID()}`,
     signature,
     reviewDecisionVersion,
+    correctionVersion,
+    attachmentDecisionVersion,
     generatedAt: new Date().toISOString(),
     mutationAllowed: false,
     records

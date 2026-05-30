@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js';
 import type { MealScoutPublishPlanRecord } from './mealscoutPublishPlan.js';
 import { isMenuLikeTruckName } from './mealscoutTruckNameGuardrail.js';
@@ -432,6 +432,14 @@ export function buildMealScoutProfileDraft(
   profiles: MealScoutExistingProfile[] = []
 ): MealScoutProfileDraft {
   const safeSignals = signals.filter((signal) => Boolean(signal?.sourceFileId));
+  const draftSeed = safeSignals
+    .map((signal) => signal.sourceFileId)
+    .filter(Boolean)
+    .sort()
+    .join('|');
+  const stableDraftId = draftSeed
+    ? `ms-draft-${createHash('sha1').update(draftSeed).digest('hex').slice(0, 16)}`
+    : `ms-draft-${randomUUID()}`;
   const menu = safeSignals.flatMap((signal) =>
     (signal.menuItems || [])
       .filter((item) => item.name && item.name.trim().length > 0)
@@ -444,7 +452,7 @@ export function buildMealScoutProfileDraft(
   );
 
   const draft: MealScoutProfileDraft = {
-    draftId: `ms-draft-${randomUUID()}`,
+    draftId: stableDraftId,
     draftType: 'create_new',
     truckName: pickFirst(safeSignals, (s) => (s.truckName || '').trim() || undefined),
     phone: pickFirst(safeSignals, (s) => (s.phone || '').trim() || undefined),

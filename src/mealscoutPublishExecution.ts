@@ -8,6 +8,8 @@ import {
   updateMealScoutProfileFromPlanRecord
 } from './mealscoutProfileImport.js';
 import { getMealScoutReviewDecisionVersion } from './mealscoutReviewDecisions.js';
+import { getMealScoutFieldCorrectionVersion } from './mealscoutReviewCorrections.js';
+import { getMealScoutAttachmentDecisionVersion } from './mealscoutAttachmentDecisions.js';
 
 export type MealScoutPublishExecutionResult = {
   recordId: string;
@@ -37,6 +39,8 @@ export type MealScoutPublishAuditEntry = {
     sourceFileId: string;
     sourceFileName?: string;
   }>;
+  appliedCorrectionIds?: string[];
+  appliedAttachmentDecisionIds?: string[];
   targetId?: string;
   operatorId?: string;
   executedAt: string;
@@ -131,6 +135,12 @@ export function executeMealScoutPublishPlan(input: {
     throw new Error('stale_plan');
   }
   if (plan.reviewDecisionVersion !== getMealScoutReviewDecisionVersion()) {
+    throw new Error('stale_plan');
+  }
+  if ((plan.correctionVersion ?? 0) !== getMealScoutFieldCorrectionVersion()) {
+    throw new Error('stale_plan');
+  }
+  if ((plan.attachmentDecisionVersion ?? 0) !== getMealScoutAttachmentDecisionVersion()) {
     throw new Error('stale_plan');
   }
 
@@ -297,7 +307,9 @@ export function executeMealScoutPublishPlan(input: {
           mediaType: item.mediaType,
           sourceFileId: item.sourceFileId,
           sourceFileName: item.sourceFileName
-        }))
+        })),
+        appliedCorrectionIds: record.appliedCorrectionIds,
+        appliedAttachmentDecisionIds: record.appliedAttachmentDecisionIds
       };
       results.push(success);
       audits.push(audit);
