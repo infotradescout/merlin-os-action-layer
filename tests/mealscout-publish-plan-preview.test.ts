@@ -188,3 +188,17 @@ test('publish plan carries attached media when present on draft', () => {
   assert.equal(plan.records[0].attachedMedia?.[0]?.mediaType, 'logo');
   assert.equal(plan.records[0].attachedMedia?.[0]?.sourceFileId, 'd11-logo');
 });
+
+test('menu-like truck name cannot satisfy publishReady identity', () => {
+  const draft = makeDraft({
+    id: 'd12',
+    truckName: 'Peach Crown Royal Wings 5 wings or10 wings',
+    cityArea: 'Pensacola, FL',
+    phone: '850-255-8396',
+    menuName: 'Fried Mac'
+  });
+  const plan = buildMealScoutPublishPlanPreview([draft], []);
+  assert.equal(plan.records.length, 1);
+  assert.equal(plan.records[0].publishReady, false);
+  assert.equal((plan.records[0].blockedReasons || []).includes('missing_truck_name'), true);
+});

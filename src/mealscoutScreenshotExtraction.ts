@@ -3,6 +3,7 @@ import {
   type MealScoutEvidenceFile,
   type MealScoutExtractedMenuItem
 } from './mealscoutEvidenceClustering.js';
+import { isMenuLikeTruckName } from './mealscoutTruckNameGuardrail.js';
 
 export type MealScoutScreenshotInput = {
   fileId: string;
@@ -107,6 +108,7 @@ function extractTruckName(text: string): string | undefined {
     if (/phone|email|menu|hours|location|city|facebook|instagram|tiktok/i.test(line)) continue;
     const cleaned = line.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '').trim();
     if (!cleaned) continue;
+    if (isMenuLikeTruckName(cleaned)) continue;
     return cleaned;
   }
   return undefined;

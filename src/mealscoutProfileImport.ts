@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js';
 import type { MealScoutPublishPlanRecord } from './mealscoutPublishPlan.js';
+import { isMenuLikeTruckName } from './mealscoutTruckNameGuardrail.js';
 
 export type MealScoutExtractedSignal = {
   sourceFileId: string;
@@ -483,6 +484,16 @@ export function buildMealScoutProfileDraft(
     mutationAllowed: false
   };
 
+  if (isMenuLikeTruckName(draft.truckName)) {
+    draft.truckName = undefined;
+    if (!draft.warnings.includes('menu_like_truck_name')) {
+      draft.warnings.push('menu_like_truck_name');
+    }
+    if (!draft.warnings.includes('missing_required_identity')) {
+      draft.warnings.push('missing_required_identity');
+    }
+  }
+
   draft.missingFields = buildMissingFields(draft);
   draft.duplicateCandidates = buildDuplicateCandidates(draft, profiles);
 
@@ -508,7 +519,11 @@ export function buildMealScoutProfileDraft(
     }
   }
 
-  draft.extractedFieldEvidence.truckName = buildFieldEvidence(safeSignals, (s) => s.truckName, 0.85);
+  draft.extractedFieldEvidence.truckName = buildFieldEvidence(
+    safeSignals,
+    (s) => (isMenuLikeTruckName(s.truckName) ? undefined : s.truckName),
+    0.85
+  );
   draft.extractedFieldEvidence.phone = buildFieldEvidence(safeSignals, (s) => s.phone, 0.98);
   draft.extractedFieldEvidence.email = buildFieldEvidence(safeSignals, (s) => s.email, 0.98);
   draft.extractedFieldEvidence.website = buildFieldEvidence(safeSignals, (s) => s.website, 0.9);

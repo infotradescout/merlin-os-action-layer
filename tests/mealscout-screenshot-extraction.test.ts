@@ -285,6 +285,20 @@ test('menu price lines are not selected as truckName', () => {
   assert.equal((parsed.extractedSignals.menuItems || []).length, 3);
 });
 
+test('menu-like truck name candidate is rejected', () => {
+  const parsed = parseMealScoutSignalsFromText('Peach Crown Royal Wings 5 wings or10 wings.......$12/17');
+  assert.equal(parsed.extractedSignals.truckName, undefined);
+});
+
+test('legit food-truck style business names can still pass', () => {
+  const one = parseMealScoutSignalsFromText("Big Mike's BBQ\nPhone: 985-555-1212");
+  const two = parseMealScoutSignalsFromText('Taco Loco Food Truck\nCity: Kenner, LA');
+  const three = parseMealScoutSignalsFromText('Wing King Mobile Kitchen\nInstagram: @wingking');
+  assert.equal(one.extractedSignals.truckName, "Big Mike's BBQ");
+  assert.equal(two.extractedSignals.truckName, 'Taco Loco Food Truck');
+  assert.equal(three.extractedSignals.truckName, 'Wing King Mobile Kitchen');
+});
+
 test('OCR text classifies profile screenshot', () => {
   const evidence = createMealScoutEvidenceFromScreenshotInput({
     fileId: 'ocr-profile-classify',

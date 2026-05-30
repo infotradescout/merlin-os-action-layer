@@ -54,6 +54,24 @@ test('flags missing required fields', () => {
   assert.equal(draft.missingFields.includes('menu'), true);
 });
 
+test('rejects menu-like truck name and adds guardrail warnings', () => {
+  const draft = buildMealScoutProfileDraft([
+    {
+      sourceFileId: 'file-menu-like-name',
+      sourceType: 'screenshot',
+      truckName: 'Peach Crown Royal Wings 5 wings or10 wings',
+      phone: '850-255-8396',
+      cityArea: 'Pensacola, FL',
+      menuItems: [{ name: 'Deep Fried Bacon', price: '$3.50' }]
+    }
+  ]);
+
+  assert.equal(draft.truckName, undefined);
+  assert.equal(draft.warnings.includes('menu_like_truck_name'), true);
+  assert.equal(draft.warnings.includes('missing_required_identity'), true);
+  assert.equal(draft.reviewStatus, 'missing_required');
+});
+
 test('allows menuDeferred when menu is missing', () => {
   const draft = buildMealScoutProfileDraft([
     {
