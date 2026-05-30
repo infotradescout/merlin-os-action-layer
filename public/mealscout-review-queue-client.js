@@ -96,6 +96,10 @@ export function createMealScoutReviewQueueClient({ baseUrl = '' } = {}) {
     getBatchDetail(batchId) {
       return requestJson(endpoint(`/api/mealscout/intake/batches/${encodeURIComponent(batchId)}`));
     },
+    getFileAudit({ folderId } = {}) {
+      const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
+      return requestJson(endpoint(`/api/mealscout/intake/file-audit${query}`));
+    },
     getPublishAudit(filters = {}) {
       const params = new URLSearchParams();
       if (filters.planId) params.set('planId', String(filters.planId));

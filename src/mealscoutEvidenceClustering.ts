@@ -38,13 +38,28 @@ export type MealScoutEvidenceFile = {
   confidence: number;
   sourceFileAttribution?: {
     attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    attributionStatus?:
+      | 'matched_affiliate'
+      | 'matched_owner_affiliate'
+      | 'matched_last_modifier_affiliate'
+      | 'request_context'
+      | 'ambiguous'
+      | 'unmatched'
+      | 'unknown';
     driveUploaderEmail?: string;
     driveUploaderName?: string;
+    ownerEmail?: string;
+    ownerDisplayName?: string;
+    lastModifyingUserEmail?: string;
+    lastModifyingUserName?: string;
     uploadedAt?: string;
     modifiedAt?: string;
     intakeSubmittedBy?: string;
+    affiliateId?: string;
+    affiliateEmail?: string;
     affiliateCode?: string;
     repId?: string;
+    needsAttributionReview?: boolean;
     sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
     batchId?: string;
     capturedAt?: string;

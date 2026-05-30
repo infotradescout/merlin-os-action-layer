@@ -1,12 +1,27 @@
 export type MealScoutFileAttribution = {
   attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+  attributionStatus?:
+    | 'matched_affiliate'
+    | 'matched_owner_affiliate'
+    | 'matched_last_modifier_affiliate'
+    | 'request_context'
+    | 'ambiguous'
+    | 'unmatched'
+    | 'unknown';
   driveUploaderEmail?: string;
   driveUploaderName?: string;
+  ownerEmail?: string;
+  ownerDisplayName?: string;
+  lastModifyingUserEmail?: string;
+  lastModifyingUserName?: string;
   uploadedAt?: string;
   modifiedAt?: string;
   intakeSubmittedBy?: string;
+  affiliateId?: string;
+  affiliateEmail?: string;
   affiliateCode?: string;
   repId?: string;
+  needsAttributionReview?: boolean;
   sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
   batchId?: string;
   capturedAt?: string;
@@ -27,7 +42,14 @@ export type MealScoutBatchProcessedRecord = {
 export type MealScoutBatchSkippedRecord = {
   fileId: string;
   fileName: string;
-  reason: 'already_processed' | 'unsupported_type' | 'empty_bytes' | 'ocr_unavailable' | 'not_selected';
+  reason:
+    | 'already_processed'
+    | 'unsupported_type'
+    | 'empty_bytes'
+    | 'ocr_unavailable'
+    | 'not_selected'
+    | 'duplicate_candidate'
+    | 'already_duplicate';
 };
 
 export type MealScoutBatchErrorRecord = {
@@ -60,6 +82,8 @@ export type MealScoutBatchHistoryEntry = {
   skippedAlreadyProcessedCount?: number;
   skippedNotSelectedCount?: number;
   skippedUnsupportedCount?: number;
+  skippedDuplicateCount?: number;
+  skippedDuplicateReviewCount?: number;
   failedFileCount: number;
   ocrFailureCount: number;
   unknownAttributionCount: number;
@@ -120,6 +144,8 @@ export function listMealScoutBatchHistory(): MealScoutBatchHistoryEntry[] {
       skippedAlreadyProcessedCount: entry.skippedAlreadyProcessedCount,
       skippedNotSelectedCount: entry.skippedNotSelectedCount,
       skippedUnsupportedCount: entry.skippedUnsupportedCount,
+      skippedDuplicateCount: entry.skippedDuplicateCount,
+      skippedDuplicateReviewCount: entry.skippedDuplicateReviewCount,
       failedFileCount: entry.failedFileCount,
       ocrFailureCount: entry.ocrFailureCount,
       unknownAttributionCount: entry.unknownAttributionCount,

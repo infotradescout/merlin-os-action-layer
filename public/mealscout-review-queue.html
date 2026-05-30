@@ -180,6 +180,15 @@
         <ul id="batch-history-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No batches yet.</li></ul>
       </section>
 
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>File Audit</h2>
+        <p class="subtitle">Duplicate/file assumption audit is read-only and does not rename, move, or delete files.</p>
+        <div class="actions">
+          <button id="refresh-file-audit-btn">Refresh file audit</button>
+        </div>
+        <ul id="file-audit-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">Loading file audit...</li></ul>
+      </section>
+
       <div class="layout">
         <section class="panel">
           <h2>OCR Draft Profiles</h2>
@@ -1086,7 +1095,61 @@
         await refreshPublishAudit();
         renderBatchResult(batchState.lastResult);
         await loadBatchHistory();
+        await refreshFileAudit();
         renderActiveFilterChips();
+      }
+
+      async function refreshFileAudit() {
+        const listNode = document.getElementById('file-audit-list');
+        if (!listNode) return;
+        try {
+          const audit = await client.getFileAudit({});
+          const groups = Array.isArray(audit.duplicateGroups) ? audit.duplicateGroups : [];
+          const assumptions = Array.isArray(audit.fileAssumptions) ? audit.fileAssumptions : [];
+          listNode.innerHTML = '';
+          if (!groups.length && !assumptions.length) {
+            listNode.innerHTML = '<li class="draft-card">No file audit data returned.</li>';
+            return;
+          }
+          if (groups.length) {
+            const groupHeader = document.createElement('li');
+            groupHeader.className = 'draft-card';
+            groupHeader.innerHTML = `<strong>Duplicate Groups</strong><div class="mini">count:${safe(groups.length)}</div>`;
+            listNode.appendChild(groupHeader);
+            for (const group of groups) {
+              const li = document.createElement('li');
+              li.className = 'draft-card';
+              const rows = (group.files || []).map((file) => {
+                return `<li><span class="mono">${safe(file.fileId)}</span> · ${safe(file.originalFileName)} · action:${safe(file.recommendedAction)} · role:${safe(file.assumedRole)}</li>`;
+              }).join('');
+              li.innerHTML = `
+                <div><span class="pill warn">${safe(group.duplicateType)}</span> <span class="pill">confidence:${safe(group.confidence)}</span></div>
+                <div class="mini">recommendedPrimary:${safe(group.recommendedPrimaryFileId)}</div>
+                <div class="mini">reasons:${safe((group.reasons || []).join(' | '))}</div>
+                <ul>${rows || '<li class="mini">No files</li>'}</ul>
+              `;
+              listNode.appendChild(li);
+            }
+          }
+          const assumptionHeader = document.createElement('li');
+          assumptionHeader.className = 'draft-card';
+          assumptionHeader.innerHTML = `<strong>File Assumptions</strong><div class="mini">count:${safe(assumptions.length)} · mutationAllowed:${safe(audit.mutationAllowed)}</div>`;
+          listNode.appendChild(assumptionHeader);
+          for (const row of assumptions.slice(0, 30)) {
+            const li = document.createElement('li');
+            li.className = 'draft-card';
+            li.innerHTML = `
+              <div><span class="pill">${safe(row.role)}</span> <span class="pill">${safe(row.status)}</span> <span class="pill">renameSafe:${safe(row.renameSafe)}</span></div>
+              <div class="mini">fileId:<span class="mono">${safe(row.fileId)}</span> · original:${safe(row.originalFileName)}</div>
+              <div class="mini">assumedTruck:${safe(row.assumedTruckName)} · confidence:${safe(row.confidence)}</div>
+              <div class="mini">proposed:${safe(row.proposedFileName)}</div>
+              <div class="mini">attribution:${safe(row.sourceAttribution?.attributionSource)}</div>
+            `;
+            listNode.appendChild(li);
+          }
+        } catch (_error) {
+          listNode.innerHTML = '<li class="draft-card">File audit unavailable for current permissions.</li>';
+        }
       }
 
       async function refreshPublishAudit() {
@@ -1122,6 +1185,12 @@
       });
       wireBatchControls();
       wireFilterControls();
+      const refreshFileAuditBtn = document.getElementById('refresh-file-audit-btn');
+      if (refreshFileAuditBtn) {
+        refreshFileAuditBtn.addEventListener('click', () => {
+          refreshFileAudit().catch(() => {});
+        });
+      }
     </script>
   </body>
 </html>

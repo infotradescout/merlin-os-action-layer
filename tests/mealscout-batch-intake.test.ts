@@ -13,6 +13,12 @@ process.env.GOOGLE_CLIENT_ID = 'test-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
 process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
 process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+process.env.MEALSCOUT_AFFILIATE_EMAIL_MAP = JSON.stringify([
+  { affiliateId: 'aff-1', affiliateCode: 'AFF-1', repId: 'rep-1', affiliateEmail: 'rep1@example.com' },
+  { affiliateId: 'aff-2', affiliateCode: 'AFF-2', repId: 'rep-2', affiliateEmail: 'rep2@example.com' },
+  { affiliateId: 'aff-3a', affiliateCode: 'AFF-3A', repId: 'rep-3a', affiliateEmail: 'ambiguous@example.com' },
+  { affiliateId: 'aff-3b', affiliateCode: 'AFF-3B', repId: 'rep-3b', affiliateEmail: 'ambiguous@example.com' }
+]);
 
 const { createMerlinServer } = await import('../src/server.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
@@ -449,4 +455,205 @@ test('safeMode strict grouping avoids merge-by-similar-name and weak OCR names b
   assert.equal(detail.body.batch.draftCount >= 1, true);
   assert.equal(detail.body.batch.reviewStatusCounts.needs_review >= 1, true);
   assert.equal(detail.body.batch.reviewStatusCounts.publish_ready, 0);
+});
+
+test('file audit returns duplicate groups for exact duplicate filenames', async () => {
+  const dupClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'dup-a',
+          file_name: 'IMG_4645.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-a',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        },
+        {
+          drive_file_id: 'dup-b',
+          file_name: 'IMG_4645.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-b',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        },
+        {
+          drive_file_id: 'dup-c',
+          file_name: 'IMG_4594.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-c',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        },
+        {
+          drive_file_id: 'dup-d',
+          file_name: 'IMG_4594.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-d',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { folder_path: '/Merlin OR Storage/MealScout Intake/incoming/unknown' }
+        }
+      ];
+    },
+    async downloadFileContent() {
+      return undefined;
+    }
+  };
+  setDriveClientFactory(() => dupClient);
+  const response = await requestJson<{
+    mutationAllowed: boolean;
+    duplicateGroups: Array<{
+      duplicateType: string;
+      recommendedPrimaryFileId: string;
+      files: Array<{ fileId: string; originalFileName: string; recommendedAction: string }>;
+    }>;
+    fileAssumptions: Array<{ fileId: string; proposedFileName: string }>;
+  }>('/api/mealscout/intake/file-audit', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.mutationAllowed, false);
+  assert.equal(response.body.duplicateGroups.length >= 2, true);
+  assert.equal(response.body.duplicateGroups.every((g) => g.duplicateType === 'exact_filename_duplicate'), true);
+  assert.equal(response.body.duplicateGroups.some((g) => g.files.some((f) => f.originalFileName === 'IMG_4645.PNG')), true);
+  assert.equal(response.body.duplicateGroups.some((g) => g.files.some((f) => f.originalFileName === 'IMG_4594.PNG')), true);
+  assert.equal(response.body.fileAssumptions.every((row) => row.proposedFileName.includes('__')), true);
+});
+
+test('safe mode skips duplicate candidates and reports duplicate skip counters', async () => {
+  const dupClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'dup-primary',
+          file_name: 'IMG_4544.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-primary',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        },
+        {
+          drive_file_id: 'dup-copy',
+          file_name: 'IMG_4544.PNG',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/dup-copy',
+          modified_time: '2026-05-29T01:01:00.000Z',
+          raw_metadata: { extracted_text: 'Truck A\nPhone: 504-000-0001\nCity: Metairie' }
+        },
+        {
+          drive_file_id: 'unique-1',
+          file_name: 'unique-1.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/unique-1',
+          modified_time: '2026-05-29T01:02:00.000Z',
+          raw_metadata: { extracted_text: 'Truck B\nPhone: 504-000-0002\nCity: Metairie' }
+        }
+      ];
+    },
+    async downloadFileContent(fileId: string) {
+      if (fileId === 'dup-primary') return 'Truck A\nPhone: 504-000-0001\nCity: Metairie';
+      if (fileId === 'dup-copy') return 'Truck A\nPhone: 504-000-0001\nCity: Metairie';
+      return 'Truck B\nPhone: 504-000-0002\nCity: Metairie';
+    }
+  };
+  setDriveClientFactory(() => dupClient);
+  const run = await requestJson<{
+    mutationAllowed: boolean;
+    processedFileCount: number;
+    skippedDuplicateCount: number;
+    skippedDuplicateReviewCount: number;
+    skippedFiles: Array<{ fileId: string; reason: string }>;
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', safeMode: true, maxFiles: 5 })
+  });
+  assert.equal(run.status, 200);
+  assert.equal(run.body.mutationAllowed, false);
+  assert.equal(run.body.processedFileCount, 2);
+  assert.equal(run.body.skippedDuplicateCount, 1);
+  assert.equal(run.body.skippedDuplicateReviewCount, 0);
+  assert.equal(run.body.skippedFiles.some((row) => row.fileId === 'dup-copy' && row.reason === 'already_duplicate'), true);
+});
+
+test('file audit matches uploader email to affiliate and flags ambiguous/unmatched attribution', async () => {
+  const attributionClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'attr-match-uploader',
+          file_name: 'uploader-match.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/uploader-match',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { uploader_email: 'rep1@example.com', uploader_name: 'Rep One' }
+        },
+        {
+          drive_file_id: 'attr-owner-fallback',
+          file_name: 'owner-fallback.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/owner-fallback',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { owner_email: 'rep2@example.com', owner_name: 'Rep Two' }
+        },
+        {
+          drive_file_id: 'attr-ambiguous',
+          file_name: 'ambiguous.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/ambiguous',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { uploader_email: 'ambiguous@example.com' }
+        },
+        {
+          drive_file_id: 'attr-unmatched',
+          file_name: 'unmatched.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/unmatched',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: { uploader_email: 'nomatch@example.com' }
+        }
+      ];
+    }
+  };
+  setDriveClientFactory(() => attributionClient);
+  const response = await requestJson<{
+    fileAssumptions: Array<{
+      fileId: string;
+      attributionStatus?: string;
+      affiliateCode?: string;
+      repId?: string;
+      needsAttributionReview?: boolean;
+    }>;
+  }>('/api/mealscout/intake/file-audit', {
+    method: 'GET',
+    headers: { 'x-operator-role': 'admin' }
+  });
+  assert.equal(response.status, 200);
+  const byId = new Map(response.body.fileAssumptions.map((row) => [row.fileId, row]));
+  assert.equal(byId.get('attr-match-uploader')?.attributionStatus, 'matched_affiliate');
+  assert.equal(byId.get('attr-match-uploader')?.affiliateCode, 'AFF-1');
+  assert.equal(byId.get('attr-owner-fallback')?.attributionStatus, 'matched_owner_affiliate');
+  assert.equal(byId.get('attr-owner-fallback')?.affiliateCode, 'AFF-2');
+  assert.equal(byId.get('attr-ambiguous')?.attributionStatus, 'ambiguous');
+  assert.equal(byId.get('attr-ambiguous')?.needsAttributionReview, true);
+  assert.equal(byId.get('attr-unmatched')?.attributionStatus, 'unmatched');
+  assert.equal(byId.get('attr-unmatched')?.needsAttributionReview, true);
 });

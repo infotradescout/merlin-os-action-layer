@@ -236,36 +236,126 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
   affiliateCode?: string;
   repId?: string;
   sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
-}): MealScoutScreenshotInput['sourceFileAttribution'] {
+}): NonNullable<MealScoutScreenshotInput['sourceFileAttribution']> {
   const metadata = (file.raw_metadata || {}) as Record<string, unknown>;
-  const uploaderEmail =
-    (typeof metadata.owner_email === 'string' && metadata.owner_email) ||
-    (typeof metadata.uploader_email === 'string' && metadata.uploader_email) ||
-    (typeof metadata.last_modifying_user_email === 'string' && metadata.last_modifying_user_email) ||
-    undefined;
-  const uploaderName =
-    (typeof metadata.owner_name === 'string' && metadata.owner_name) ||
-    (typeof metadata.uploader_name === 'string' && metadata.uploader_name) ||
-    (typeof metadata.last_modifying_user_name === 'string' && metadata.last_modifying_user_name) ||
-    undefined;
+  const ownerEmail = typeof metadata.owner_email === 'string' ? metadata.owner_email.trim() : undefined;
+  const ownerName = typeof metadata.owner_name === 'string' ? metadata.owner_name.trim() : undefined;
+  const uploaderEmail = typeof metadata.uploader_email === 'string' ? metadata.uploader_email.trim() : undefined;
+  const uploaderName = typeof metadata.uploader_name === 'string' ? metadata.uploader_name.trim() : undefined;
+  const lastModifyingUserEmail =
+    typeof metadata.last_modifying_user_email === 'string' ? metadata.last_modifying_user_email.trim() : undefined;
+  const lastModifyingUserName =
+    typeof metadata.last_modifying_user_name === 'string' ? metadata.last_modifying_user_name.trim() : undefined;
   const uploadedAt =
     (typeof metadata.created_time === 'string' && metadata.created_time) ||
     (typeof metadata.uploaded_at === 'string' && metadata.uploaded_at) ||
     undefined;
-  const attributionSource: 'drive_metadata' | 'request_context' | 'unknown' = uploaderEmail || uploaderName
+  const driveMetadataAvailable =
+    Boolean(uploaderEmail) ||
+    Boolean(ownerEmail) ||
+    Boolean(lastModifyingUserEmail) ||
+    Boolean(uploaderName) ||
+    Boolean(ownerName) ||
+    Boolean(lastModifyingUserName);
+
+  type AffiliateRecord = { affiliateId?: string; affiliateCode?: string; repId?: string; affiliateEmail: string };
+  const fromEnv = process.env.MEALSCOUT_AFFILIATE_EMAIL_MAP;
+  const affiliateRecords: AffiliateRecord[] = (() => {
+    if (!fromEnv) return [];
+    try {
+      const parsed = JSON.parse(fromEnv);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((row): AffiliateRecord | undefined => {
+          if (!row || typeof row !== 'object') return undefined;
+          const entry = row as Record<string, unknown>;
+          const affiliateEmail = typeof entry.affiliateEmail === 'string'
+            ? entry.affiliateEmail
+            : typeof entry.email === 'string'
+              ? entry.email
+              : undefined;
+          if (!affiliateEmail) return undefined;
+          const result: AffiliateRecord = {
+            affiliateEmail: affiliateEmail.trim().toLowerCase()
+          };
+          if (typeof entry.affiliateId === 'string') result.affiliateId = entry.affiliateId;
+          if (typeof entry.affiliateCode === 'string') result.affiliateCode = entry.affiliateCode;
+          if (typeof entry.repId === 'string') result.repId = entry.repId;
+          return result;
+        })
+        .filter((row): row is AffiliateRecord => Boolean(row));
+    } catch {
+      return [];
+    }
+  })();
+  const byEmail = new Map<string, AffiliateRecord[]>();
+  for (const row of affiliateRecords) {
+    const key = row.affiliateEmail.trim().toLowerCase();
+    const existing = byEmail.get(key) || [];
+    existing.push(row);
+    byEmail.set(key, existing);
+  }
+  const findMatches = (email: string | undefined): AffiliateRecord[] => {
+    const key = (email || '').trim().toLowerCase();
+    if (!key) return [];
+    return byEmail.get(key) || [];
+  };
+  const uploaderMatches = findMatches(uploaderEmail);
+  const ownerMatches = uploaderMatches.length > 0 ? [] : findMatches(ownerEmail);
+  const lastModifierMatches = uploaderMatches.length > 0 || ownerMatches.length > 0 ? [] : findMatches(lastModifyingUserEmail);
+
+  let attributionStatus:
+    | 'matched_affiliate'
+    | 'matched_owner_affiliate'
+    | 'matched_last_modifier_affiliate'
+    | 'request_context'
+    | 'ambiguous'
+    | 'unmatched'
+    | 'unknown' = 'unknown';
+  let matchedAffiliate: AffiliateRecord | undefined;
+  if (uploaderMatches.length === 1) {
+    attributionStatus = 'matched_affiliate';
+    matchedAffiliate = uploaderMatches[0];
+  } else if (uploaderMatches.length > 1) {
+    attributionStatus = 'ambiguous';
+  } else if (ownerMatches.length === 1) {
+    attributionStatus = 'matched_owner_affiliate';
+    matchedAffiliate = ownerMatches[0];
+  } else if (ownerMatches.length > 1) {
+    attributionStatus = 'ambiguous';
+  } else if (lastModifierMatches.length === 1) {
+    attributionStatus = 'matched_last_modifier_affiliate';
+    matchedAffiliate = lastModifierMatches[0];
+  } else if (lastModifierMatches.length > 1) {
+    attributionStatus = 'ambiguous';
+  } else if (context?.repId || context?.affiliateCode || context?.submittedByUserId) {
+    attributionStatus = 'request_context';
+  } else if (driveMetadataAvailable) {
+    attributionStatus = 'unmatched';
+  }
+
+  const attributionSource: 'drive_metadata' | 'request_context' | 'unknown' = driveMetadataAvailable
     ? 'drive_metadata'
     : context?.repId || context?.affiliateCode || context?.submittedByUserId
       ? 'request_context'
       : 'unknown';
   return {
     attributionSource,
-    driveUploaderEmail: uploaderEmail,
-    driveUploaderName: uploaderName,
+    attributionStatus,
+    driveUploaderEmail: uploaderEmail || ownerEmail || lastModifyingUserEmail,
+    driveUploaderName: uploaderName || ownerName || lastModifyingUserName,
+    ownerEmail,
+    ownerDisplayName: ownerName,
+    lastModifyingUserEmail,
+    lastModifyingUserName,
     uploadedAt,
     modifiedAt: file.modified_time,
     intakeSubmittedBy: context?.submittedByUserId,
-    affiliateCode: context?.affiliateCode,
-    repId: context?.repId,
+    affiliateId: matchedAffiliate?.affiliateId,
+    affiliateEmail: matchedAffiliate?.affiliateEmail,
+    affiliateCode: matchedAffiliate?.affiliateCode || context?.affiliateCode,
+    repId: matchedAffiliate?.repId || context?.repId,
+    needsAttributionReview: attributionStatus === 'ambiguous' || attributionStatus === 'unmatched' || attributionStatus === 'unknown',
     sourceChannel: context?.sourceChannel || 'drive_upload',
     batchId: context?.batchId,
     capturedAt: new Date().toISOString()
@@ -296,7 +386,85 @@ type MealScoutBatchRunSkipReason =
   | 'unsupported_type'
   | 'empty_bytes'
   | 'ocr_unavailable'
-  | 'not_selected';
+  | 'not_selected'
+  | 'duplicate_candidate'
+  | 'already_duplicate';
+
+type MealScoutDuplicateType =
+  | 'exact_filename_duplicate'
+  | 'near_filename_duplicate'
+  | 'metadata_duplicate'
+  | 'content_hash_duplicate'
+  | 'needs_review';
+
+function normalizedBaseFileName(fileName: string): string {
+  const dot = fileName.lastIndexOf('.');
+  const stem = dot > 0 ? fileName.slice(0, dot) : fileName;
+  return stem.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function sanitizeForProposedName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'UNKNOWN';
+}
+
+function shortId(value: string): string {
+  return (value || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'unknown';
+}
+
+function inferRoleFromName(name: string): 'profile_screenshot' | 'menu' | 'logo_candidate' | 'truck_photo' | 'food_photo' | 'unknown' {
+  const lower = name.toLowerCase();
+  if (lower.includes('menu')) return 'menu';
+  if (lower.includes('logo') || lower.startsWith('fb_img_')) return 'logo_candidate';
+  if (lower.includes('screenshot')) return 'profile_screenshot';
+  if (lower.includes('truck')) return 'truck_photo';
+  if (lower.includes('food')) return 'food_photo';
+  return 'unknown';
+}
+
+function buildMealScoutDuplicateGroups(files: DriveFileInfo[]): Array<{
+  duplicateGroupId: string;
+  duplicateType: MealScoutDuplicateType;
+  confidence: number;
+  recommendedPrimaryFileId: string;
+  files: DriveFileInfo[];
+  reasons: string[];
+  blockers: string[];
+}> {
+  const byName = new Map<string, DriveFileInfo[]>();
+  for (const file of files) {
+    const key = (file.file_name || '').trim().toLowerCase();
+    const list = byName.get(key) || [];
+    list.push(file);
+    byName.set(key, list);
+  }
+  const out: Array<{
+    duplicateGroupId: string;
+    duplicateType: MealScoutDuplicateType;
+    confidence: number;
+    recommendedPrimaryFileId: string;
+    files: DriveFileInfo[];
+    reasons: string[];
+    blockers: string[];
+  }> = [];
+  for (const [name, group] of byName.entries()) {
+    if (group.length < 2) continue;
+    const ordered = [...group].sort((a, b) => {
+      const mt = (a.modified_time || '').localeCompare(b.modified_time || '');
+      if (mt !== 0) return mt;
+      return a.drive_file_id.localeCompare(b.drive_file_id);
+    });
+    out.push({
+      duplicateGroupId: `dup-${sanitizeForProposedName(name)}-${shortId(ordered[0].drive_file_id)}`,
+      duplicateType: 'exact_filename_duplicate',
+      confidence: 0.98,
+      recommendedPrimaryFileId: ordered[0].drive_file_id,
+      files: ordered,
+      reasons: ['same original filename with distinct drive file IDs'],
+      blockers: []
+    });
+  }
+  return out.sort((a, b) => a.duplicateGroupId.localeCompare(b.duplicateGroupId));
+}
 
 const MEALSCOUT_SAFE_MODE_DEFAULT_MAX_FILES = 5;
 const MEALSCOUT_SAFE_MODE_HARD_MAX_FILES = 8;
@@ -1863,6 +2031,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     let skippedAlreadyProcessedCount = 0;
     let skippedNotSelectedCount = 0;
     let skippedUnsupportedCount = 0;
+    let skippedDuplicateCount = 0;
+    let skippedDuplicateReviewCount = 0;
 
     try {
       const resolved = await resolveMealScoutPreviewDriveFolderId(typeof payload.folderId === 'string' ? payload.folderId : undefined);
@@ -1875,6 +2045,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       scannedFileCount = listedFiles.length;
       const supported = listedFiles.filter((file) => isSupportedMealScoutPreviewFile(file));
       eligibleFileCount = supported.length;
+      const duplicateGroupsRaw = buildMealScoutDuplicateGroups(supported);
+      const duplicateCandidateFileIds = new Set<string>();
+      for (const group of duplicateGroupsRaw) {
+        for (const file of group.files) {
+          if (file.drive_file_id !== group.recommendedPrimaryFileId) {
+            duplicateCandidateFileIds.add(file.drive_file_id);
+          }
+        }
+      }
       for (const file of listedFiles) {
         if (!isSupportedMealScoutPreviewFile(file)) {
           skippedUnsupportedCount += 1;
@@ -1888,7 +2067,20 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
       const selected: typeof supported = [];
       if (reprocess) {
-        const candidate = supported;
+        const candidate = safeMode
+          ? supported.filter((file) => {
+              if (!duplicateCandidateFileIds.has(file.drive_file_id)) {
+                return true;
+              }
+              skippedDuplicateReviewCount += 1;
+              skippedFiles.push({
+                fileId: file.drive_file_id,
+                fileName: file.file_name,
+                reason: 'duplicate_candidate'
+              });
+              return false;
+            })
+          : supported;
         for (const file of candidate.slice(0, maxFiles)) {
           selected.push(file);
         }
@@ -1903,6 +2095,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       } else {
         const unprocessed: typeof supported = [];
         for (const file of supported) {
+          if (safeMode && duplicateCandidateFileIds.has(file.drive_file_id)) {
+            skippedDuplicateCount += 1;
+            skippedFiles.push({
+              fileId: file.drive_file_id,
+              fileName: file.file_name,
+              reason: 'already_duplicate'
+            });
+            continue;
+          }
           if (getMealScoutBatchProcessedRecord(file.drive_file_id)) {
             skippedAlreadyProcessedCount += 1;
             skippedFiles.push({
@@ -2062,6 +2263,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         skippedAlreadyProcessedCount,
         skippedNotSelectedCount,
         skippedUnsupportedCount,
+        skippedDuplicateCount,
+        skippedDuplicateReviewCount,
         failedFileCount: errors.length,
         ocrFailureCount,
         unknownAttributionCount,
@@ -2110,6 +2313,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         skippedAlreadyProcessedCount,
         skippedNotSelectedCount,
         skippedUnsupportedCount,
+        skippedDuplicateCount,
+        skippedDuplicateReviewCount,
         failedFileCount: errors.length,
         skippedFiles,
         processedFiles,
@@ -2132,6 +2337,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         eligibleFileCount,
         processedFileCount: processedFiles.length,
         skippedFileCount: skippedFiles.length,
+        skippedAlreadyProcessedCount,
+        skippedNotSelectedCount,
+        skippedUnsupportedCount,
+        skippedDuplicateCount,
+        skippedDuplicateReviewCount,
         failedFileCount: Math.max(1, errors.length),
         ocrFailureCount: processedFiles.filter((row) => row.ocrSucceeded === false).length,
         unknownAttributionCount: processedFiles.filter((row) => row.sourceFileAttribution?.attributionSource === 'unknown').length,
@@ -2182,6 +2392,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
           skippedAlreadyProcessedCount,
           skippedNotSelectedCount,
           skippedUnsupportedCount,
+          skippedDuplicateCount,
+          skippedDuplicateReviewCount,
           failedFileCount: Math.max(1, errors.length),
           skippedFiles,
           processedFiles,
@@ -2190,6 +2402,130 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         },
         409
       );
+    }
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/file-audit') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    try {
+      const resolved = await resolveMealScoutPreviewDriveFolderId(query.folderId);
+      if (!resolved.ok) {
+        return responseJson(res, { error: resolved.reason, mutationAllowed: false, diagnostic: resolved.diagnostic }, 409);
+      }
+      const driveClient = getDriveClient();
+      const listedFiles = await driveClient.listFilesInFolder(resolved.folderId);
+      const duplicateGroupsRaw = buildMealScoutDuplicateGroups(listedFiles);
+      const duplicateFileIds = new Set<string>();
+      for (const group of duplicateGroupsRaw) {
+        for (const file of group.files) duplicateFileIds.add(file.drive_file_id);
+      }
+
+      const duplicateGroups = duplicateGroupsRaw.map((group) => ({
+        duplicateGroupId: group.duplicateGroupId,
+        duplicateType: group.duplicateType,
+        confidence: group.confidence,
+        recommendedPrimaryFileId: group.recommendedPrimaryFileId,
+        files: group.files.map((file) => {
+          const processed = getMealScoutBatchProcessedRecord(file.drive_file_id);
+          const sourceAttribution = resolveDriveFileAttribution(file);
+          const role = inferRoleFromName(file.file_name);
+          const ext = file.file_name.includes('.') ? file.file_name.split('.').pop() || 'jpg' : 'jpg';
+          const proposedFileName = `${sanitizeForProposedName('DUPLICATE')}__${sanitizeForProposedName(role)}__${sanitizeForProposedName('needs_review')}__${shortId(file.drive_file_id)}.${sanitizeForProposedName(ext)}`;
+          return {
+            fileId: file.drive_file_id,
+            originalFileName: file.file_name,
+            mimeType: file.mime_type,
+            createdTime: (file.raw_metadata as Record<string, unknown> | undefined)?.created_time,
+            modifiedTime: file.modified_time,
+            size: (file.raw_metadata as Record<string, unknown> | undefined)?.size,
+            md5Checksum: (file.raw_metadata as Record<string, unknown> | undefined)?.md5_checksum,
+            contentHash: undefined,
+            alreadyProcessed: Boolean(processed),
+            uploaderEmail: sourceAttribution.driveUploaderEmail,
+            ownerEmail: sourceAttribution.ownerEmail,
+            lastModifyingUserEmail: sourceAttribution.lastModifyingUserEmail,
+            attributionSource: sourceAttribution.attributionSource,
+            attributionStatus: sourceAttribution.attributionStatus,
+            affiliateId: sourceAttribution.affiliateId,
+            affiliateCode: sourceAttribution.affiliateCode,
+            affiliateEmail: sourceAttribution.affiliateEmail,
+            repId: sourceAttribution.repId,
+            needsAttributionReview: sourceAttribution.needsAttributionReview === true,
+            assumedTruckName: undefined,
+            assumedRole: role,
+            proposedFileName,
+            recommendedAction:
+              file.drive_file_id === group.recommendedPrimaryFileId ? 'keep_primary' : group.confidence >= 0.95 ? 'skip_duplicate' : 'needs_review'
+          };
+        }),
+        reasons: group.reasons,
+        blockers: group.blockers
+      }));
+
+      const fileAssumptions = listedFiles.map((file) => {
+        const processed = getMealScoutBatchProcessedRecord(file.drive_file_id);
+        const sourceAttribution = resolveDriveFileAttribution(file);
+        const role = processed
+          ? processed.classification === 'profile'
+            ? 'profile_screenshot'
+            : processed.classification === 'menu'
+              ? 'menu'
+              : processed.classification === 'logo'
+                ? 'logo_candidate'
+                : processed.classification === 'truck_photo'
+                  ? 'truck_photo'
+                  : processed.classification === 'food_photo'
+                    ? 'food_photo'
+                    : 'unknown'
+          : inferRoleFromName(file.file_name);
+        const status = duplicateFileIds.has(file.drive_file_id)
+          ? 'needs_review'
+          : processed
+            ? 'suggested'
+            : 'unattached';
+        const assumedTruckName = undefined;
+        const ext = file.file_name.includes('.') ? file.file_name.split('.').pop() || 'jpg' : 'jpg';
+        const namePrefix = assumedTruckName ? sanitizeForProposedName(assumedTruckName) : status === 'unattached' ? 'UNATTACHED' : 'UNKNOWN_TRUCK';
+        const proposedFileName = `${namePrefix}__${sanitizeForProposedName(role)}__${sanitizeForProposedName(status)}__${shortId(file.drive_file_id)}.${sanitizeForProposedName(ext)}`;
+        return {
+          fileId: file.drive_file_id,
+          originalFileName: file.file_name,
+          uploaderEmail: sourceAttribution.driveUploaderEmail,
+          ownerEmail: sourceAttribution.ownerEmail,
+          lastModifyingUserEmail: sourceAttribution.lastModifyingUserEmail,
+          attributionSource: sourceAttribution.attributionSource,
+          attributionStatus: sourceAttribution.attributionStatus,
+          affiliateId: sourceAttribution.affiliateId,
+          affiliateCode: sourceAttribution.affiliateCode,
+          affiliateEmail: sourceAttribution.affiliateEmail,
+          repId: sourceAttribution.repId,
+          needsAttributionReview: sourceAttribution.needsAttributionReview === true,
+          assumedTruckName,
+          assumedDraftId: undefined,
+          assumedProfileId: undefined,
+          role,
+          confidence: processed ? 0.8 : duplicateFileIds.has(file.drive_file_id) ? 0.7 : 0.4,
+          status,
+          reasons: duplicateFileIds.has(file.drive_file_id) ? ['duplicate filename detected with different file IDs'] : [],
+          sourceAttribution,
+          proposedFileName,
+          renameSafe: !duplicateFileIds.has(file.drive_file_id) && Boolean(processed),
+          blockers: duplicateFileIds.has(file.drive_file_id) ? ['duplicate_detected'] : []
+        };
+      });
+
+      return responseJson(res, {
+        mutationAllowed: false,
+        duplicateGroups,
+        fileAssumptions
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'file audit failed';
+      return responseJson(res, { error: message, mutationAllowed: false }, 409);
     }
   }
 
