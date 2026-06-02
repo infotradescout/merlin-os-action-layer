@@ -7,6 +7,7 @@ import { listMerlinExecutionPlans, type MerlinExecutionPlanRecord } from './exec
 import { listMerlinIntakeItems, type MerlinIntakeItemRecord } from './intakeRuntime.js';
 import { listMerlinLiveExecutionGates, type MerlinLiveExecutionGateRecord } from './liveExecutionGateRuntime.js';
 import { getMerlinKpiRollup, listMerlinOutcomes, type MerlinOutcomeRecord } from './outcomeRuntime.js';
+import { listMerlinRolePolicyChecks, listMerlinWorkspaces, type MerlinRolePolicyCheckRecord } from './workspaceRuntime.js';
 
 export type MerlinOperatorConsoleFilters = {
   brand_lane?: string;
@@ -42,6 +43,8 @@ export type MerlinOperatorConsolePayload = {
     liveGateBlockedCount: number;
     liveGateDisabledCount: number;
     liveGateCriticalCount: number;
+    workspaceActiveCount: number;
+    rolePolicyBlockedCount: number;
   };
   attention: {
     blockedIntake: MerlinIntakeItemRecord[];
@@ -61,6 +64,7 @@ export type MerlinOperatorConsolePayload = {
     blockedLiveExecutionGates: MerlinLiveExecutionGateRecord[];
     disabledLiveExecutionGates: MerlinLiveExecutionGateRecord[];
     criticalLiveExecutionGates: MerlinLiveExecutionGateRecord[];
+    blockedRolePolicyChecks: MerlinRolePolicyCheckRecord[];
   };
   kpiRollups: ReturnType<typeof getMerlinKpiRollup>;
   recent: {
@@ -96,6 +100,8 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const executionPlans = listMerlinExecutionPlans({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const dryRunExecutions = listMerlinDryRunExecutions({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const liveExecutionGates = listMerlinLiveExecutionGates({ brand_lane: brand, entity_id: entityId, limit: 100 });
+  const workspaces = listMerlinWorkspaces({ limit: 100 });
+  const rolePolicyChecks = listMerlinRolePolicyChecks({ limit: 100 });
   const executionPlanIds = new Set(executionPlans.map((plan) => plan.id));
   const adapterChecks = listMerlinConnectorAdapterChecks({ limit: 100 }).filter((check) => executionPlanIds.has(check.execution_plan_id));
 
@@ -120,6 +126,7 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const blockedLiveExecutionGates = liveExecutionGates.filter((row) => row.gate_status === 'blocked' || row.gate_status === 'failed' || row.gate_status === 'expired');
   const disabledLiveExecutionGates = liveExecutionGates.filter((row) => row.gate_status === 'disabled');
   const criticalLiveExecutionGates = liveExecutionGates.filter((row) => row.risk_level === 'critical');
+  const blockedRolePolicyChecks = rolePolicyChecks.filter((row) => row.check_status !== 'pass');
 
   const visibleIntake = intake.slice(0, limit);
   const visibleEntities = entities.slice(0, limit);
@@ -153,7 +160,9 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       liveGateEligibleCount: liveExecutionGates.filter((row) => row.gate_status === 'eligible').length,
       liveGateBlockedCount: blockedLiveExecutionGates.length,
       liveGateDisabledCount: disabledLiveExecutionGates.length,
-      liveGateCriticalCount: criticalLiveExecutionGates.length
+      liveGateCriticalCount: criticalLiveExecutionGates.length,
+      workspaceActiveCount: workspaces.filter((row) => row.status === 'active').length,
+      rolePolicyBlockedCount: blockedRolePolicyChecks.length
     },
     attention: {
       blockedIntake: blockedIntake.slice(0, limit),
@@ -172,7 +181,8 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       blockedDryRunExecutions: blockedDryRunExecutions.slice(0, limit),
       blockedLiveExecutionGates: blockedLiveExecutionGates.slice(0, limit),
       disabledLiveExecutionGates: disabledLiveExecutionGates.slice(0, limit),
-      criticalLiveExecutionGates: criticalLiveExecutionGates.slice(0, limit)
+      criticalLiveExecutionGates: criticalLiveExecutionGates.slice(0, limit),
+      blockedRolePolicyChecks: blockedRolePolicyChecks.slice(0, limit)
     },
     kpiRollups: getMerlinKpiRollup({ brand_lane: brand }).slice(0, limit),
     recent: {

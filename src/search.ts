@@ -8,8 +8,17 @@ import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 import { searchMerlinLiveExecutionGates } from './merlin/liveExecutionGateRuntime.js';
 import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
+import { searchMerlinRolePolicyChecks } from './merlin/workspaceRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const rolePolicyResults = searchMerlinRolePolicyChecks(query, 10).map((check, index) => ({
+    id: check.id || `role-policy-check-${index + 1}`,
+    title: `[Role Policy] ${check.check_status}`,
+    summary: `${check.workspace_id} · ${check.operator_id} · ${check.action} · ${check.reason}`,
+    source: 'merlin_role_policy_check',
+    observed_at: check.created_at,
+    confidence: check.check_status === 'pass' ? 0.9 : 0.25
+  }));
   const liveGateResults = searchMerlinLiveExecutionGates(query, 10).map((gate, index) => ({
     id: gate.id || `live-execution-gate-${index + 1}`,
     title: `[Live Gate] ${gate.gate_status}`,
@@ -90,10 +99,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...liveGateResults, ...dryRunResults, ...adapterCheckResults, ...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...rolePolicyResults, ...liveGateResults, ...dryRunResults, ...adapterCheckResults, ...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_live_execution_gates+merlin_dry_run_executions+merlin_connector_adapter_checks+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_role_policy_checks+merlin_live_execution_gates+merlin_dry_run_executions+merlin_connector_adapter_checks+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };

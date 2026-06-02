@@ -7,6 +7,7 @@ import { getMerlinApprovalById } from './approvalRuntime.js';
 import { getMerlinConnectorAdapterById, listMerlinConnectorAdapterChecks } from './connectorAdapterRuntime.js';
 import { getMerlinDryRunExecutionById } from './dryRunExecutorRuntime.js';
 import { getMerlinExecutionPlanById } from './executionPlanRuntime.js';
+import { runMerlinRolePolicyCheck } from './workspaceRuntime.js';
 
 export type MerlinLiveExecutionGateStatus = 'eligible' | 'blocked' | 'disabled' | 'expired' | 'failed';
 export type MerlinLiveExecutionRiskLevel = 'low' | 'medium' | 'high' | 'critical';
@@ -218,7 +219,7 @@ export function resetMerlinLiveExecutionGateRuntimeForTest(): void {
   dbi.prepare('DELETE FROM merlin_live_execution_gates').run();
 }
 
-export function createMerlinLiveExecutionGate(input: { dry_run_execution_id: string }): MerlinLiveExecutionGateRecord {
+export function createMerlinLiveExecutionGate(input: { dry_run_execution_id: string; workspace_id?: string; operator_id?: string }): MerlinLiveExecutionGateRecord {
   const dryRun = getMerlinDryRunExecutionById(input.dry_run_execution_id);
   if (!dryRun) throw new Error('dry_run_execution_not_found');
 
@@ -229,6 +230,18 @@ export function createMerlinLiveExecutionGate(input: { dry_run_execution_id: str
     : undefined;
   const adapter = adapterCheck?.adapter_id ? getMerlinConnectorAdapterById(adapterCheck.adapter_id) : undefined;
   const approval = plan?.approval_id ? getMerlinApprovalById(plan.approval_id) : undefined;
+  if (input.workspace_id || input.operator_id) {
+    if (!input.workspace_id || !input.operator_id) throw new Error('workspace_id_and_operator_id_required');
+    const check = runMerlinRolePolicyCheck({
+      workspace_id: input.workspace_id,
+      operator_id: input.operator_id,
+      target_type: 'action_card',
+      target_id: dryRun.action_card_id,
+      action: 'check_live_gate',
+      brand_lane: dryRun.brand_lane
+    });
+    if (check.check_status !== 'pass') throw new Error(`role_policy_${check.check_status}`);
+  }
   const risk = determineMerlinLiveExecutionRisk(dryRun.tool, dryRun.action);
   const missingGates: string[] = [];
   const simulatedExternalMutation =

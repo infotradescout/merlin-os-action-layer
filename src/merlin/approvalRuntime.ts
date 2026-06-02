@@ -7,6 +7,7 @@ import {
   updateMerlinActionCardStatus,
   type MerlinActionCardRecord
 } from './actionCardRuntime.js';
+import { runMerlinRolePolicyCheck } from './workspaceRuntime.js';
 
 export type MerlinApprovalStatus = 'requested' | 'approved' | 'rejected' | 'expired' | 'revoked' | 'blocked';
 export type MerlinApprovalLevel = 'operator' | 'admin' | 'owner' | 'super_admin' | 'system_block';
@@ -178,9 +179,20 @@ export function resetMerlinApprovalRuntimeForTest(): void {
   dbi.prepare('DELETE FROM merlin_approvals').run();
 }
 
-export function requestMerlinApproval(input: { action_card_id: string; expires_at?: string }): MerlinApprovalRecord {
+export function requestMerlinApproval(input: { action_card_id: string; expires_at?: string; workspace_id?: string; operator_id?: string }): MerlinApprovalRecord {
   const card = getMerlinActionCardById(input.action_card_id);
   if (!card) throw new Error('action_card_not_found');
+  if (input.workspace_id || input.operator_id) {
+    if (!input.workspace_id || !input.operator_id) throw new Error('workspace_id_and_operator_id_required');
+    const check = runMerlinRolePolicyCheck({
+      workspace_id: input.workspace_id,
+      operator_id: input.operator_id,
+      target_type: 'action_card',
+      target_id: card.id,
+      action: 'request_approval'
+    });
+    if (check.check_status !== 'pass') throw new Error(`role_policy_${check.check_status}`);
+  }
   const requiresApproval = card.policy_result.requires_approval || card.policy_result.blocked || permissionNeedsApproval(card);
   if (!requiresApproval) throw new Error('approval_not_required');
   const now = nowIso();
@@ -262,6 +274,8 @@ export function decideMerlinApproval(input: {
   decision: 'approved' | 'rejected' | 'revoked';
   decided_by?: string;
   reason?: string;
+  workspace_id?: string;
+  operator_id?: string;
 }): MerlinApprovalRecord {
   const approval = getMerlinApprovalById(input.approval_id);
   if (!approval) throw new Error('approval_not_found');
@@ -269,6 +283,19 @@ export function decideMerlinApproval(input: {
   if (approval.approval_status === 'expired' || approvalIsExpired(approval)) throw new Error('expired_approval_cannot_be_approved');
   const reason = String(input.reason || '').trim();
   const decidedBy = String(input.decided_by || '').trim();
+  if (input.workspace_id || input.operator_id) {
+    if (!input.workspace_id || !input.operator_id) throw new Error('workspace_id_and_operator_id_required');
+    const actionCard = getMerlinActionCardById(approval.action_card_id);
+    if (!actionCard) throw new Error('action_card_not_found');
+    const check = runMerlinRolePolicyCheck({
+      workspace_id: input.workspace_id,
+      operator_id: input.operator_id,
+      target_type: 'action_card',
+      target_id: actionCard.id,
+      action: 'approve'
+    });
+    if (check.check_status !== 'pass') throw new Error(`role_policy_${check.check_status}`);
+  }
   if (input.decision === 'approved' && (!decidedBy || !reason)) throw new Error('approved_requires_decided_by_and_reason');
   if ((input.decision === 'rejected' || input.decision === 'revoked') && !reason) throw new Error(`${input.decision}_requires_reason`);
   const nextStatus = input.decision;
