@@ -156,6 +156,7 @@ import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRou
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
 import { handleMerlinOutcomeRoute } from './merlin/routes/merlinOutcomeRoutes.js';
+import { handleMerlinOperatorConsoleRoute } from './merlin/routes/merlinOperatorConsoleRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1597,6 +1598,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   const url = new URL(req.url, `http://localhost:${DEFAULT_PORT}`);
   const pathname = url.pathname;
   const query = readQuery(url);
+
+  if (pathname.startsWith('/api/merlin/operator-console')) {
+    const handled = await handleMerlinOperatorConsoleRoute(req, res, pathname);
+    if (handled) return;
+  }
 
   if (pathname === '/api/merlin/intake' || pathname.startsWith('/api/merlin/intake/')) {
     const handled = await handleMerlinIntakeRoute(req, res, pathname);
