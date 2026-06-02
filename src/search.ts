@@ -1,11 +1,20 @@
 import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
 import { searchMerlinApprovals } from './merlin/approvalRuntime.js';
+import { searchMerlinExecutionPlans } from './merlin/executionPlanRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const executionPlanResults = searchMerlinExecutionPlans(query, 10).map((plan, index) => ({
+    id: plan.id || `execution-plan-${index + 1}`,
+    title: `[Execution Plan] ${plan.execution_status}`,
+    summary: `${plan.brand_lane} · ${plan.tool} · ${plan.action} · mode:${plan.execution_mode} · reason:${plan.eligibility_reason}`,
+    source: 'merlin_execution_plan',
+    observed_at: plan.updated_at,
+    confidence: plan.execution_status === 'eligible' ? 0.85 : plan.execution_status === 'blocked' ? 0.35 : 0.65
+  }));
   const approvalResults = searchMerlinApprovals(query, 10).map((approval, index) => ({
     id: approval.id || `approval-${index + 1}`,
     title: `[Approval] ${approval.approval_status}`,
@@ -54,10 +63,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };

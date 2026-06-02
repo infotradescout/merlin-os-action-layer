@@ -158,6 +158,7 @@ import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemor
 import { handleMerlinOutcomeRoute } from './merlin/routes/merlinOutcomeRoutes.js';
 import { handleMerlinOperatorConsoleRoute } from './merlin/routes/merlinOperatorConsoleRoutes.js';
 import { handleMerlinApprovalRoute } from './merlin/routes/merlinApprovalRoutes.js';
+import { handleMerlinExecutionPlanRoute } from './merlin/routes/merlinExecutionPlanRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1606,6 +1607,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
   if (pathname.startsWith('/api/merlin/approvals') || pathname.match(/^\/api\/merlin\/action-cards\/[^/]+\/approval-state$/)) {
     const handled = await handleMerlinApprovalRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/execution-plans')) {
+    const handled = await handleMerlinExecutionPlanRoute(req, res, pathname);
     if (handled) return;
   }
 

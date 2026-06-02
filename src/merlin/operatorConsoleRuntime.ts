@@ -1,6 +1,7 @@
 import { listMerlinActionCards, type MerlinActionCardRecord } from './actionCardRuntime.js';
 import { listMerlinApprovals, type MerlinApprovalRecord } from './approvalRuntime.js';
 import { getMerlinEntityConflicts, getMerlinEntityById, listMerlinEntities, type MerlinEntityRecord } from './entityMemoryRuntime.js';
+import { listMerlinExecutionPlans, type MerlinExecutionPlanRecord } from './executionPlanRuntime.js';
 import { listMerlinIntakeItems, type MerlinIntakeItemRecord } from './intakeRuntime.js';
 import { getMerlinKpiRollup, listMerlinOutcomes, type MerlinOutcomeRecord } from './outcomeRuntime.js';
 
@@ -27,6 +28,9 @@ export type MerlinOperatorConsolePayload = {
     approvalApprovedCount: number;
     approvalBlockedCount: number;
     approvalExpiredCount: number;
+    executionPlanEligibleCount: number;
+    executionPlanBlockedCount: number;
+    executionPlanDryRunCount: number;
   };
   attention: {
     blockedIntake: MerlinIntakeItemRecord[];
@@ -37,6 +41,8 @@ export type MerlinOperatorConsolePayload = {
     pendingApprovals: MerlinApprovalRecord[];
     blockedApprovals: MerlinApprovalRecord[];
     expiredApprovals: MerlinApprovalRecord[];
+    blockedExecutionPlans: MerlinExecutionPlanRecord[];
+    eligibleExecutionPlans: MerlinExecutionPlanRecord[];
   };
   kpiRollups: ReturnType<typeof getMerlinKpiRollup>;
   recent: {
@@ -44,6 +50,7 @@ export type MerlinOperatorConsolePayload = {
     entities: MerlinEntityRecord[];
     actionCards: MerlinActionCardRecord[];
     outcomes: MerlinOutcomeRecord[];
+    executionPlans: MerlinExecutionPlanRecord[];
   };
 };
 
@@ -68,6 +75,7 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const actionCards = listMerlinActionCards({ brand, limit: 100 }).filter((row) => matchesEntity(row, entityId));
   const outcomes = listMerlinOutcomes({ brand_lane: brand, limit: 100 }).filter((row) => matchesEntity(row, entityId));
   const approvals = listMerlinApprovals({ brand_lane: brand, entity_id: entityId, limit: 100 });
+  const executionPlans = listMerlinExecutionPlans({ brand_lane: brand, entity_id: entityId, limit: 100 });
 
   const openEntityConflicts = entities.flatMap((entity) =>
     getMerlinEntityConflicts(entity.id)
@@ -82,6 +90,8 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const pendingApprovals = approvals.filter((row) => row.approval_status === 'requested');
   const blockedApprovals = approvals.filter((row) => row.approval_status === 'blocked');
   const expiredApprovals = approvals.filter((row) => row.approval_status === 'expired' || Boolean(row.expires_at && Date.parse(row.expires_at) <= now));
+  const blockedExecutionPlans = executionPlans.filter((row) => row.execution_status === 'blocked' || row.execution_status === 'expired');
+  const eligibleExecutionPlans = executionPlans.filter((row) => row.execution_status === 'eligible');
 
   const visibleIntake = intake.slice(0, limit);
   const visibleEntities = entities.slice(0, limit);
@@ -104,7 +114,10 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       approvalRequestedCount: pendingApprovals.length,
       approvalApprovedCount: approvals.filter((row) => row.approval_status === 'approved').length,
       approvalBlockedCount: blockedApprovals.length,
-      approvalExpiredCount: expiredApprovals.length
+      approvalExpiredCount: expiredApprovals.length,
+      executionPlanEligibleCount: eligibleExecutionPlans.length,
+      executionPlanBlockedCount: blockedExecutionPlans.length,
+      executionPlanDryRunCount: executionPlans.filter((row) => row.execution_mode === 'dry_run').length
     },
     attention: {
       blockedIntake: blockedIntake.slice(0, limit),
@@ -114,14 +127,17 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       needsMoreDataOutcomes: needsMoreDataOutcomes.slice(0, limit),
       pendingApprovals: pendingApprovals.slice(0, limit),
       blockedApprovals: blockedApprovals.slice(0, limit),
-      expiredApprovals: expiredApprovals.slice(0, limit)
+      expiredApprovals: expiredApprovals.slice(0, limit),
+      blockedExecutionPlans: blockedExecutionPlans.slice(0, limit),
+      eligibleExecutionPlans: eligibleExecutionPlans.slice(0, limit)
     },
     kpiRollups: getMerlinKpiRollup({ brand_lane: brand }).slice(0, limit),
     recent: {
       intake: visibleIntake,
       entities: visibleEntities,
       actionCards: visibleActionCards,
-      outcomes: visibleOutcomes
+      outcomes: visibleOutcomes,
+      executionPlans: executionPlans.slice(0, limit)
     }
   };
 }
