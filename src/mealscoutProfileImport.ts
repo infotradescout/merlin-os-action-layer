@@ -214,6 +214,7 @@ export type MealScoutExistingProfile = {
   affiliate_attribution_warnings?: string[];
   email_verified?: boolean;
   insurance_verified?: boolean;
+  claim_status?: 'unclaimed' | 'claimed';
 };
 
 export type MealScoutCaptureBatch = {
@@ -1072,7 +1073,8 @@ export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPla
     affiliate_attribution_folder_path: record.sourceAttribution?.affiliate_attribution_folder_path,
     affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings,
     email_verified: false,
-    insurance_verified: false
+    insurance_verified: false,
+    claim_status: 'unclaimed'
   };
   existingProfiles.set(profile.id, profile);
   return profile;
@@ -1101,7 +1103,8 @@ export function updateMealScoutProfileFromPlanRecord(
     affiliate_attribution_folder_path: record.sourceAttribution?.affiliate_attribution_folder_path || existing.affiliate_attribution_folder_path,
     affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings || existing.affiliate_attribution_warnings,
     email_verified: existing.email_verified === true ? true : false,
-    insurance_verified: existing.insurance_verified === true ? true : false
+    insurance_verified: existing.insurance_verified === true ? true : false,
+    claim_status: existing.claim_status || 'unclaimed'
   };
   existingProfiles.set(existingTruckId, next);
   return next;

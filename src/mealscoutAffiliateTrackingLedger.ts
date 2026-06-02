@@ -84,6 +84,19 @@ function rowKey(row: Partial<AffiliateTrackingLedgerRow>): string {
   return `source_file:${sourceFileId || row.source_file_name || 'unknown'}`;
 }
 
+function rowKeys(row: Partial<AffiliateTrackingLedgerRow>): string[] {
+  const keys: string[] = [];
+  const profileSeedId = row.profile_seed_id?.trim();
+  const previewId = row.preview_id?.trim();
+  const batchId = row.batch_id?.trim();
+  const sourceFileId = row.source_file_id?.trim();
+  if (profileSeedId) keys.push(`profile_seed:${profileSeedId}`);
+  if (previewId) keys.push(`preview:${previewId}`);
+  if (batchId && sourceFileId) keys.push(`batch_file:${batchId}:${sourceFileId}`);
+  keys.push(`source_file:${sourceFileId || row.source_file_name || 'unknown'}`);
+  return Array.from(new Set(keys));
+}
+
 export function readAffiliateTrackingLedgerRows(): AffiliateTrackingLedgerRow[] {
   const path = ledgerPath();
   if (!existsSync(path)) return [];
@@ -122,8 +135,8 @@ export function upsertAffiliateTrackingLedgerRow(input: Partial<AffiliateTrackin
   next.last_updated_at = now;
 
   const rows = readAffiliateTrackingLedgerRows();
-  const key = rowKey(next);
-  const existingIndex = rows.findIndex((row) => rowKey(row) === key);
+  const candidateKeys = new Set(rowKeys(next));
+  const existingIndex = rows.findIndex((row) => rowKeys(row).some((key) => candidateKeys.has(key)));
   if (existingIndex >= 0) {
     rows[existingIndex] = {
       ...rows[existingIndex],

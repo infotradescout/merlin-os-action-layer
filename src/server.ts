@@ -142,6 +142,13 @@ import {
   upsertAffiliateTrackingLedgerRow
 } from './mealscoutAffiliateTrackingLedger.js';
 import {
+  listTradeScoutSeededProfiles,
+  listVerificationEmailRecords,
+  processExistingScreenshotsIntoSeededProfiles,
+  resetMerlinProfileSeedRuntimeForTest,
+  type MerlinExistingScreenshotSeedInput
+} from './merlin/profileSeedRuntime.js';
+import {
   appendMealScoutDuplicateRemovalAudit,
   getMealScoutDuplicateSuppression,
   markMealScoutDuplicateSuppressed,
@@ -1609,6 +1616,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutBatchProcessedStateForTest();
   resetMealScoutDuplicateRemovalForTest();
   resetAffiliateTrackingLedgerForTest();
+  resetMerlinProfileSeedRuntimeForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -2171,6 +2179,42 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (method === 'POST' && pathname === '/api/mealscout/profile-import/batches') {
     const batch = createMealScoutBatch();
     return responseJson(res, { status: 'ok', batch }, 201);
+  }
+
+  if (method === 'POST' && pathname === '/api/merlin/profile-seeding/process-existing-screenshots') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as { inputs?: unknown };
+    const inputs = Array.isArray(payload.inputs)
+      ? payload.inputs.filter((item): item is MerlinExistingScreenshotSeedInput => {
+          if (!item || typeof item !== 'object') return false;
+          const row = item as Record<string, unknown>;
+          return typeof row.fileId === 'string' && typeof row.fileName === 'string';
+        })
+      : [];
+    if (inputs.length === 0) {
+      return responseJson(res, { error: 'inputs are required', mutationAllowed: false }, 400);
+    }
+    const result = processExistingScreenshotsIntoSeededProfiles({ screenshots: inputs });
+    return responseJson(res, result);
+  }
+
+  if (method === 'GET' && pathname === '/api/merlin/profile-seeding/tradescout-profiles') {
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      profiles: listTradeScoutSeededProfiles()
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/merlin/profile-seeding/verification-emails') {
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      verificationEmails: listVerificationEmailRecords()
+    });
   }
 
   if (method === 'POST' && pathname === '/api/mealscout/intake/preview') {
