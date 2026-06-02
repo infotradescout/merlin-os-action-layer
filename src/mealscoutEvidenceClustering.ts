@@ -59,6 +59,11 @@ export type MealScoutEvidenceFile = {
     affiliateId?: string;
     affiliateEmail?: string;
     affiliateCode?: string;
+    affiliate_attribution_email?: string;
+    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_folder?: string;
+    affiliate_attribution_folder_path?: string;
+    affiliate_attribution_warnings?: string[];
     repId?: string;
     needsAttributionReview?: boolean;
     sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';

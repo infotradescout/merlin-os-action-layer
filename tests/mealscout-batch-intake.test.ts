@@ -267,6 +267,11 @@ test('email-named parent folder credits affiliate without replacing business ema
         attributionStatus?: string;
         affiliateEmail?: string;
         affiliateCode?: string;
+        affiliate_attribution_email?: string;
+        affiliate_attribution_source?: string;
+        affiliate_attribution_folder?: string;
+        affiliate_attribution_folder_path?: string;
+        affiliate_attribution_warnings?: string[];
         driveUploaderEmail?: string;
       };
     }>;
@@ -281,8 +286,10 @@ test('email-named parent folder credits affiliate without replacing business ema
   assert.ok(attribution);
   assert.equal(attribution?.attributionSource, 'folder_context');
   assert.equal(attribution?.attributionStatus, 'matched_affiliate_folder');
-  assert.equal(attribution?.affiliateEmail, 'foldercredit@example.com');
-  assert.equal(attribution?.affiliateCode, 'foldercredit@example.com');
+  assert.equal(attribution?.affiliate_attribution_email, 'foldercredit@example.com');
+  assert.equal(attribution?.affiliate_attribution_source, 'email_named_parent_folder');
+  assert.equal(attribution?.affiliateEmail, undefined);
+  assert.equal(attribution?.affiliateCode, undefined);
   assert.equal(attribution?.driveUploaderEmail, undefined);
 
   const parsed = parseMealScoutSignalsFromText('Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie');

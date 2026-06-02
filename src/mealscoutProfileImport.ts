@@ -49,6 +49,11 @@ export type MealScoutExtractedSignal = {
     affiliateId?: string;
     affiliateEmail?: string;
     affiliateCode?: string;
+    affiliate_attribution_email?: string;
+    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_folder?: string;
+    affiliate_attribution_folder_path?: string;
+    affiliate_attribution_warnings?: string[];
     repId?: string;
     needsAttributionReview?: boolean;
     sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
@@ -134,6 +139,11 @@ export type MealScoutProfileDraft = {
     sourceFileIds: string[];
     attributionPolicy: string;
     createdFromBatchId?: string;
+    affiliate_attribution_email?: string;
+    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_folder?: string;
+    affiliate_attribution_folder_path?: string;
+    affiliate_attribution_warnings?: string[];
   };
   mutationAllowed: false;
 };
@@ -197,6 +207,13 @@ export type MealScoutExistingProfile = {
     facebook?: string;
     instagram?: string;
   };
+  affiliate_attribution_email?: string;
+  affiliate_attribution_source?: 'email_named_parent_folder';
+  affiliate_attribution_folder?: string;
+  affiliate_attribution_folder_path?: string;
+  affiliate_attribution_warnings?: string[];
+  email_verified?: boolean;
+  insurance_verified?: boolean;
 };
 
 export type MealScoutCaptureBatch = {
@@ -416,6 +433,12 @@ function buildDraftAttribution(signals: MealScoutExtractedSignal[]): MealScoutPr
     )
   );
   const sourceFileIds = Array.from(new Set(signals.map((signal) => signal.sourceFileId).filter(Boolean)));
+  const folderAttribution = signals
+    .map((signal) => signal.sourceFileAttribution)
+    .find((item) => Boolean(item?.affiliate_attribution_email));
+  const affiliateAttributionWarnings = Array.from(
+    new Set(signals.flatMap((signal) => signal.sourceFileAttribution?.affiliate_attribution_warnings || []))
+  );
   let primarySourceRepId: string | undefined;
   for (const signal of signals) {
     const contributor = signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.affiliateEmail || signal.sourceFileAttribution?.driveUploaderEmail;
@@ -439,7 +462,12 @@ function buildDraftAttribution(signals: MealScoutExtractedSignal[]): MealScoutPr
     contributingRepIds,
     sourceFileIds,
     attributionPolicy: 'first_required_field_contributor',
-    createdFromBatchId: signals.find((signal) => signal.sourceFileAttribution?.batchId)?.sourceFileAttribution?.batchId
+    createdFromBatchId: signals.find((signal) => signal.sourceFileAttribution?.batchId)?.sourceFileAttribution?.batchId,
+    affiliate_attribution_email: folderAttribution?.affiliate_attribution_email,
+    affiliate_attribution_source: folderAttribution?.affiliate_attribution_source,
+    affiliate_attribution_folder: folderAttribution?.affiliate_attribution_folder,
+    affiliate_attribution_folder_path: folderAttribution?.affiliate_attribution_folder_path,
+    affiliate_attribution_warnings: affiliateAttributionWarnings
   };
 }
 
@@ -1037,7 +1065,14 @@ export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPla
     socials: {
       facebook: record.profileFields.facebook?.value,
       instagram: record.profileFields.instagram?.value
-    }
+    },
+    affiliate_attribution_email: record.sourceAttribution?.affiliate_attribution_email,
+    affiliate_attribution_source: record.sourceAttribution?.affiliate_attribution_source,
+    affiliate_attribution_folder: record.sourceAttribution?.affiliate_attribution_folder,
+    affiliate_attribution_folder_path: record.sourceAttribution?.affiliate_attribution_folder_path,
+    affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings,
+    email_verified: false,
+    insurance_verified: false
   };
   existingProfiles.set(profile.id, profile);
   return profile;
@@ -1059,7 +1094,14 @@ export function updateMealScoutProfileFromPlanRecord(
     socials: {
       facebook: record.profileFields.facebook?.value || existing.socials?.facebook,
       instagram: record.profileFields.instagram?.value || existing.socials?.instagram
-    }
+    },
+    affiliate_attribution_email: record.sourceAttribution?.affiliate_attribution_email || existing.affiliate_attribution_email,
+    affiliate_attribution_source: record.sourceAttribution?.affiliate_attribution_source || existing.affiliate_attribution_source,
+    affiliate_attribution_folder: record.sourceAttribution?.affiliate_attribution_folder || existing.affiliate_attribution_folder,
+    affiliate_attribution_folder_path: record.sourceAttribution?.affiliate_attribution_folder_path || existing.affiliate_attribution_folder_path,
+    affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings || existing.affiliate_attribution_warnings,
+    email_verified: existing.email_verified === true ? true : false,
+    insurance_verified: existing.insurance_verified === true ? true : false
   };
   existingProfiles.set(existingTruckId, next);
   return next;

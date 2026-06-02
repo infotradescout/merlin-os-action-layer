@@ -34,6 +34,11 @@ type PlannedMediaItem = {
     sourceFileIds: string[];
     attributionPolicy: string;
     createdFromBatchId?: string;
+    affiliate_attribution_email?: string;
+    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_folder?: string;
+    affiliate_attribution_folder_path?: string;
+    affiliate_attribution_warnings?: string[];
   };
   evidenceRefs: string[];
   confidence: number;
@@ -64,6 +69,11 @@ export type MealScoutPublishPlanRecord = {
     sourceFileIds: string[];
     attributionPolicy: string;
     createdFromBatchId?: string;
+    affiliate_attribution_email?: string;
+    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_folder?: string;
+    affiliate_attribution_folder_path?: string;
+    affiliate_attribution_warnings?: string[];
   };
   appliedCorrectionIds?: string[];
   appliedAttachmentDecisionIds?: string[];
@@ -334,6 +344,12 @@ export function buildMealScoutPublishPlanPreview(
       groupDrafts.map((draft) => draft.sourceAttribution?.primarySourceRepId).find((value) => Boolean(value)) || undefined;
     const createdFromBatchId =
       groupDrafts.map((draft) => draft.sourceAttribution?.createdFromBatchId).find((value) => Boolean(value)) || undefined;
+    const folderAttribution = groupDrafts
+      .map((draft) => draft.sourceAttribution)
+      .find((item) => Boolean(item?.affiliate_attribution_email));
+    const affiliateAttributionWarnings = Array.from(
+      new Set(groupDrafts.flatMap((draft) => draft.sourceAttribution?.affiliate_attribution_warnings || []))
+    );
 
     records.push({
       recordId: `ms-plan-record-${groupIds.slice().sort().join('__')}`,
@@ -352,7 +368,12 @@ export function buildMealScoutPublishPlanPreview(
         contributingRepIds,
         sourceFileIds,
         attributionPolicy: 'first_required_field_contributor',
-        createdFromBatchId
+        createdFromBatchId,
+        affiliate_attribution_email: folderAttribution?.affiliate_attribution_email,
+        affiliate_attribution_source: folderAttribution?.affiliate_attribution_source,
+        affiliate_attribution_folder: folderAttribution?.affiliate_attribution_folder,
+        affiliate_attribution_folder_path: folderAttribution?.affiliate_attribution_folder_path,
+        affiliate_attribution_warnings: affiliateAttributionWarnings
       }
     });
   }

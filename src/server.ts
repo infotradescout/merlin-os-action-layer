@@ -152,7 +152,8 @@ import {
 } from './mealscoutPublishExecution.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
-import { extractNearestAffiliateEmailFolder } from './mealscoutAffiliateFolderAttribution.js';
+import { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateFolderAttribution.js';
+export { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateFolderAttribution.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
@@ -266,11 +267,12 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     (typeof metadata.created_time === 'string' && metadata.created_time) ||
     (typeof metadata.uploaded_at === 'string' && metadata.uploaded_at) ||
     undefined;
-  const folderAffiliateEmail = extractNearestAffiliateEmailFolder({
+  const folderAttribution = resolveAffiliateFolderAttributionFromPath({
     folderPath: typeof metadata.folder_path === 'string' ? metadata.folder_path : undefined,
     drivePath: typeof metadata.drive_path === 'string' ? metadata.drive_path : undefined,
     fileName: file.file_name
   });
+  const folderAffiliateEmail = folderAttribution.affiliate_attribution_email;
   const driveMetadataAvailable =
     Boolean(uploaderEmail) ||
     Boolean(ownerEmail) ||
@@ -378,8 +380,9 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     modifiedAt: file.modified_time,
     intakeSubmittedBy: context?.submittedByUserId,
     affiliateId: matchedAffiliate?.affiliateId,
-    affiliateEmail: matchedAffiliate?.affiliateEmail || folderAffiliateEmail,
-    affiliateCode: matchedAffiliate?.affiliateCode || context?.affiliateCode || folderAffiliateEmail,
+    affiliateEmail: matchedAffiliate?.affiliateEmail,
+    affiliateCode: matchedAffiliate?.affiliateCode || context?.affiliateCode,
+    ...folderAttribution,
     repId: matchedAffiliate?.repId || context?.repId,
     needsAttributionReview: attributionStatus === 'ambiguous' || attributionStatus === 'unmatched' || attributionStatus === 'unknown',
     sourceChannel: context?.sourceChannel || 'drive_upload',
