@@ -1,8 +1,17 @@
 import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
+import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const entityResults = searchMerlinEntities(query, 10).map((entity, index) => ({
+    id: entity.id || `entity-${index + 1}`,
+    title: `[Entity] ${entity.canonical_name}`,
+    summary: `${entity.brand_lane} · ${entity.entity_type} · status:${entity.status}`,
+    source: 'merlin_entity',
+    observed_at: entity.updated_at,
+    confidence: entity.confidence
+  }));
   const intakeResults = searchMerlinIntakeItems(query, 10).map((item, index) => ({
     id: item.id || `intake-item-${index + 1}`,
     title: `[Intake] ${item.intent_text || item.raw_text || item.source_reference}`,
@@ -27,10 +36,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };

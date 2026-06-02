@@ -154,6 +154,7 @@ import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
+import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1598,6 +1599,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
   if (pathname === '/api/merlin/intake' || pathname.startsWith('/api/merlin/intake/')) {
     const handled = await handleMerlinIntakeRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/entities') || pathname.startsWith('/api/merlin/source-observations') || pathname.match(/^\/api\/merlin\/intake\/[^/]+\/resolve-entity$/)) {
+    const handled = await handleMerlinEntityMemoryRoute(req, res, pathname);
     if (handled) return;
   }
 

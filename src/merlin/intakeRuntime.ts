@@ -40,6 +40,9 @@ export type MerlinIntakeItemRecord = {
   extracted_fields: Record<string, unknown>;
   confidence: number;
   status: MerlinIntakeStatus;
+  resolved_entity_id?: string;
+  entity_resolution_confidence?: number;
+  entity_resolution_status?: 'resolved' | 'new_entity' | 'needs_review' | 'conflict' | 'blocked';
   required_real_data: string[];
   created_at: string;
   updated_at: string;
@@ -66,6 +69,9 @@ type IntakeRow = {
   extracted_fields_json: string;
   confidence: number;
   status: MerlinIntakeStatus;
+  resolved_entity_id: string | null;
+  entity_resolution_confidence: number | null;
+  entity_resolution_status: string | null;
   required_real_data_json: string;
   created_at: string;
   updated_at: string;
@@ -117,6 +123,9 @@ function mapIntake(row: IntakeRow): MerlinIntakeItemRecord {
     extracted_fields: JSON.parse(row.extracted_fields_json) as Record<string, unknown>,
     confidence: row.confidence,
     status: row.status,
+    resolved_entity_id: row.resolved_entity_id || undefined,
+    entity_resolution_confidence: typeof row.entity_resolution_confidence === 'number' ? row.entity_resolution_confidence : undefined,
+    entity_resolution_status: (row.entity_resolution_status as MerlinIntakeItemRecord['entity_resolution_status']) || undefined,
     required_real_data: JSON.parse(row.required_real_data_json) as string[],
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -173,6 +182,9 @@ export function initializeMerlinIntakeRuntime(explicitPath?: string): string {
       extracted_fields_json TEXT NOT NULL,
       confidence REAL NOT NULL,
       status TEXT NOT NULL,
+      resolved_entity_id TEXT,
+      entity_resolution_confidence REAL,
+      entity_resolution_status TEXT,
       required_real_data_json TEXT NOT NULL,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -198,6 +210,11 @@ export function initializeMerlinIntakeRuntime(explicitPath?: string): string {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS merlin_intake_action_card_links_unique_idx ON merlin_intake_action_card_links(intake_item_id, action_card_id);
   `);
+  const columns = nextDb.prepare(`PRAGMA table_info('merlin_intake_items')`).all() as Array<{ name: string }>;
+  const hasColumn = (name: string) => columns.some((col) => col.name === name);
+  if (!hasColumn('resolved_entity_id')) nextDb.exec('ALTER TABLE merlin_intake_items ADD COLUMN resolved_entity_id TEXT');
+  if (!hasColumn('entity_resolution_confidence')) nextDb.exec('ALTER TABLE merlin_intake_items ADD COLUMN entity_resolution_confidence REAL');
+  if (!hasColumn('entity_resolution_status')) nextDb.exec('ALTER TABLE merlin_intake_items ADD COLUMN entity_resolution_status TEXT');
   db = nextDb;
   dbPath = nextPath;
   return nextPath;
@@ -231,6 +248,9 @@ export function createMerlinIntakeItem(input: MerlinIntakeItemInput): MerlinInta
     extracted_fields: input.extracted_fields && typeof input.extracted_fields === 'object' ? input.extracted_fields : {},
     confidence: typeof input.confidence === 'number' && Number.isFinite(input.confidence) ? Math.max(0, Math.min(1, input.confidence)) : 0,
     status: 'received',
+    resolved_entity_id: undefined,
+    entity_resolution_confidence: undefined,
+    entity_resolution_status: undefined,
     required_real_data: normalizeList(input.required_real_data),
     created_at: now,
     updated_at: now
@@ -238,8 +258,8 @@ export function createMerlinIntakeItem(input: MerlinIntakeItemInput): MerlinInta
   getDb()
     .prepare(
       `INSERT INTO merlin_intake_items
-      (id, brand_lane, source_type, source_reference, origin_surface, entity_candidate_json, intent_text, raw_text, extracted_fields_json, confidence, status, required_real_data_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, brand_lane, source_type, source_reference, origin_surface, entity_candidate_json, intent_text, raw_text, extracted_fields_json, confidence, status, resolved_entity_id, entity_resolution_confidence, entity_resolution_status, required_real_data_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       record.id,
@@ -253,6 +273,9 @@ export function createMerlinIntakeItem(input: MerlinIntakeItemInput): MerlinInta
       JSON.stringify(record.extracted_fields),
       record.confidence,
       record.status,
+      null,
+      null,
+      null,
       JSON.stringify(record.required_real_data),
       record.created_at,
       record.updated_at
@@ -308,6 +331,43 @@ export function updateMerlinIntakeStatus(id: string, status: MerlinIntakeStatus,
   return getMerlinIntakeItemById(id);
 }
 
+export function updateMerlinIntakeEntityResolution(
+  id: string,
+  input: {
+    resolved_entity_id?: string;
+    entity_resolution_confidence?: number;
+    entity_resolution_status?: 'resolved' | 'new_entity' | 'needs_review' | 'conflict' | 'blocked';
+  }
+): MerlinIntakeItemRecord | undefined {
+  const existing = getMerlinIntakeItemById(id);
+  if (!existing) return undefined;
+  const updatedAt = nowIso();
+  getDb()
+    .prepare(
+      'UPDATE merlin_intake_items SET resolved_entity_id = ?, entity_resolution_confidence = ?, entity_resolution_status = ?, updated_at = ? WHERE id = ?'
+    )
+    .run(
+      input.resolved_entity_id || null,
+      typeof input.entity_resolution_confidence === 'number' ? input.entity_resolution_confidence : null,
+      input.entity_resolution_status || null,
+      updatedAt,
+      id
+    );
+  appendHistory({
+    intake_item_id: id,
+    event_type: 'status_updated',
+    status: existing.status,
+    payload: {
+      entity_resolution: {
+        resolved_entity_id: input.resolved_entity_id || null,
+        entity_resolution_confidence: typeof input.entity_resolution_confidence === 'number' ? input.entity_resolution_confidence : null,
+        entity_resolution_status: input.entity_resolution_status || null
+      }
+    }
+  });
+  return getMerlinIntakeItemById(id);
+}
+
 export function listMerlinIntakeHistory(id: string): MerlinIntakeHistoryRecord[] {
   const rows = getDb()
     .prepare('SELECT * FROM merlin_intake_item_history WHERE intake_item_id = ? ORDER BY created_at DESC')
@@ -324,6 +384,11 @@ export function listMerlinIntakeActionCardLinks(intakeItemId: string): Array<{ i
 export function generateActionCardsFromMerlinIntakeItem(intakeItemId: string): { intakeItem: MerlinIntakeItemRecord; cards: MerlinActionCardRecord[] } {
   const intakeItem = getMerlinIntakeItemById(intakeItemId);
   if (!intakeItem) throw new Error('intake_item_not_found');
+  if (intakeItem.entity_resolution_status === 'conflict') {
+    updateMerlinIntakeStatus(intakeItemId, 'blocked', { reason: 'entity_conflict_blocked' });
+    appendHistory({ intake_item_id: intakeItemId, event_type: 'blocked', status: 'blocked', payload: { reason: 'entity_conflict_blocked' } });
+    throw new Error('entity_conflict_blocked');
+  }
   if (!intakeItem.source_reference.trim()) {
     updateMerlinIntakeStatus(intakeItemId, 'blocked', { reason: 'missing_source_reference' });
     appendHistory({ intake_item_id: intakeItemId, event_type: 'blocked', status: 'blocked', payload: { reason: 'missing_source_reference' } });
