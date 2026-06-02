@@ -158,6 +158,10 @@ import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
 import { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateFolderAttribution.js';
 export { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateFolderAttribution.js';
+import {
+  buildMealScoutAffiliateAttributionKpiRollup,
+  getMealScoutAffiliateAttributionKpiRollup
+} from './mealscoutAffiliateAttributionKpiRollup.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
@@ -2306,6 +2310,24 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         attachmentDecisions
       })
     );
+    const affiliateAttributionKpis = buildMealScoutAffiliateAttributionKpiRollup({
+      processedFiles: evidenceFiles.map((file) => ({
+        fileId: file.fileId,
+        fileName: file.fileName,
+        processedAt: new Date().toISOString(),
+        batchId: 'preview',
+        classification:
+          file.detectedType === 'profile_screenshot'
+            ? 'profile'
+            : file.detectedType === 'schedule'
+              ? 'profile'
+              : file.detectedType,
+        ocrSucceeded: Boolean(file.rawExtractedText),
+        extractedTextLength: file.rawExtractedText?.length || 0,
+        sourceEvidenceRefs: [file.fileId],
+        sourceFileAttribution: file.sourceFileAttribution
+      }))
+    });
     const evidenceByFileId = new Map(evidenceFiles.map((file) => [file.fileId, file]));
     const debugOcr =
       includeDebugOcr && driveOcrDiagnostics
@@ -2353,11 +2375,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       fieldCorrections,
       attachmentDecisions,
       publishPlan,
+      affiliateAttributionKpis,
       summary: {
         inputs: inputs.length,
         evidenceCount: evidenceFiles.length,
         clusterCount: clusters.length,
-        draftCount: drafts.length
+        draftCount: drafts.length,
+        affiliateAttributionKpis
       }
     });
   }
@@ -3446,6 +3470,19 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     return responseJson(res, { mutationAllowed: false, batch });
   }
 
+  if (method === 'GET' && pathname === '/api/mealscout/intake/affiliate-attribution/kpi') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      affiliateAttributionKpis: getMealScoutAffiliateAttributionKpiRollup()
+    });
+  }
+
   if (method === 'POST' && pathname === '/api/mealscout/intake/publish-plan/execute') {
     const body = await parseBody(req);
     if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
@@ -3506,7 +3543,14 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const executionId = query.executionId?.trim() || undefined;
     const recordId = query.recordId?.trim() || undefined;
     const records = queryMealScoutPublishExecutionAudit({ planId, executionId, recordId });
-    return responseJson(res, { status: 'ok', mutationAllowed: false, records });
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      records,
+      affiliateAttributionKpis: buildMealScoutAffiliateAttributionKpiRollup({
+        audits: records
+      })
+    });
   }
 
   if (method === 'GET' && pathname === '/api/mealscout/review-decisions') {
