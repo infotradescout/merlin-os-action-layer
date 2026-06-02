@@ -159,6 +159,7 @@ import { handleMerlinOutcomeRoute } from './merlin/routes/merlinOutcomeRoutes.js
 import { handleMerlinOperatorConsoleRoute } from './merlin/routes/merlinOperatorConsoleRoutes.js';
 import { handleMerlinApprovalRoute } from './merlin/routes/merlinApprovalRoutes.js';
 import { handleMerlinExecutionPlanRoute } from './merlin/routes/merlinExecutionPlanRoutes.js';
+import { handleMerlinConnectorAdapterRoute } from './merlin/routes/merlinConnectorAdapterRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1610,7 +1611,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (handled) return;
   }
   if (pathname.startsWith('/api/merlin/execution-plans')) {
+    const adapterHandled = await handleMerlinConnectorAdapterRoute(req, res, pathname);
+    if (adapterHandled) return;
     const handled = await handleMerlinExecutionPlanRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/connector-adapters')) {
+    const handled = await handleMerlinConnectorAdapterRoute(req, res, pathname);
     if (handled) return;
   }
 

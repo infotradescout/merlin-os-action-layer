@@ -1,12 +1,21 @@
 import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
 import { searchMerlinApprovals } from './merlin/approvalRuntime.js';
+import { searchMerlinConnectorAdapterChecks } from './merlin/connectorAdapterRuntime.js';
 import { searchMerlinExecutionPlans } from './merlin/executionPlanRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const adapterCheckResults = searchMerlinConnectorAdapterChecks(query, 10).map((check, index) => ({
+    id: check.id || `adapter-check-${index + 1}`,
+    title: `[Adapter Check] ${check.check_status}`,
+    summary: `${check.execution_plan_id} · ${check.reason}`,
+    source: 'merlin_connector_adapter_check',
+    observed_at: check.created_at,
+    confidence: check.check_status === 'pass' ? 0.9 : 0.35
+  }));
   const executionPlanResults = searchMerlinExecutionPlans(query, 10).map((plan, index) => ({
     id: plan.id || `execution-plan-${index + 1}`,
     title: `[Execution Plan] ${plan.execution_status}`,
@@ -63,10 +72,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...adapterCheckResults, ...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_connector_adapter_checks+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };
