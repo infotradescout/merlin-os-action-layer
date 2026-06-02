@@ -167,9 +167,13 @@ import { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateF
 export { resolveAffiliateFolderAttributionFromPath } from './mealscoutAffiliateFolderAttribution.js';
 import {
   buildMealScoutAffiliateAttributionKpiRollup,
+  decideMealScoutAffiliateAttributionActionCard,
   getMealScoutAffiliateAttributionActionCards,
   getMealScoutAffiliateAttributionKpiRollup,
-  getMealScoutAffiliateAttributionOperatorReport
+  getMealScoutAffiliateAttributionOperatorReport,
+  listMealScoutAffiliateAttributionActionCardDecisions,
+  resetMealScoutAffiliateAttributionActionCardDecisionsForTest,
+  type MealScoutAffiliateAttributionActionCardDecisionStatus
 } from './mealscoutAffiliateAttributionKpiRollup.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
@@ -1618,6 +1622,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutDuplicateRemovalForTest();
   resetAffiliateTrackingLedgerForTest();
   resetMerlinProfileSeedRuntimeForTest();
+  resetMealScoutAffiliateAttributionActionCardDecisionsForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -3541,6 +3546,61 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       mutationAllowed: false,
       report: getMealScoutAffiliateAttributionOperatorReport({ includeUnattributed })
     });
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/affiliate-attribution/action-cards/decisions') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      decisions: listMealScoutAffiliateAttributionActionCardDecisions()
+    });
+  }
+
+  const affiliateActionCardDecisionMatch = pathname.match(
+    /^\/api\/mealscout\/intake\/affiliate-attribution\/action-cards\/([^/]+)\/decision$/
+  );
+  if (method === 'PATCH' && affiliateActionCardDecisionMatch) {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      decisionStatus?: unknown;
+      decisionReason?: unknown;
+      decisionNotes?: unknown;
+      decidedByUserId?: unknown;
+    };
+    try {
+      const decision = decideMealScoutAffiliateAttributionActionCard({
+        cardId: decodeURIComponent(affiliateActionCardDecisionMatch[1]),
+        decisionStatus: String(payload.decisionStatus || '') as MealScoutAffiliateAttributionActionCardDecisionStatus,
+        decisionReason: typeof payload.decisionReason === 'string' ? payload.decisionReason : undefined,
+        decisionNotes: typeof payload.decisionNotes === 'string' ? payload.decisionNotes : undefined,
+        decidedByUserId:
+          typeof payload.decidedByUserId === 'string'
+            ? payload.decidedByUserId
+            : resolveOperatorIdentity(req).decidedBy
+      });
+      return responseJson(res, {
+        status: 'ok',
+        mutationAllowed: false,
+        decision
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'affiliate_action_card_decision_failed';
+      const status = message === 'invalid_decision_status' ? 400 : 404;
+      return responseJson(res, { error: message, mutationAllowed: false }, status);
+    }
   }
 
   if (method === 'GET' && pathname === '/api/mealscout/intake/affiliate-attribution/action-cards') {

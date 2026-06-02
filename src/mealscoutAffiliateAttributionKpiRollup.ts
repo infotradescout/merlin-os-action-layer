@@ -40,7 +40,39 @@ export type MealScoutAffiliateAttributionActionCard = {
   status: 'open';
   createdAt: string;
   mutationAllowed: false;
+  decisionStatus: MealScoutAffiliateAttributionActionCardDecisionStatus;
+  decisionReason?: string;
+  decisionNotes?: string;
+  decidedAt?: string;
+  decidedByUserId?: string;
 };
+
+export type MealScoutAffiliateAttributionActionCardDecisionStatus =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'deferred'
+  | 'completed_manually';
+
+export type MealScoutAffiliateAttributionActionCardDecisionRecord = {
+  cardId: string;
+  decisionStatus: MealScoutAffiliateAttributionActionCardDecisionStatus;
+  decisionReason?: string;
+  decisionNotes?: string;
+  decidedAt: string;
+  decidedByUserId?: string;
+  affiliate_attribution_email: string;
+};
+
+export const MEALSCOUT_AFFILIATE_ACTION_CARD_DECISION_STATUSES: MealScoutAffiliateAttributionActionCardDecisionStatus[] = [
+  'pending',
+  'accepted',
+  'rejected',
+  'deferred',
+  'completed_manually'
+];
+
+const actionCardDecisions = new Map<string, MealScoutAffiliateAttributionActionCardDecisionRecord>();
 
 function hasFolderAttribution(value: { affiliate_attribution_email?: string } | undefined): boolean {
   return Boolean(value?.affiliate_attribution_email?.trim());
@@ -181,15 +213,30 @@ export function getMealScoutAffiliateAttributionOperatorReport(options?: {
   });
 }
 
-function makeCard(input: Omit<MealScoutAffiliateAttributionActionCard, 'cardId' | 'status' | 'createdAt' | 'mutationAllowed'>, createdAt: string): MealScoutAffiliateAttributionActionCard {
-  const safeEmail = input.affiliate_attribution_email.replace(/[^a-z0-9._@+-]/gi, '-').toLowerCase();
+function applyDecisionState(card: MealScoutAffiliateAttributionActionCard): MealScoutAffiliateAttributionActionCard {
+  const decision = actionCardDecisions.get(card.cardId);
+  if (!decision) return { ...card, decisionStatus: 'pending' };
   return {
+    ...card,
+    decisionStatus: decision.decisionStatus,
+    decisionReason: decision.decisionReason,
+    decisionNotes: decision.decisionNotes,
+    decidedAt: decision.decidedAt,
+    decidedByUserId: decision.decidedByUserId,
+    affiliate_attribution_email: decision.affiliate_attribution_email
+  };
+}
+
+function makeCard(input: Omit<MealScoutAffiliateAttributionActionCard, 'cardId' | 'status' | 'createdAt' | 'mutationAllowed' | 'decisionStatus'>, createdAt: string): MealScoutAffiliateAttributionActionCard {
+  const safeEmail = input.affiliate_attribution_email.replace(/[^a-z0-9._@+-]/gi, '-').toLowerCase();
+  return applyDecisionState({
     ...input,
     cardId: `ms-affiliate-${input.type}-${safeEmail}`,
     status: 'open',
     createdAt,
-    mutationAllowed: false
-  };
+    mutationAllowed: false,
+    decisionStatus: 'pending'
+  });
 }
 
 export function buildMealScoutAffiliateAttributionActionCards(
@@ -282,4 +329,40 @@ export function getMealScoutAffiliateAttributionActionCards(options?: {
   return buildMealScoutAffiliateAttributionActionCards(
     getMealScoutAffiliateAttributionOperatorReport({ includeUnattributed: options?.includeUnattributed })
   );
+}
+
+export function decideMealScoutAffiliateAttributionActionCard(input: {
+  cardId: string;
+  decisionStatus: MealScoutAffiliateAttributionActionCardDecisionStatus;
+  decisionReason?: string;
+  decisionNotes?: string;
+  decidedByUserId?: string;
+}): MealScoutAffiliateAttributionActionCardDecisionRecord {
+  const cardId = input.cardId.trim();
+  if (!cardId) throw new Error('card_id_required');
+  if (!MEALSCOUT_AFFILIATE_ACTION_CARD_DECISION_STATUSES.includes(input.decisionStatus)) {
+    throw new Error('invalid_decision_status');
+  }
+  const cards = getMealScoutAffiliateAttributionActionCards({ includeUnattributed: true });
+  const card = cards.find((item) => item.cardId === cardId);
+  if (!card) throw new Error('action_card_not_found');
+  const record: MealScoutAffiliateAttributionActionCardDecisionRecord = {
+    cardId,
+    decisionStatus: input.decisionStatus,
+    decisionReason: input.decisionReason?.trim() || undefined,
+    decisionNotes: input.decisionNotes?.trim() || undefined,
+    decidedAt: new Date().toISOString(),
+    decidedByUserId: input.decidedByUserId?.trim() || undefined,
+    affiliate_attribution_email: card.affiliate_attribution_email
+  };
+  actionCardDecisions.set(cardId, record);
+  return record;
+}
+
+export function listMealScoutAffiliateAttributionActionCardDecisions(): MealScoutAffiliateAttributionActionCardDecisionRecord[] {
+  return Array.from(actionCardDecisions.values()).sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));
+}
+
+export function resetMealScoutAffiliateAttributionActionCardDecisionsForTest(): void {
+  actionCardDecisions.clear();
 }
