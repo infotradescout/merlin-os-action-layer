@@ -1,10 +1,19 @@
 import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
+import { searchMerlinApprovals } from './merlin/approvalRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const approvalResults = searchMerlinApprovals(query, 10).map((approval, index) => ({
+    id: approval.id || `approval-${index + 1}`,
+    title: `[Approval] ${approval.approval_status}`,
+    summary: `${approval.brand_lane} · ${approval.kpi} · level:${approval.approval_level} · policy:${approval.policy_level}`,
+    source: 'merlin_approval',
+    observed_at: approval.updated_at,
+    confidence: approval.approval_status === 'approved' ? 0.9 : approval.approval_status === 'blocked' ? 0.2 : 0.7
+  }));
   const outcomeResults = searchMerlinOutcomes(query, 10).map((row, index) => ({
     id: row.id || `outcome-${index + 1}`,
     title: `[Outcome] ${row.outcome_type}`,
@@ -45,10 +54,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };
