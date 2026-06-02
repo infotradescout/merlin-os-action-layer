@@ -11,6 +11,7 @@ process.env.MEALSCOUT_AFFILIATE_TRACKING_LEDGER_PATH = join(tmpdir(), 'merlin-pr
 const { createMerlinServer } = await import('../src/server.ts');
 const { listMealScoutTrucks } = await import('../src/mealscoutProfileImport.ts');
 const { readAffiliateTrackingLedgerRows } = await import('../src/mealscoutAffiliateTrackingLedger.ts');
+const { setProductVerificationEmailSenderForTest } = await import('../src/productVerificationEmail.ts');
 
 let server: Server;
 let baseUrl = '';
@@ -45,6 +46,10 @@ after(async () => {
 
 beforeEach(async () => {
   await requestJson('/api/demo/reset', { method: 'POST' });
+  setProductVerificationEmailSenderForTest((request) => ({
+    status: 'sent',
+    providerMessageId: `test-verification-${request.brand.toLowerCase()}-${request.profileId}`
+  }));
 });
 
 function folderAttribution(email: string, folderName: string) {
@@ -85,7 +90,7 @@ test('Slice 13 seeds MealScout and TradeScout separately, records ledger rows, a
           fileName: 'meal-profile.png',
           drivePath: '/affiliates/affiliate@example.com Screenshots/meal-profile.png',
           sourceFolderId: 'folder-meal-aff',
-          extractedText: 'Lucky Tacos Food Truck\nEmail: truck@example.com\nPhone: 504-111-2222\nCity: Metairie\nMenu: Taco $4',
+          extractedText: 'Lucky Tacos Food Truck\nEmail: truck@example.com\nPhone: 850-255-8396\nCity: Metairie\nMenu: Taco $4',
           sourceFileAttribution: folderAttribution('affiliate@example.com', 'affiliate@example.com Screenshots')
         },
         {
@@ -173,4 +178,99 @@ test('Slice 13 updates an existing MealScout seeded profile instead of duplicati
   assert.equal(second.body.results[0].profile_action, 'update');
   assert.equal(second.body.results[0].target_profile_id, first.body.results[0].target_profile_id);
   assert.equal(listMealScoutTrucks().filter((profile) => profile.email === 'truck@example.com').length, 1);
+});
+
+test('Slice 14 fails safely when no product verification sender is configured', async () => {
+  setProductVerificationEmailSenderForTest(undefined);
+
+  const response = await requestJson<{
+    results: Array<{ verification_email_status: string; profile_email?: string }>;
+    verificationEmails: Array<{ recipient_email: string; status: string; failure_reason?: string }>;
+  }>('/api/merlin/profile-seeding/process-existing-screenshots', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'seed-no-sender-1',
+          fileName: 'meal-profile.png',
+          extractedText:
+            'Lucky Tacos Food Truck\nEmail: truck@example.com\nPhone: 850-255-8396\nCity: Metairie\nMenu: Taco $4',
+          sourceFileAttribution: folderAttribution('affiliate@example.com', 'affiliate@example.com Screenshots')
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.results[0].profile_email, 'truck@example.com');
+  assert.equal(response.body.results[0].verification_email_status, 'failed');
+  assert.equal(response.body.verificationEmails[0].recipient_email, 'truck@example.com');
+  assert.equal(response.body.verificationEmails[0].status, 'failed');
+  assert.equal(response.body.verificationEmails[0].failure_reason, 'verification_email_sender_not_configured');
+});
+
+test('Slice 14 keeps verification unavailable when screenshot evidence has no business email', async () => {
+  const response = await requestJson<{
+    results: Array<{ verification_email_status: string; profile_email?: string }>;
+    verificationEmails: Array<{ recipient_email: string }>;
+  }>('/api/merlin/profile-seeding/process-existing-screenshots', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'seed-phone-only-1',
+          fileName: 'meal-phone-only.png',
+          extractedText: 'Lucky Tacos Food Truck\nPhone: 850-255-8396\nCity: Metairie\nMenu: Taco $4',
+          sourceFileAttribution: folderAttribution('affiliate@example.com', 'affiliate@example.com Screenshots')
+        }
+      ]
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.results[0].verification_email_status, 'not_available');
+  assert.equal(response.body.results[0].profile_email, undefined);
+  assert.equal(response.body.verificationEmails.length, 0);
+});
+
+test('Slice 14 does not send verification to an existing profile email when the current screenshot lacks email evidence', async () => {
+  const create = await requestJson<{ results: Array<{ target_profile_id?: string; verification_email_status: string }> }>(
+    '/api/merlin/profile-seeding/process-existing-screenshots',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        inputs: [
+          {
+            fileId: 'seed-existing-email-1',
+            fileName: 'meal-profile.png',
+            extractedText:
+              'Lucky Tacos Food Truck\nEmail: truck@example.com\nPhone: 850-255-8396\nCity: Metairie\nMenu: Taco $4',
+            sourceFileAttribution: folderAttribution('affiliate@example.com', 'affiliate@example.com Screenshots')
+          }
+        ]
+      })
+    }
+  );
+  const update = await requestJson<{
+    results: Array<{ target_profile_id?: string; verification_email_status: string; profile_email?: string }>;
+    verificationEmails: Array<{ recipient_email: string; source_file_id: string }>;
+  }>('/api/merlin/profile-seeding/process-existing-screenshots', {
+    method: 'POST',
+    body: JSON.stringify({
+      inputs: [
+        {
+          fileId: 'seed-existing-phone-only-1',
+          fileName: 'meal-phone-only.png',
+          extractedText: 'Lucky Tacos Food Truck\nPhone: 850-255-8396\nCity: Metairie\nMenu: Taco $4',
+          sourceFileAttribution: folderAttribution('affiliate@example.com', 'affiliate@example.com Screenshots')
+        }
+      ]
+    })
+  });
+
+  assert.equal(create.body.results[0].verification_email_status, 'sent');
+  assert.equal(update.body.results[0].target_profile_id, create.body.results[0].target_profile_id);
+  assert.equal(update.body.results[0].profile_email, 'truck@example.com');
+  assert.equal(update.body.results[0].verification_email_status, 'not_available');
+  assert.equal(update.body.verificationEmails.some((email) => email.source_file_id === 'seed-existing-phone-only-1'), false);
 });

@@ -1,0 +1,110 @@
+Merlin Screenshot Profile Seed Live Smoke Report
+
+generated_at: 2026-06-02T20:14:19.173Z
+scope: Slice 14 local runtime smoke using real profile-seeding code path
+external_email_transport_configured: no
+note: screenshots with extracted business email called the product verification hook and failed safely because no sender transport is configured in this repo/runtime.
+note: screenshots without extracted business email produced verification_email_status:not_available even when matching an existing profile with a retained email.
+
+screenshots_processed_count: 4
+mealscout_created_count: 1
+mealscout_updated_count: 1
+tradescout_created_count: 1
+tradescout_updated_count: 0
+blocked_ambiguous_count: 1
+blocked_missing_identity_count: 0
+affiliate_ledger_rows_written: 4
+verification_email_sent_count: 0
+verification_email_failed_count: 2
+verification_email_not_available_count: 1
+
+hard_blocks_verified:
+- affiliate folder email was not used as business/profile email
+- email_verified remained false on created profiles
+- insurance_verified remained false on created profiles
+- claim_status remained unclaimed on created profiles
+- no cleanup/delete/archive/payout path was called
+- no Gmail/SMTP connector send was simulated
+
+verification_email_records:
+[
+  {
+    "id": "verification-email-c5bd3166-1dc4-4b92-8e3c-34af287dd1e7",
+    "brand_lane": "MEALSCOUT",
+    "profile_id": "ms-profile-03f0682a-73ad-4d72-b079-cc0339051996",
+    "profile_type": "food_truck",
+    "profile_name": "Lucky Tacos Food Truck",
+    "recipient_email": "truck@example.com",
+    "status": "failed",
+    "attempted_at": "2026-06-02T20:14:19.168Z",
+    "failure_reason": "verification_email_sender_not_configured",
+    "source_file_id": "slice14-smoke-mealscout-email"
+  },
+  {
+    "id": "verification-email-0022f866-72d2-4b22-a782-55b42a871b79",
+    "brand_lane": "TRADESCOUT",
+    "profile_id": "ts-profile-15ae3187-7293-4827-8cbf-b503ea6e8966",
+    "profile_type": "contractor_business",
+    "profile_name": "Apex Roofing",
+    "recipient_email": "apex@example.com",
+    "status": "failed",
+    "attempted_at": "2026-06-02T20:14:19.171Z",
+    "failure_reason": "verification_email_sender_not_configured",
+    "source_file_id": "slice14-smoke-tradescout-email"
+  }
+]
+
+results:
+[
+  {
+    "seedId": "profile-seed-8dcf5dd1-29fb-41ec-b0f7-2711c0a1bef2",
+    "brand_lane": "MEALSCOUT",
+    "sourceFileId": "slice14-smoke-mealscout-email",
+    "sourceFileName": "meal-profile.png",
+    "seed_status": "seeded",
+    "profile_action": "create",
+    "target_profile_id": "ms-profile-03f0682a-73ad-4d72-b079-cc0339051996",
+    "target_profile_type": "food_truck",
+    "profile_name": "Lucky Tacos Food Truck",
+    "profile_email": "truck@example.com",
+    "verification_email_status": "failed",
+    "mutationAllowed": true
+  },
+  {
+    "seedId": "profile-seed-7456e315-7afb-46d8-823f-c889956a003d",
+    "brand_lane": "MEALSCOUT",
+    "sourceFileId": "slice14-smoke-mealscout-phone-only",
+    "sourceFileName": "meal-phone-only.png",
+    "seed_status": "seeded",
+    "profile_action": "update",
+    "target_profile_id": "ms-profile-03f0682a-73ad-4d72-b079-cc0339051996",
+    "target_profile_type": "food_truck",
+    "profile_name": "Lucky Tacos Food Truck",
+    "profile_email": "truck@example.com",
+    "verification_email_status": "not_available",
+    "mutationAllowed": true
+  },
+  {
+    "seedId": "profile-seed-81b2101d-86d3-41b7-b249-06b580a60fe1",
+    "brand_lane": "TRADESCOUT",
+    "sourceFileId": "slice14-smoke-tradescout-email",
+    "sourceFileName": "trade-profile.png",
+    "seed_status": "seeded",
+    "profile_action": "create",
+    "target_profile_id": "ts-profile-15ae3187-7293-4827-8cbf-b503ea6e8966",
+    "target_profile_type": "contractor_business",
+    "profile_name": "Apex Roofing",
+    "profile_email": "apex@example.com",
+    "verification_email_status": "failed",
+    "mutationAllowed": true
+  },
+  {
+    "seedId": "profile-seed-8db3d09c-36c5-4e67-909b-130f992ade16",
+    "sourceFileId": "slice14-smoke-ambiguous",
+    "sourceFileName": "unknown.png",
+    "seed_status": "blocked",
+    "verification_email_status": "blocked",
+    "blockedReason": "ambiguous_or_unsupported_brand",
+    "mutationAllowed": false
+  }
+]

@@ -3,6 +3,7 @@ import { createMealScoutEvidenceFromScreenshotInput, type MealScoutScreenshotInp
 import { createMealScoutProfileFromPlanRecord, updateMealScoutProfileFromPlanRecord, listMealScoutTrucks } from '../mealscoutProfileImport.js';
 import type { MealScoutPublishPlanRecord } from '../mealscoutPublishPlan.js';
 import { upsertAffiliateTrackingLedgerRow } from '../mealscoutAffiliateTrackingLedger.js';
+import { sendProductVerificationEmail } from '../productVerificationEmail.js';
 
 export type MerlinProfileSeedBrand = 'MEALSCOUT' | 'TRADESCOUT';
 export type MerlinSeedStatus = 'seeded' | 'blocked';
@@ -33,9 +34,14 @@ export type VerificationEmailRecord = {
   id: string;
   brand_lane: MerlinProfileSeedBrand;
   profile_id: string;
+  profile_type: 'food_truck' | 'contractor_business';
+  profile_name?: string;
   recipient_email: string;
-  status: 'sent';
-  sent_at: string;
+  status: 'sent' | 'failed';
+  sent_at?: string;
+  attempted_at: string;
+  failure_reason?: string;
+  provider_message_id?: string;
   source_file_id: string;
 };
 
@@ -50,7 +56,7 @@ export type MerlinProfileSeedResult = {
   target_profile_type?: 'food_truck' | 'contractor_business';
   profile_name?: string;
   profile_email?: string;
-  verification_email_status: 'sent' | 'not_available' | 'blocked';
+  verification_email_status: 'sent' | 'failed' | 'not_available' | 'blocked';
   blockedReason?: string;
   mutationAllowed: boolean;
 };
@@ -152,21 +158,38 @@ function findExistingMealScoutProfile(input: { email?: string; phone?: string; t
 function recordVerificationEmail(input: {
   brand: MerlinProfileSeedBrand;
   profileId: string;
+  profileType: 'food_truck' | 'contractor_business';
+  profileName?: string;
   email?: string;
   sourceFileId: string;
-}): 'sent' | 'not_available' {
+}): 'sent' | 'failed' | 'not_available' {
   const email = normalizeEmail(input.email);
   if (!isEmail(email)) return 'not_available';
+  const attemptedAt = nowIso();
+  const sendResult = sendProductVerificationEmail({
+    brand: input.brand,
+    profileId: input.profileId,
+    profileType: input.profileType,
+    profileName: input.profileName,
+    recipientEmail: email,
+    sourceFileId: input.sourceFileId,
+    source: 'screenshot_profile_seed'
+  });
   verificationEmails.push({
     id: `verification-email-${randomUUID()}`,
     brand_lane: input.brand,
     profile_id: input.profileId,
+    profile_type: input.profileType,
+    profile_name: input.profileName,
     recipient_email: email,
-    status: 'sent',
-    sent_at: nowIso(),
+    status: sendResult.status,
+    sent_at: sendResult.status === 'sent' ? attemptedAt : undefined,
+    attempted_at: attemptedAt,
+    failure_reason: sendResult.status === 'failed' ? sendResult.failureReason : undefined,
+    provider_message_id: sendResult.status === 'sent' ? sendResult.providerMessageId : undefined,
     source_file_id: input.sourceFileId
   });
-  return 'sent';
+  return sendResult.status;
 }
 
 function sourceAttribution(input: MerlinExistingScreenshotSeedInput): NonNullable<MealScoutScreenshotInput['sourceFileAttribution']> | undefined {
@@ -286,7 +309,9 @@ function seedMealScout(input: MerlinExistingScreenshotSeedInput): MerlinProfileS
   const verificationStatus = recordVerificationEmail({
     brand: 'MEALSCOUT',
     profileId: profile.id,
-    email: profile.email,
+    profileType: 'food_truck',
+    profileName: profile.truckName,
+    email: signals.email,
     sourceFileId: input.fileId
   });
   upsertLedgerForSeed({
@@ -357,7 +382,9 @@ function seedTradeScout(input: MerlinExistingScreenshotSeedInput): MerlinProfile
   const verificationStatus = recordVerificationEmail({
     brand: 'TRADESCOUT',
     profileId: profile.id,
-    email: profile.email,
+    profileType: 'contractor_business',
+    profileName: profile.businessName,
+    email,
     sourceFileId: input.fileId
   });
   upsertLedgerForSeed({
