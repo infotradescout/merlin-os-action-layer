@@ -161,6 +161,7 @@ import { handleMerlinApprovalRoute } from './merlin/routes/merlinApprovalRoutes.
 import { handleMerlinExecutionPlanRoute } from './merlin/routes/merlinExecutionPlanRoutes.js';
 import { handleMerlinConnectorAdapterRoute } from './merlin/routes/merlinConnectorAdapterRoutes.js';
 import { handleMerlinDryRunExecutorRoute } from './merlin/routes/merlinDryRunExecutorRoutes.js';
+import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveExecutionGateRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1623,6 +1624,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
   if (pathname.startsWith('/api/merlin/dry-run-executions')) {
     const handled = await handleMerlinDryRunExecutorRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/live-execution-gates')) {
+    const handled = await handleMerlinLiveExecutionGateRoute(req, res, pathname);
     if (handled) return;
   }
 

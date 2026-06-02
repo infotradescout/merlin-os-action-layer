@@ -5,6 +5,7 @@ import { listMerlinDryRunExecutions, type MerlinDryRunExecutionRecord } from './
 import { getMerlinEntityConflicts, getMerlinEntityById, listMerlinEntities, type MerlinEntityRecord } from './entityMemoryRuntime.js';
 import { listMerlinExecutionPlans, type MerlinExecutionPlanRecord } from './executionPlanRuntime.js';
 import { listMerlinIntakeItems, type MerlinIntakeItemRecord } from './intakeRuntime.js';
+import { listMerlinLiveExecutionGates, type MerlinLiveExecutionGateRecord } from './liveExecutionGateRuntime.js';
 import { getMerlinKpiRollup, listMerlinOutcomes, type MerlinOutcomeRecord } from './outcomeRuntime.js';
 
 export type MerlinOperatorConsoleFilters = {
@@ -37,6 +38,10 @@ export type MerlinOperatorConsolePayload = {
     adapterCheckPassCount: number;
     dryRunSimulatedCount: number;
     dryRunBlockedCount: number;
+    liveGateEligibleCount: number;
+    liveGateBlockedCount: number;
+    liveGateDisabledCount: number;
+    liveGateCriticalCount: number;
   };
   attention: {
     blockedIntake: MerlinIntakeItemRecord[];
@@ -53,6 +58,9 @@ export type MerlinOperatorConsolePayload = {
     passedAdapterChecks: MerlinConnectorAdapterCheckRecord[];
     recentDryRunExecutions: MerlinDryRunExecutionRecord[];
     blockedDryRunExecutions: MerlinDryRunExecutionRecord[];
+    blockedLiveExecutionGates: MerlinLiveExecutionGateRecord[];
+    disabledLiveExecutionGates: MerlinLiveExecutionGateRecord[];
+    criticalLiveExecutionGates: MerlinLiveExecutionGateRecord[];
   };
   kpiRollups: ReturnType<typeof getMerlinKpiRollup>;
   recent: {
@@ -87,6 +95,7 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const approvals = listMerlinApprovals({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const executionPlans = listMerlinExecutionPlans({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const dryRunExecutions = listMerlinDryRunExecutions({ brand_lane: brand, entity_id: entityId, limit: 100 });
+  const liveExecutionGates = listMerlinLiveExecutionGates({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const executionPlanIds = new Set(executionPlans.map((plan) => plan.id));
   const adapterChecks = listMerlinConnectorAdapterChecks({ limit: 100 }).filter((check) => executionPlanIds.has(check.execution_plan_id));
 
@@ -108,6 +117,9 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const blockedAdapterChecks = adapterChecks.filter((row) => row.check_status !== 'pass');
   const passedAdapterChecks = adapterChecks.filter((row) => row.check_status === 'pass');
   const blockedDryRunExecutions = dryRunExecutions.filter((row) => row.dry_run_status === 'blocked' || row.dry_run_status === 'failed');
+  const blockedLiveExecutionGates = liveExecutionGates.filter((row) => row.gate_status === 'blocked' || row.gate_status === 'failed' || row.gate_status === 'expired');
+  const disabledLiveExecutionGates = liveExecutionGates.filter((row) => row.gate_status === 'disabled');
+  const criticalLiveExecutionGates = liveExecutionGates.filter((row) => row.risk_level === 'critical');
 
   const visibleIntake = intake.slice(0, limit);
   const visibleEntities = entities.slice(0, limit);
@@ -137,7 +149,11 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       adapterCheckBlockedCount: blockedAdapterChecks.length,
       adapterCheckPassCount: passedAdapterChecks.length,
       dryRunSimulatedCount: dryRunExecutions.filter((row) => row.dry_run_status === 'simulated').length,
-      dryRunBlockedCount: blockedDryRunExecutions.length
+      dryRunBlockedCount: blockedDryRunExecutions.length,
+      liveGateEligibleCount: liveExecutionGates.filter((row) => row.gate_status === 'eligible').length,
+      liveGateBlockedCount: blockedLiveExecutionGates.length,
+      liveGateDisabledCount: disabledLiveExecutionGates.length,
+      liveGateCriticalCount: criticalLiveExecutionGates.length
     },
     attention: {
       blockedIntake: blockedIntake.slice(0, limit),
@@ -153,7 +169,10 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       blockedAdapterChecks: blockedAdapterChecks.slice(0, limit),
       passedAdapterChecks: passedAdapterChecks.slice(0, limit),
       recentDryRunExecutions: dryRunExecutions.slice(0, limit),
-      blockedDryRunExecutions: blockedDryRunExecutions.slice(0, limit)
+      blockedDryRunExecutions: blockedDryRunExecutions.slice(0, limit),
+      blockedLiveExecutionGates: blockedLiveExecutionGates.slice(0, limit),
+      disabledLiveExecutionGates: disabledLiveExecutionGates.slice(0, limit),
+      criticalLiveExecutionGates: criticalLiveExecutionGates.slice(0, limit)
     },
     kpiRollups: getMerlinKpiRollup({ brand_lane: brand }).slice(0, limit),
     recent: {
