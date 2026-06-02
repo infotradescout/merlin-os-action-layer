@@ -401,7 +401,7 @@ function isEmailLike(value: string | undefined): boolean {
 
 function ledgerAttributionMethod(attribution: NonNullable<MealScoutScreenshotInput['sourceFileAttribution']>): string {
   if (attribution.attributionSource === 'folder_context' && attribution.attributionStatus === 'matched_affiliate_folder') {
-    return 'nearest_email_parent_folder';
+    return 'folder_email_token';
   }
   return `${attribution.attributionSource || 'unknown'}:${attribution.attributionStatus || 'unknown'}`;
 }

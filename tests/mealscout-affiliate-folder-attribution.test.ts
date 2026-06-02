@@ -69,9 +69,44 @@ test('valid email-named folder assigns normalized affiliate attribution only', (
   });
 
   assert.equal(attribution.affiliate_attribution_email, 'owner@example.com');
-  assert.equal(attribution.affiliate_attribution_source, 'email_named_parent_folder');
+  assert.equal(attribution.affiliate_attribution_source, 'folder_email_token');
   assert.equal(attribution.affiliate_attribution_folder, 'Owner@Example.COM');
   assert.equal(attribution.affiliate_attribution_folder_path, 'Merlin/MealScout Intake/Affiliates/Owner@Example.COM');
+});
+
+test('folder email token can appear with screenshot or product label text', () => {
+  const examples = [
+    ['affiliate@example.com', 'affiliate@example.com'],
+    ['affiliate@example.com Screenshots', 'affiliate@example.com'],
+    ['affiliate@example.com - Screenshots', 'affiliate@example.com'],
+    ['Screenshots - affiliate@example.com', 'affiliate@example.com'],
+    ['affiliate@example.com TradeScout', 'affiliate@example.com'],
+    ['affiliate@example.com MealScout', 'affiliate@example.com'],
+    ['Thehungerbrothers1@gmail.com Screenshots', 'thehungerbrothers1@gmail.com']
+  ] as const;
+
+  for (const [folderName, expectedEmail] of examples) {
+    const attribution = resolveAffiliateFolderAttributionFromPath({
+      folderPath: `/Merlin/MealScout Intake/Affiliates/${folderName}/incoming`
+    });
+
+    assert.equal(attribution.affiliate_attribution_email, expectedEmail);
+    assert.equal(attribution.affiliate_attribution_source, 'folder_email_token');
+    assert.equal(attribution.affiliate_attribution_folder, folderName);
+  }
+});
+
+test('non-email folder names do not guess affiliate attribution', () => {
+  const examples = ['John Screenshots', 'Affiliate Uploads', 'Screenshots Gmail', 'john at example dot com'];
+
+  for (const folderName of examples) {
+    const attribution = resolveAffiliateFolderAttributionFromPath({
+      folderPath: `/Merlin/MealScout Intake/Affiliates/${folderName}/incoming`
+    });
+
+    assert.equal(attribution.affiliate_attribution_email, undefined);
+    assert.equal(attribution.affiliate_attribution_source, undefined);
+  }
 });
 
 test('invalid email folder assigns no affiliate attribution', () => {

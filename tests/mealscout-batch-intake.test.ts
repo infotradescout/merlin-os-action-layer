@@ -251,7 +251,7 @@ test('email-named parent folder credits affiliate without replacing business ema
           web_url: 'https://example.com/business-profile',
           modified_time: '2026-05-29T01:00:00.000Z',
           raw_metadata: {
-            folder_path: '/Merlin OR Storage/MealScout Intake/affiliates/foldercredit@example.com/screenshots',
+            folder_path: '/Merlin OR Storage/MealScout Intake/affiliates/foldercredit@example.com Screenshots',
             extracted_text: 'Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie'
           }
         }
@@ -291,7 +291,8 @@ test('email-named parent folder credits affiliate without replacing business ema
   assert.equal(attribution?.attributionSource, 'folder_context');
   assert.equal(attribution?.attributionStatus, 'matched_affiliate_folder');
   assert.equal(attribution?.affiliate_attribution_email, 'foldercredit@example.com');
-  assert.equal(attribution?.affiliate_attribution_source, 'email_named_parent_folder');
+  assert.equal(attribution?.affiliate_attribution_source, 'folder_email_token');
+  assert.equal(attribution?.affiliate_attribution_folder, 'foldercredit@example.com Screenshots');
   assert.equal(attribution?.affiliateEmail, undefined);
   assert.equal(attribution?.affiliateCode, undefined);
   assert.equal(attribution?.driveUploaderEmail, undefined);
@@ -303,8 +304,8 @@ test('email-named parent folder credits affiliate without replacing business ema
   const ledgerRow = ledgerRows.find((row) => row.source_file_id === 'folder-affiliate-profile-1');
   assert.ok(ledgerRow);
   assert.equal(ledgerRow?.affiliate_attribution_email, 'foldercredit@example.com');
-  assert.equal(ledgerRow?.affiliate_source_folder_name, 'foldercredit@example.com');
-  assert.equal(ledgerRow?.attribution_method, 'nearest_email_parent_folder');
+  assert.equal(ledgerRow?.affiliate_source_folder_name, 'foldercredit@example.com Screenshots');
+  assert.equal(ledgerRow?.attribution_method, 'folder_email_token');
   assert.equal(ledgerRow?.brand_lane, 'MEALSCOUT');
   assert.equal(ledgerRow?.batch_id, response.body.batchId);
   assert.equal(ledgerRow?.profile_email, 'business@example.com');

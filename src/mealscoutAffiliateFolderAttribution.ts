@@ -1,12 +1,12 @@
 export type AffiliateFolderAttribution = {
   affiliate_attribution_email?: string;
-  affiliate_attribution_source?: 'email_named_parent_folder';
+  affiliate_attribution_source?: 'folder_email_token';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
   affiliate_attribution_warnings?: string[];
 };
 
-const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const EMAIL_TOKEN_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
 function cleanFolderSegment(segment: string): string {
   return segment
@@ -34,8 +34,9 @@ export function resolveAffiliateFolderAttributionFromPath(input: {
   const warnings: string[] = [];
   parts.forEach((part, index) => {
     if (!part.includes('@')) return;
-    if (EMAIL_PATTERN.test(part)) {
-      validEmailFolders.push({ email: part.toLowerCase(), folder: part, index });
+    const match = part.match(EMAIL_TOKEN_PATTERN);
+    if (match?.[0]) {
+      validEmailFolders.push({ email: match[0].toLowerCase(), folder: part, index });
     } else {
       warnings.push('invalid_email_named_parent_folder');
     }
@@ -47,7 +48,7 @@ export function resolveAffiliateFolderAttributionFromPath(input: {
   const nearest = validEmailFolders[validEmailFolders.length - 1];
   return {
     affiliate_attribution_email: nearest.email,
-    affiliate_attribution_source: 'email_named_parent_folder',
+    affiliate_attribution_source: 'folder_email_token',
     affiliate_attribution_folder: nearest.folder,
     affiliate_attribution_folder_path: parts.slice(0, nearest.index + 1).join('/'),
     affiliate_attribution_warnings: Array.from(new Set(warnings))

@@ -50,7 +50,7 @@ export type MealScoutExtractedSignal = {
     affiliateEmail?: string;
     affiliateCode?: string;
     affiliate_attribution_email?: string;
-    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_source?: 'folder_email_token';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
@@ -140,7 +140,7 @@ export type MealScoutProfileDraft = {
     attributionPolicy: string;
     createdFromBatchId?: string;
     affiliate_attribution_email?: string;
-    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_source?: 'folder_email_token';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
@@ -208,7 +208,7 @@ export type MealScoutExistingProfile = {
     instagram?: string;
   };
   affiliate_attribution_email?: string;
-  affiliate_attribution_source?: 'email_named_parent_folder';
+  affiliate_attribution_source?: 'folder_email_token';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
   affiliate_attribution_warnings?: string[];

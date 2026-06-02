@@ -39,7 +39,7 @@ export type MealScoutScreenshotInput = {
     affiliateEmail?: string;
     affiliateCode?: string;
     affiliate_attribution_email?: string;
-    affiliate_attribution_source?: 'email_named_parent_folder';
+    affiliate_attribution_source?: 'folder_email_token';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
