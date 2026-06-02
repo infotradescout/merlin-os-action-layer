@@ -155,18 +155,18 @@ function findExistingMealScoutProfile(input: { email?: string; phone?: string; t
   });
 }
 
-function recordVerificationEmail(input: {
+async function recordVerificationEmail(input: {
   brand: MerlinProfileSeedBrand;
   profileId: string;
   profileType: 'food_truck' | 'contractor_business';
   profileName?: string;
   email?: string;
   sourceFileId: string;
-}): 'sent' | 'failed' | 'not_available' {
+}): Promise<'sent' | 'failed' | 'not_available'> {
   const email = normalizeEmail(input.email);
   if (!isEmail(email)) return 'not_available';
   const attemptedAt = nowIso();
-  const sendResult = sendProductVerificationEmail({
+  const sendResult = await sendProductVerificationEmail({
     brand: input.brand,
     profileId: input.profileId,
     profileType: input.profileType,
@@ -263,7 +263,7 @@ function blockedResult(input: {
   };
 }
 
-function seedMealScout(input: MerlinExistingScreenshotSeedInput): MerlinProfileSeedResult {
+async function seedMealScout(input: MerlinExistingScreenshotSeedInput): Promise<MerlinProfileSeedResult> {
   const evidence = createMealScoutEvidenceFromScreenshotInput(input);
   const signals = evidence.extractedSignals;
   if (!signals.truckName || !(signals.phone || signals.email || signals.website || signals.facebook || signals.instagram)) {
@@ -306,7 +306,7 @@ function seedMealScout(input: MerlinExistingScreenshotSeedInput): MerlinProfileS
   const profile = existing
     ? updateMealScoutProfileFromPlanRecord(existing.id, record) || existing
     : createMealScoutProfileFromPlanRecord(record);
-  const verificationStatus = recordVerificationEmail({
+  const verificationStatus = await recordVerificationEmail({
     brand: 'MEALSCOUT',
     profileId: profile.id,
     profileType: 'food_truck',
@@ -342,7 +342,7 @@ function seedMealScout(input: MerlinExistingScreenshotSeedInput): MerlinProfileS
   };
 }
 
-function seedTradeScout(input: MerlinExistingScreenshotSeedInput): MerlinProfileSeedResult {
+async function seedTradeScout(input: MerlinExistingScreenshotSeedInput): Promise<MerlinProfileSeedResult> {
   const text = input.extractedText || '';
   const businessName = extractTradeScoutBusinessName(text);
   const email = extractEmail(text);
@@ -379,7 +379,7 @@ function seedTradeScout(input: MerlinExistingScreenshotSeedInput): MerlinProfile
         updatedAt: now
       };
   tradeScoutProfiles.set(profile.id, profile);
-  const verificationStatus = recordVerificationEmail({
+  const verificationStatus = await recordVerificationEmail({
     brand: 'TRADESCOUT',
     profileId: profile.id,
     profileType: 'contractor_business',
@@ -415,16 +415,16 @@ function seedTradeScout(input: MerlinExistingScreenshotSeedInput): MerlinProfile
   };
 }
 
-export function processExistingScreenshotsIntoSeededProfiles(input: {
+export async function processExistingScreenshotsIntoSeededProfiles(input: {
   screenshots: MerlinExistingScreenshotSeedInput[];
-}): { status: 'ok'; mutationAllowed: boolean; results: MerlinProfileSeedResult[]; verificationEmails: VerificationEmailRecord[] } {
-  const results = input.screenshots.map((screenshot) => {
+}): Promise<{ status: 'ok'; mutationAllowed: boolean; results: MerlinProfileSeedResult[]; verificationEmails: VerificationEmailRecord[] }> {
+  const results = await Promise.all(input.screenshots.map((screenshot) => {
     const brand = detectBrandFromEvidence(screenshot);
     if (!brand) {
       return blockedResult({ source: screenshot, reason: 'ambiguous_or_unsupported_brand' });
     }
     return brand === 'MEALSCOUT' ? seedMealScout(screenshot) : seedTradeScout(screenshot);
-  });
+  }));
   return {
     status: 'ok',
     mutationAllowed: results.some((result) => result.mutationAllowed),

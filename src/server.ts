@@ -2198,7 +2198,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (inputs.length === 0) {
       return responseJson(res, { error: 'inputs are required', mutationAllowed: false }, 400);
     }
-    const result = processExistingScreenshotsIntoSeededProfiles({ screenshots: inputs });
+    const result = await processExistingScreenshotsIntoSeededProfiles({ screenshots: inputs });
     return responseJson(res, result);
   }
 
