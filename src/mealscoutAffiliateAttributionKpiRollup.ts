@@ -22,6 +22,26 @@ export type MealScoutAffiliateAttributionOperatorReportRow = {
   top_warning_codes: Array<{ code: string; count: number }>;
 };
 
+export type MealScoutAffiliateAttributionActionCard = {
+  cardId: string;
+  type:
+    | 'affiliate_warning_review'
+    | 'affiliate_unattributed_review'
+    | 'affiliate_high_output_followup'
+    | 'affiliate_verification_ready_followup'
+    | 'affiliate_low_quality_review';
+  affiliate_attribution_email: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  reason: string;
+  sourceReportMetric: string;
+  recommendedAction: string;
+  status: 'open';
+  createdAt: string;
+  mutationAllowed: false;
+};
+
 function hasFolderAttribution(value: { affiliate_attribution_email?: string } | undefined): boolean {
   return Boolean(value?.affiliate_attribution_email?.trim());
 }
@@ -159,4 +179,107 @@ export function getMealScoutAffiliateAttributionOperatorReport(options?: {
     audits: listMealScoutPublishExecutionAudit(),
     includeUnattributed: options?.includeUnattributed
   });
+}
+
+function makeCard(input: Omit<MealScoutAffiliateAttributionActionCard, 'cardId' | 'status' | 'createdAt' | 'mutationAllowed'>, createdAt: string): MealScoutAffiliateAttributionActionCard {
+  const safeEmail = input.affiliate_attribution_email.replace(/[^a-z0-9._@+-]/gi, '-').toLowerCase();
+  return {
+    ...input,
+    cardId: `ms-affiliate-${input.type}-${safeEmail}`,
+    status: 'open',
+    createdAt,
+    mutationAllowed: false
+  };
+}
+
+export function buildMealScoutAffiliateAttributionActionCards(
+  reportRows: MealScoutAffiliateAttributionOperatorReportRow[],
+  options?: { createdAt?: string }
+): MealScoutAffiliateAttributionActionCard[] {
+  const createdAt = options?.createdAt || new Date().toISOString();
+  const cards: MealScoutAffiliateAttributionActionCard[] = [];
+
+  for (const row of reportRows) {
+    if (row.affiliate_attribution_email === 'unattributed') {
+      const volume = Math.max(row.attribution_warning_count, row.profile_seed_created_count + row.profile_seed_updated_count);
+      cards.push(makeCard({
+        type: 'affiliate_unattributed_review',
+        affiliate_attribution_email: 'unattributed',
+        title: 'Review unattributed MealScout screenshots',
+        description: 'Screenshots without affiliate folder attribution need operator review before credit can be assigned.',
+        priority: volume >= 3 ? 'high' : 'medium',
+        reason: 'unattributed_bucket_present',
+        sourceReportMetric: 'affiliate_attribution_email=unattributed',
+        recommendedAction: 'Review intake folder placement and add valid affiliate folder email tokens where appropriate.'
+      }, createdAt));
+      continue;
+    }
+
+    if (row.attribution_warning_count >= 2) {
+      const topWarning = row.top_warning_codes[0]?.code || 'affiliate_attribution_warning';
+      cards.push(makeCard({
+        type: 'affiliate_warning_review',
+        affiliate_attribution_email: row.affiliate_attribution_email,
+        title: `Review attribution warnings for ${row.affiliate_attribution_email}`,
+        description: `${row.affiliate_attribution_email} has ${row.attribution_warning_count} attribution warning(s).`,
+        priority: row.attribution_warning_count >= 4 ? 'high' : 'medium',
+        reason: topWarning,
+        sourceReportMetric: 'attribution_warning_count',
+        recommendedAction: 'Inspect folder naming and source paths before assigning operational credit.'
+      }, createdAt));
+    }
+
+    if (row.verification_email_sent_count > 0) {
+      cards.push(makeCard({
+        type: 'affiliate_verification_ready_followup',
+        affiliate_attribution_email: row.affiliate_attribution_email,
+        title: `Follow up on verification-ready profiles from ${row.affiliate_attribution_email}`,
+        description: `${row.affiliate_attribution_email} produced ${row.verification_email_sent_count} profile seed(s) with extracted business email.`,
+        priority: 'high',
+        reason: 'business_email_extracted_from_seed',
+        sourceReportMetric: 'verification_email_sent_count',
+        recommendedAction: 'Operator should review the business email and decide whether to send a claim or verification follow-up.'
+      }, createdAt));
+    }
+
+    const seedCount = row.profile_seed_created_count + row.profile_seed_updated_count;
+    if (row.attributed_screenshot_count >= 3 || seedCount >= 2) {
+      cards.push(makeCard({
+        type: 'affiliate_high_output_followup',
+        affiliate_attribution_email: row.affiliate_attribution_email,
+        title: `High output affiliate folder: ${row.affiliate_attribution_email}`,
+        description: `${row.affiliate_attribution_email} produced ${row.attributed_screenshot_count} attributed screenshot(s) and ${seedCount} profile seed action(s).`,
+        priority: 'medium',
+        reason: 'high_output_affiliate_folder',
+        sourceReportMetric: seedCount >= 2 ? 'profile_seed_total' : 'attributed_screenshot_count',
+        recommendedAction: 'Review quality, thank the contributor, and request more screenshots if the work is useful.'
+      }, createdAt));
+    }
+
+    if (row.attributed_screenshot_count >= 2 && seedCount === 0) {
+      cards.push(makeCard({
+        type: 'affiliate_low_quality_review',
+        affiliate_attribution_email: row.affiliate_attribution_email,
+        title: `Review low-yield affiliate folder: ${row.affiliate_attribution_email}`,
+        description: `${row.affiliate_attribution_email} has attributed screenshots but no created or updated profile seeds.`,
+        priority: 'medium',
+        reason: 'screenshots_without_profile_seed',
+        sourceReportMetric: 'attributed_screenshot_count',
+        recommendedAction: 'Inspect screenshot quality and give the operator or affiliate clearer capture guidance.'
+      }, createdAt));
+    }
+  }
+
+  return cards.sort((a, b) => {
+    const priorityRank = { high: 0, medium: 1, low: 2 };
+    return priorityRank[a.priority] - priorityRank[b.priority] || a.type.localeCompare(b.type) || a.affiliate_attribution_email.localeCompare(b.affiliate_attribution_email);
+  });
+}
+
+export function getMealScoutAffiliateAttributionActionCards(options?: {
+  includeUnattributed?: boolean;
+}): MealScoutAffiliateAttributionActionCard[] {
+  return buildMealScoutAffiliateAttributionActionCards(
+    getMealScoutAffiliateAttributionOperatorReport({ includeUnattributed: options?.includeUnattributed })
+  );
 }
