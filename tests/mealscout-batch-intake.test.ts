@@ -22,6 +22,7 @@ process.env.MEALSCOUT_AFFILIATE_EMAIL_MAP = JSON.stringify([
 
 const { createMerlinServer } = await import('../src/server.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
+const { parseMealScoutSignalsFromText } = await import('../src/mealscoutScreenshotExtraction.ts');
 const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
 const { closeLisaStore } = await import('../src/lisa.ts');
 const { closeReplayStore } = await import('../src/replay.ts');
@@ -230,6 +231,62 @@ test('batch run uses request-level attribution fallback when drive metadata is m
   const attr = response.body.processedFiles[0].sourceFileAttribution;
   assert.ok(attr);
   assert.equal(['drive_metadata', 'request_context'].includes(attr.attributionSource), true);
+});
+
+test('email-named parent folder credits affiliate without replacing business email', async () => {
+  const affiliateFolderClient: DriveClient = {
+    ...buildDriveClient(),
+    async listFilesInFolder(folderId: string) {
+      assert.equal(folderId, 'folder-intake-unknown');
+      return [
+        {
+          drive_file_id: 'folder-affiliate-profile-1',
+          file_name: 'business-profile.png',
+          mime_type: 'image/png',
+          folder_id: folderId,
+          web_url: 'https://example.com/business-profile',
+          modified_time: '2026-05-29T01:00:00.000Z',
+          raw_metadata: {
+            folder_path: '/Merlin OR Storage/MealScout Intake/affiliates/foldercredit@example.com/screenshots',
+            extracted_text: 'Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie'
+          }
+        }
+      ];
+    },
+    async downloadFileContent() {
+      return 'Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie';
+    }
+  };
+  setDriveClientFactory(() => affiliateFolderClient);
+  const response = await requestJson<{
+    batchId: string;
+    mutationAllowed: boolean;
+    processedFiles: Array<{
+      sourceFileAttribution?: {
+        attributionSource: string;
+        attributionStatus?: string;
+        affiliateEmail?: string;
+        affiliateCode?: string;
+        driveUploaderEmail?: string;
+      };
+    }>;
+  }>('/api/mealscout/intake/batches/run', {
+    method: 'POST',
+    headers: { 'x-operator-role': 'admin' },
+    body: JSON.stringify({ mode: 'process', maxFiles: 1 })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.mutationAllowed, false);
+  const attribution = response.body.processedFiles[0]?.sourceFileAttribution;
+  assert.ok(attribution);
+  assert.equal(attribution?.attributionSource, 'folder_context');
+  assert.equal(attribution?.attributionStatus, 'matched_affiliate_folder');
+  assert.equal(attribution?.affiliateEmail, 'foldercredit@example.com');
+  assert.equal(attribution?.affiliateCode, 'foldercredit@example.com');
+  assert.equal(attribution?.driveUploaderEmail, undefined);
+
+  const parsed = parseMealScoutSignalsFromText('Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie');
+  assert.equal(parsed.extractedSignals.email, 'business@example.com');
 });
 
 test('second run processes next unprocessed slice and reports skip breakdown unless reprocess true', async () => {

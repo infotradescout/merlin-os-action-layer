@@ -1,7 +1,8 @@
 export type MealScoutFileAttribution = {
-  attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+  attributionSource: 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown';
   attributionStatus?:
     | 'matched_affiliate'
+    | 'matched_affiliate_folder'
     | 'matched_owner_affiliate'
     | 'matched_last_modifier_affiliate'
     | 'request_context'
@@ -89,7 +90,7 @@ export type MealScoutBatchHistoryEntry = {
   unknownAttributionCount: number;
   unattachedMediaCount: number;
   draftCount: number;
-  attributionSources: Array<'drive_metadata' | 'request_context' | 'unknown'>;
+  attributionSources: Array<'drive_metadata' | 'folder_context' | 'request_context' | 'unknown'>;
   repIds: string[];
   affiliateCodes: string[];
   sourceChannels: Array<'drive_upload' | 'manual_upload' | 'admin_import'>;

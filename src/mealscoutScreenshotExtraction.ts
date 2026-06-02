@@ -16,9 +16,10 @@ export type MealScoutScreenshotInput = {
   extractedText?: string;
   visualLabels?: string[];
   sourceFileAttribution?: {
-    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    attributionSource: 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown';
     attributionStatus?:
       | 'matched_affiliate'
+      | 'matched_affiliate_folder'
       | 'matched_owner_affiliate'
       | 'matched_last_modifier_affiliate'
       | 'request_context'

@@ -27,9 +27,10 @@ export type MealScoutExtractedSignal = {
   website?: string;
   notes?: string;
   sourceFileAttribution?: {
-    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    attributionSource: 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown';
     attributionStatus?:
       | 'matched_affiliate'
+      | 'matched_affiliate_folder'
       | 'matched_owner_affiliate'
       | 'matched_last_modifier_affiliate'
       | 'request_context'
@@ -410,14 +411,14 @@ function buildDraftAttribution(signals: MealScoutExtractedSignal[]): MealScoutPr
   const contributingRepIds = Array.from(
     new Set(
       signals
-        .map((signal) => signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.driveUploaderEmail || '')
+        .map((signal) => signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.affiliateEmail || signal.sourceFileAttribution?.driveUploaderEmail || '')
         .filter(Boolean)
     )
   );
   const sourceFileIds = Array.from(new Set(signals.map((signal) => signal.sourceFileId).filter(Boolean)));
   let primarySourceRepId: string | undefined;
   for (const signal of signals) {
-    const contributor = signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.driveUploaderEmail;
+    const contributor = signal.sourceFileAttribution?.repId || signal.sourceFileAttribution?.affiliateEmail || signal.sourceFileAttribution?.driveUploaderEmail;
     const hasRequiredEvidence = Boolean(
       signal.truckName ||
         signal.cityArea ||

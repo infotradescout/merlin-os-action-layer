@@ -37,9 +37,10 @@ export type MealScoutEvidenceFile = {
   rawExtractedText?: string;
   confidence: number;
   sourceFileAttribution?: {
-    attributionSource: 'drive_metadata' | 'request_context' | 'unknown';
+    attributionSource: 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown';
     attributionStatus?:
       | 'matched_affiliate'
+      | 'matched_affiliate_folder'
       | 'matched_owner_affiliate'
       | 'matched_last_modifier_affiliate'
       | 'request_context'

@@ -152,6 +152,7 @@ import {
 } from './mealscoutPublishExecution.js';
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
+import { extractNearestAffiliateEmailFolder } from './mealscoutAffiliateFolderAttribution.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
@@ -241,11 +242,7 @@ function convertDriveFileToMealScoutScreenshotInput(file: DriveFileInfo): MealSc
     modifiedTime: file.modified_time,
     extractedText,
     visualLabels,
-    sourceFileAttribution: {
-      attributionSource: 'unknown',
-      modifiedAt: file.modified_time,
-      sourceChannel: 'drive_upload'
-    }
+    sourceFileAttribution: resolveDriveFileAttribution(file)
   };
 }
 
@@ -269,6 +266,11 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     (typeof metadata.created_time === 'string' && metadata.created_time) ||
     (typeof metadata.uploaded_at === 'string' && metadata.uploaded_at) ||
     undefined;
+  const folderAffiliateEmail = extractNearestAffiliateEmailFolder({
+    folderPath: typeof metadata.folder_path === 'string' ? metadata.folder_path : undefined,
+    drivePath: typeof metadata.drive_path === 'string' ? metadata.drive_path : undefined,
+    fileName: file.file_name
+  });
   const driveMetadataAvailable =
     Boolean(uploaderEmail) ||
     Boolean(ownerEmail) ||
@@ -325,6 +327,7 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
 
   let attributionStatus:
     | 'matched_affiliate'
+    | 'matched_affiliate_folder'
     | 'matched_owner_affiliate'
     | 'matched_last_modifier_affiliate'
     | 'request_context'
@@ -349,14 +352,18 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     attributionStatus = 'ambiguous';
   } else if (context?.repId || context?.affiliateCode || context?.submittedByUserId) {
     attributionStatus = 'request_context';
+  } else if (folderAffiliateEmail) {
+    attributionStatus = 'matched_affiliate_folder';
   } else if (driveMetadataAvailable) {
     attributionStatus = 'unmatched';
   }
 
-  const attributionSource: 'drive_metadata' | 'request_context' | 'unknown' = driveMetadataAvailable
+  const attributionSource: 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown' = driveMetadataAvailable
     ? 'drive_metadata'
     : context?.repId || context?.affiliateCode || context?.submittedByUserId
       ? 'request_context'
+      : folderAffiliateEmail
+        ? 'folder_context'
       : 'unknown';
   return {
     attributionSource,
@@ -371,8 +378,8 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     modifiedAt: file.modified_time,
     intakeSubmittedBy: context?.submittedByUserId,
     affiliateId: matchedAffiliate?.affiliateId,
-    affiliateEmail: matchedAffiliate?.affiliateEmail,
-    affiliateCode: matchedAffiliate?.affiliateCode || context?.affiliateCode,
+    affiliateEmail: matchedAffiliate?.affiliateEmail || folderAffiliateEmail,
+    affiliateCode: matchedAffiliate?.affiliateCode || context?.affiliateCode || folderAffiliateEmail,
     repId: matchedAffiliate?.repId || context?.repId,
     needsAttributionReview: attributionStatus === 'ambiguous' || attributionStatus === 'unmatched' || attributionStatus === 'unknown',
     sourceChannel: context?.sourceChannel || 'drive_upload',
@@ -427,7 +434,7 @@ type MealScoutFolderContextCluster = {
   socialFiles: string[];
   duplicateFileIds: string[];
   attributionSummary: {
-    attributionSources: Array<'drive_metadata' | 'request_context' | 'unknown'>;
+    attributionSources: Array<'drive_metadata' | 'folder_context' | 'request_context' | 'unknown'>;
     repIds: string[];
     affiliateCodes: string[];
   };
@@ -689,7 +696,9 @@ function buildMealScoutFolderContextClusters(files: DriveFileInfo[]): MealScoutF
     const logoCandidates = files.filter((file) => file.detectedType === 'logo' && activeSet.has(file.fileId)).map((file) => file.fileId);
     const socialFiles = files.filter((file) => file.detectedType === 'social' && activeSet.has(file.fileId)).map((file) => file.fileId);
     const attributionSources = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.attributionSource || 'unknown')))
-      .filter((row): row is 'drive_metadata' | 'request_context' | 'unknown' => row === 'drive_metadata' || row === 'request_context' || row === 'unknown');
+      .filter((row): row is 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown' =>
+        row === 'drive_metadata' || row === 'folder_context' || row === 'request_context' || row === 'unknown'
+      );
     const repIds = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.repId || '').filter(Boolean)));
     const affiliateCodes = Array.from(new Set(files.map((file) => file.sourceFileAttribution?.affiliateCode || '').filter(Boolean)));
 
@@ -2614,8 +2623,8 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
         new Set(
           processedFiles
             .map((row) => row.sourceFileAttribution?.attributionSource || 'unknown')
-            .filter((value): value is 'drive_metadata' | 'request_context' | 'unknown' =>
-              value === 'drive_metadata' || value === 'request_context' || value === 'unknown'
+            .filter((value): value is 'drive_metadata' | 'folder_context' | 'request_context' | 'unknown' =>
+              value === 'drive_metadata' || value === 'folder_context' || value === 'request_context' || value === 'unknown'
             )
         )
       );
