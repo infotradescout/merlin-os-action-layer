@@ -1,6 +1,7 @@
 import { listMerlinActionCards, type MerlinActionCardRecord } from './actionCardRuntime.js';
 import { listMerlinApprovals, type MerlinApprovalRecord } from './approvalRuntime.js';
 import { listMerlinConnectorAdapterChecks, type MerlinConnectorAdapterCheckRecord } from './connectorAdapterRuntime.js';
+import { listMerlinDryRunExecutions, type MerlinDryRunExecutionRecord } from './dryRunExecutorRuntime.js';
 import { getMerlinEntityConflicts, getMerlinEntityById, listMerlinEntities, type MerlinEntityRecord } from './entityMemoryRuntime.js';
 import { listMerlinExecutionPlans, type MerlinExecutionPlanRecord } from './executionPlanRuntime.js';
 import { listMerlinIntakeItems, type MerlinIntakeItemRecord } from './intakeRuntime.js';
@@ -34,6 +35,8 @@ export type MerlinOperatorConsolePayload = {
     executionPlanDryRunCount: number;
     adapterCheckBlockedCount: number;
     adapterCheckPassCount: number;
+    dryRunSimulatedCount: number;
+    dryRunBlockedCount: number;
   };
   attention: {
     blockedIntake: MerlinIntakeItemRecord[];
@@ -48,6 +51,8 @@ export type MerlinOperatorConsolePayload = {
     eligibleExecutionPlans: MerlinExecutionPlanRecord[];
     blockedAdapterChecks: MerlinConnectorAdapterCheckRecord[];
     passedAdapterChecks: MerlinConnectorAdapterCheckRecord[];
+    recentDryRunExecutions: MerlinDryRunExecutionRecord[];
+    blockedDryRunExecutions: MerlinDryRunExecutionRecord[];
   };
   kpiRollups: ReturnType<typeof getMerlinKpiRollup>;
   recent: {
@@ -81,6 +86,7 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const outcomes = listMerlinOutcomes({ brand_lane: brand, limit: 100 }).filter((row) => matchesEntity(row, entityId));
   const approvals = listMerlinApprovals({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const executionPlans = listMerlinExecutionPlans({ brand_lane: brand, entity_id: entityId, limit: 100 });
+  const dryRunExecutions = listMerlinDryRunExecutions({ brand_lane: brand, entity_id: entityId, limit: 100 });
   const executionPlanIds = new Set(executionPlans.map((plan) => plan.id));
   const adapterChecks = listMerlinConnectorAdapterChecks({ limit: 100 }).filter((check) => executionPlanIds.has(check.execution_plan_id));
 
@@ -101,6 +107,7 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
   const eligibleExecutionPlans = executionPlans.filter((row) => row.execution_status === 'eligible');
   const blockedAdapterChecks = adapterChecks.filter((row) => row.check_status !== 'pass');
   const passedAdapterChecks = adapterChecks.filter((row) => row.check_status === 'pass');
+  const blockedDryRunExecutions = dryRunExecutions.filter((row) => row.dry_run_status === 'blocked' || row.dry_run_status === 'failed');
 
   const visibleIntake = intake.slice(0, limit);
   const visibleEntities = entities.slice(0, limit);
@@ -128,7 +135,9 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       executionPlanBlockedCount: blockedExecutionPlans.length,
       executionPlanDryRunCount: executionPlans.filter((row) => row.execution_mode === 'dry_run').length,
       adapterCheckBlockedCount: blockedAdapterChecks.length,
-      adapterCheckPassCount: passedAdapterChecks.length
+      adapterCheckPassCount: passedAdapterChecks.length,
+      dryRunSimulatedCount: dryRunExecutions.filter((row) => row.dry_run_status === 'simulated').length,
+      dryRunBlockedCount: blockedDryRunExecutions.length
     },
     attention: {
       blockedIntake: blockedIntake.slice(0, limit),
@@ -142,7 +151,9 @@ export function getMerlinOperatorConsolePayload(filters: MerlinOperatorConsoleFi
       blockedExecutionPlans: blockedExecutionPlans.slice(0, limit),
       eligibleExecutionPlans: eligibleExecutionPlans.slice(0, limit),
       blockedAdapterChecks: blockedAdapterChecks.slice(0, limit),
-      passedAdapterChecks: passedAdapterChecks.slice(0, limit)
+      passedAdapterChecks: passedAdapterChecks.slice(0, limit),
+      recentDryRunExecutions: dryRunExecutions.slice(0, limit),
+      blockedDryRunExecutions: blockedDryRunExecutions.slice(0, limit)
     },
     kpiRollups: getMerlinKpiRollup({ brand_lane: brand }).slice(0, limit),
     recent: {

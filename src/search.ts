@@ -2,12 +2,21 @@ import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
 import { searchMerlinApprovals } from './merlin/approvalRuntime.js';
 import { searchMerlinConnectorAdapterChecks } from './merlin/connectorAdapterRuntime.js';
+import { searchMerlinDryRunExecutions } from './merlin/dryRunExecutorRuntime.js';
 import { searchMerlinExecutionPlans } from './merlin/executionPlanRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
 import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const dryRunResults = searchMerlinDryRunExecutions(query, 10).map((dryRun, index) => ({
+    id: dryRun.id || `dry-run-execution-${index + 1}`,
+    title: `[Dry Run] ${dryRun.dry_run_status}`,
+    summary: `${dryRun.brand_lane} · ${dryRun.tool} · ${dryRun.action} · suggested:${dryRun.suggested_outcome_type}`,
+    source: 'merlin_dry_run_execution',
+    observed_at: dryRun.updated_at,
+    confidence: dryRun.dry_run_status === 'simulated' ? 0.9 : 0.35
+  }));
   const adapterCheckResults = searchMerlinConnectorAdapterChecks(query, 10).map((check, index) => ({
     id: check.id || `adapter-check-${index + 1}`,
     title: `[Adapter Check] ${check.check_status}`,
@@ -72,10 +81,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...adapterCheckResults, ...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...dryRunResults, ...adapterCheckResults, ...executionPlanResults, ...approvalResults, ...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_connector_adapter_checks+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_dry_run_executions+merlin_connector_adapter_checks+merlin_execution_plans+merlin_approvals+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };
