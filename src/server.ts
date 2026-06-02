@@ -153,6 +153,7 @@ import {
 import type { LisaBrowserSearchResult, LisaBrowserRecordType } from './lisa.js';
 import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscoutCandidateImport.js';
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
+import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1594,6 +1595,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   const url = new URL(req.url, `http://localhost:${DEFAULT_PORT}`);
   const pathname = url.pathname;
   const query = readQuery(url);
+
+  if (pathname === '/api/merlin/intake' || pathname.startsWith('/api/merlin/intake/')) {
+    const handled = await handleMerlinIntakeRoute(req, res, pathname);
+    if (handled) return;
+  }
 
   if (pathname.startsWith('/api/merlin/action-cards')) {
     const handled = await handleMerlinActionCardRoute(req, res, pathname);
