@@ -140,7 +140,7 @@ function normalizeList(input: string[] | undefined): string[] {
 
 function appendHistory(input: {
   action_card_id: string;
-  event_type: 'created' | 'decision';
+  event_type: 'created' | 'decision' | 'status_update';
   status: MerlinActionCardStatus;
   payload: Record<string, unknown>;
 }): void {
@@ -317,6 +317,32 @@ export function updateMerlinActionCardDecision(id: string, input: MerlinActionCa
     status: nextStatus,
     payload: {
       decision: input.decision,
+      reason: input.reason || null,
+      decided_by: input.decided_by || null
+    }
+  });
+  return getMerlinActionCardById(id);
+}
+
+export function updateMerlinActionCardStatus(
+  id: string,
+  input: {
+    status: MerlinActionCardStatus;
+    reason?: string;
+    decided_by?: string;
+    event_type?: 'decision' | 'status_update';
+  }
+): MerlinActionCardRecord | undefined {
+  const existing = getMerlinActionCardById(id);
+  if (!existing) return undefined;
+  const updatedAt = nowIso();
+  getDb().prepare('UPDATE merlin_action_cards SET status = ?, updated_at = ? WHERE id = ?').run(input.status, updatedAt, id);
+  appendHistory({
+    action_card_id: id,
+    event_type: input.event_type || 'status_update',
+    status: input.status,
+    payload: {
+      status: input.status,
       reason: input.reason || null,
       decided_by: input.decided_by || null
     }

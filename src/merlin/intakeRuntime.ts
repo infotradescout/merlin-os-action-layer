@@ -381,6 +381,13 @@ export function listMerlinIntakeActionCardLinks(intakeItemId: string): Array<{ i
     .all(intakeItemId) as Array<{ id: string; intake_item_id: string; action_card_id: string; created_at: string }>;
 }
 
+export function findMerlinIntakeItemIdByActionCardId(actionCardId: string): string | undefined {
+  const row = getDb()
+    .prepare('SELECT intake_item_id FROM merlin_intake_action_card_links WHERE action_card_id = ? ORDER BY created_at DESC LIMIT 1')
+    .get(actionCardId) as { intake_item_id: string } | undefined;
+  return row?.intake_item_id;
+}
+
 export function generateActionCardsFromMerlinIntakeItem(intakeItemId: string): { intakeItem: MerlinIntakeItemRecord; cards: MerlinActionCardRecord[] } {
   const intakeItem = getMerlinIntakeItemById(intakeItemId);
   if (!intakeItem) throw new Error('intake_item_not_found');

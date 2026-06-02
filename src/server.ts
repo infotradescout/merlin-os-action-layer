@@ -155,6 +155,7 @@ import { matchCandidatesToEvidence, parseGeminiVendorSummary } from './mealscout
 import { handleMerlinActionCardRoute } from './merlin/routes/merlinActionCardRoutes.js';
 import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
+import { handleMerlinOutcomeRoute } from './merlin/routes/merlinOutcomeRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1603,6 +1604,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
   if (pathname.startsWith('/api/merlin/entities') || pathname.startsWith('/api/merlin/source-observations') || pathname.match(/^\/api\/merlin\/intake\/[^/]+\/resolve-entity$/)) {
     const handled = await handleMerlinEntityMemoryRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/outcomes') || pathname === '/api/merlin/kpi-rollup') {
+    const handled = await handleMerlinOutcomeRoute(req, res, pathname);
     if (handled) return;
   }
 

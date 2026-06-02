@@ -2,8 +2,17 @@ import { searchLisaSignals } from './lisa.js';
 import { searchMerlinActionCards } from './merlin/actionCardRuntime.js';
 import { searchMerlinIntakeItems } from './merlin/intakeRuntime.js';
 import { searchMerlinEntities } from './merlin/entityMemoryRuntime.js';
+import { searchMerlinOutcomes } from './merlin/outcomeRuntime.js';
 
 export function getSearchPayload(query = '') {
+  const outcomeResults = searchMerlinOutcomes(query, 10).map((row, index) => ({
+    id: row.id || `outcome-${index + 1}`,
+    title: `[Outcome] ${row.outcome_type}`,
+    summary: `${row.brand_lane} · ${row.kpi} · status:${row.status} · ${row.result_summary}`,
+    source: 'merlin_outcome',
+    observed_at: row.observed_at,
+    confidence: row.status === 'verified' ? 0.95 : row.status === 'failed' ? 0.25 : 0.7
+  }));
   const entityResults = searchMerlinEntities(query, 10).map((entity, index) => ({
     id: entity.id || `entity-${index + 1}`,
     title: `[Entity] ${entity.canonical_name}`,
@@ -36,10 +45,10 @@ export function getSearchPayload(query = '') {
     observed_at: card.updated_at,
     confidence: card.policy_result.blocked ? 0.1 : 0.8
   }));
-  const results = [...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
+  const results = [...outcomeResults, ...entityResults, ...intakeResults, ...cardResults, ...signalResults].slice(0, 20);
 
   return {
-    source: 'lisa+merlin_entities+merlin_intake+merlin_action_cards',
+    source: 'lisa+merlin_outcomes+merlin_entities+merlin_intake+merlin_action_cards',
     query,
     results
   };
