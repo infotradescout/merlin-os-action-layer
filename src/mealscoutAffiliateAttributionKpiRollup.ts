@@ -64,6 +64,36 @@ export type MealScoutAffiliateAttributionActionCardDecisionRecord = {
   affiliate_attribution_email: string;
 };
 
+export type MealScoutAffiliateAttributionDecisionRollupGroup = {
+  key: string;
+  affiliate_attribution_email?: string;
+  cardType?: MealScoutAffiliateAttributionActionCard['type'];
+  priority?: MealScoutAffiliateAttributionActionCard['priority'];
+  decisionStatus?: MealScoutAffiliateAttributionActionCardDecisionStatus;
+  total: number;
+  pending: number;
+  accepted: number;
+  rejected: number;
+  deferred: number;
+  completed_manually: number;
+};
+
+export type MealScoutAffiliateAttributionDecisionRollup = {
+  affiliateActionCardsTotal: number;
+  affiliateActionCardsPending: number;
+  affiliateActionCardsAccepted: number;
+  affiliateActionCardsRejected: number;
+  affiliateActionCardsDeferred: number;
+  affiliateActionCardsCompletedManually: number;
+  affiliateActionCardDecisionRate: number;
+  affiliateActionCardManualCompletionRate: number;
+  affiliateHighPriorityPendingCount: number;
+  byAffiliate: MealScoutAffiliateAttributionDecisionRollupGroup[];
+  byCardType: MealScoutAffiliateAttributionDecisionRollupGroup[];
+  byPriority: MealScoutAffiliateAttributionDecisionRollupGroup[];
+  byDecisionStatus: MealScoutAffiliateAttributionDecisionRollupGroup[];
+};
+
 export const MEALSCOUT_AFFILIATE_ACTION_CARD_DECISION_STATUSES: MealScoutAffiliateAttributionActionCardDecisionStatus[] = [
   'pending',
   'accepted',
@@ -73,6 +103,39 @@ export const MEALSCOUT_AFFILIATE_ACTION_CARD_DECISION_STATUSES: MealScoutAffilia
 ];
 
 const actionCardDecisions = new Map<string, MealScoutAffiliateAttributionActionCardDecisionRecord>();
+
+function emptyDecisionGroup(
+  key: string,
+  extra: Partial<MealScoutAffiliateAttributionDecisionRollupGroup> = {}
+): MealScoutAffiliateAttributionDecisionRollupGroup {
+  return {
+    key,
+    total: 0,
+    pending: 0,
+    accepted: 0,
+    rejected: 0,
+    deferred: 0,
+    completed_manually: 0,
+    ...extra
+  };
+}
+
+function addCardToDecisionGroup(
+  group: MealScoutAffiliateAttributionDecisionRollupGroup,
+  card: Pick<MealScoutAffiliateAttributionActionCard, 'decisionStatus'>
+): void {
+  group.total += 1;
+  if (card.decisionStatus === 'pending') group.pending += 1;
+  if (card.decisionStatus === 'accepted') group.accepted += 1;
+  if (card.decisionStatus === 'rejected') group.rejected += 1;
+  if (card.decisionStatus === 'deferred') group.deferred += 1;
+  if (card.decisionStatus === 'completed_manually') group.completed_manually += 1;
+}
+
+function roundedRate(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return Number((numerator / denominator).toFixed(4));
+}
 
 function hasFolderAttribution(value: { affiliate_attribution_email?: string } | undefined): boolean {
   return Boolean(value?.affiliate_attribution_email?.trim());
@@ -365,4 +428,67 @@ export function listMealScoutAffiliateAttributionActionCardDecisions(): MealScou
 
 export function resetMealScoutAffiliateAttributionActionCardDecisionsForTest(): void {
   actionCardDecisions.clear();
+}
+
+export function buildMealScoutAffiliateAttributionDecisionRollup(
+  cards: MealScoutAffiliateAttributionActionCard[]
+): MealScoutAffiliateAttributionDecisionRollup {
+  const byAffiliate = new Map<string, MealScoutAffiliateAttributionDecisionRollupGroup>();
+  const byCardType = new Map<string, MealScoutAffiliateAttributionDecisionRollupGroup>();
+  const byPriority = new Map<string, MealScoutAffiliateAttributionDecisionRollupGroup>();
+  const byDecisionStatus = new Map<string, MealScoutAffiliateAttributionDecisionRollupGroup>();
+
+  const totals = emptyDecisionGroup('all');
+  for (const card of cards) {
+    addCardToDecisionGroup(totals, card);
+
+    const affiliateKey = card.affiliate_attribution_email || 'unattributed';
+    if (!byAffiliate.has(affiliateKey)) {
+      byAffiliate.set(affiliateKey, emptyDecisionGroup(affiliateKey, { affiliate_attribution_email: affiliateKey }));
+    }
+    addCardToDecisionGroup(byAffiliate.get(affiliateKey)!, card);
+
+    const cardTypeKey = card.type;
+    if (!byCardType.has(cardTypeKey)) {
+      byCardType.set(cardTypeKey, emptyDecisionGroup(cardTypeKey, { cardType: card.type }));
+    }
+    addCardToDecisionGroup(byCardType.get(cardTypeKey)!, card);
+
+    const priorityKey = card.priority;
+    if (!byPriority.has(priorityKey)) {
+      byPriority.set(priorityKey, emptyDecisionGroup(priorityKey, { priority: card.priority }));
+    }
+    addCardToDecisionGroup(byPriority.get(priorityKey)!, card);
+
+    const statusKey = card.decisionStatus;
+    if (!byDecisionStatus.has(statusKey)) {
+      byDecisionStatus.set(statusKey, emptyDecisionGroup(statusKey, { decisionStatus: card.decisionStatus }));
+    }
+    addCardToDecisionGroup(byDecisionStatus.get(statusKey)!, card);
+  }
+
+  const decidedCount = totals.accepted + totals.rejected + totals.deferred + totals.completed_manually;
+  return {
+    affiliateActionCardsTotal: totals.total,
+    affiliateActionCardsPending: totals.pending,
+    affiliateActionCardsAccepted: totals.accepted,
+    affiliateActionCardsRejected: totals.rejected,
+    affiliateActionCardsDeferred: totals.deferred,
+    affiliateActionCardsCompletedManually: totals.completed_manually,
+    affiliateActionCardDecisionRate: roundedRate(decidedCount, totals.total),
+    affiliateActionCardManualCompletionRate: roundedRate(totals.completed_manually, totals.total),
+    affiliateHighPriorityPendingCount: cards.filter((card) => card.priority === 'high' && card.decisionStatus === 'pending').length,
+    byAffiliate: Array.from(byAffiliate.values()).sort((a, b) => a.key.localeCompare(b.key)),
+    byCardType: Array.from(byCardType.values()).sort((a, b) => a.key.localeCompare(b.key)),
+    byPriority: Array.from(byPriority.values()).sort((a, b) => a.key.localeCompare(b.key)),
+    byDecisionStatus: Array.from(byDecisionStatus.values()).sort((a, b) => a.key.localeCompare(b.key))
+  };
+}
+
+export function getMealScoutAffiliateAttributionDecisionRollup(options?: {
+  includeUnattributed?: boolean;
+}): MealScoutAffiliateAttributionDecisionRollup {
+  return buildMealScoutAffiliateAttributionDecisionRollup(
+    getMealScoutAffiliateAttributionActionCards({ includeUnattributed: options?.includeUnattributed })
+  );
 }

@@ -169,6 +169,7 @@ import {
   buildMealScoutAffiliateAttributionKpiRollup,
   decideMealScoutAffiliateAttributionActionCard,
   getMealScoutAffiliateAttributionActionCards,
+  getMealScoutAffiliateAttributionDecisionRollup,
   getMealScoutAffiliateAttributionKpiRollup,
   getMealScoutAffiliateAttributionOperatorReport,
   listMealScoutAffiliateAttributionActionCardDecisions,
@@ -3558,6 +3559,20 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       status: 'ok',
       mutationAllowed: false,
       decisions: listMealScoutAffiliateAttributionActionCardDecisions()
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/mealscout/intake/affiliate-attribution/action-cards/decision-rollup') {
+    const operatorRole = resolveOperatorRole(req).role;
+    const allowedRoles = new Set(['admin', 'super-admin', 'super_admin', 'operator', 'staff']);
+    if (!allowedRoles.has(operatorRole)) {
+      return responseJson(res, { error: 'forbidden', reason: 'insufficient_permissions', mutationAllowed: false }, 403);
+    }
+    const includeUnattributed = query.includeUnattributed !== 'false';
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      rollup: getMealScoutAffiliateAttributionDecisionRollup({ includeUnattributed })
     });
   }
 
