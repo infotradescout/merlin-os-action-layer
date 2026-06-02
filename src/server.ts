@@ -138,6 +138,10 @@ import {
   resetMealScoutBatchProcessedStateForTest
 } from './mealscoutBatchIntakeState.js';
 import {
+  resetAffiliateTrackingLedgerForTest,
+  upsertAffiliateTrackingLedgerRow
+} from './mealscoutAffiliateTrackingLedger.js';
+import {
   appendMealScoutDuplicateRemovalAudit,
   getMealScoutDuplicateSuppression,
   markMealScoutDuplicateSuppressed,
@@ -389,6 +393,25 @@ function resolveDriveFileAttribution(file: DriveFileInfo, context?: {
     batchId: context?.batchId,
     capturedAt: new Date().toISOString()
   };
+}
+
+function isEmailLike(value: string | undefined): boolean {
+  return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test((value || '').trim());
+}
+
+function ledgerAttributionMethod(attribution: NonNullable<MealScoutScreenshotInput['sourceFileAttribution']>): string {
+  if (attribution.attributionSource === 'folder_context' && attribution.attributionStatus === 'matched_affiliate_folder') {
+    return 'nearest_email_parent_folder';
+  }
+  return `${attribution.attributionSource || 'unknown'}:${attribution.attributionStatus || 'unknown'}`;
+}
+
+function ledgerAttributionConfidence(attribution: NonNullable<MealScoutScreenshotInput['sourceFileAttribution']>): string {
+  if (attribution.attributionSource === 'folder_context' && attribution.attributionStatus === 'matched_affiliate_folder') return '1';
+  if (attribution.attributionStatus === 'matched_affiliate' || attribution.attributionStatus === 'matched_owner_affiliate' || attribution.attributionStatus === 'matched_last_modifier_affiliate') return '0.95';
+  if (attribution.attributionStatus === 'request_context') return '0.75';
+  if (attribution.attributionStatus === 'ambiguous') return '0';
+  return '0.25';
 }
 
 type MealScoutPreviewOcrDiagnostic = {
@@ -1580,6 +1603,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutPublishExecutionForTest();
   resetMealScoutBatchProcessedStateForTest();
   resetMealScoutDuplicateRemovalForTest();
+  resetAffiliateTrackingLedgerForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -2571,6 +2595,43 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
           });
           const evidence = createMealScoutEvidenceFromScreenshotInput(input);
           evidenceFiles.push(evidence);
+          const affiliateAttributionEmail =
+            input.sourceFileAttribution?.affiliate_attribution_email ||
+            input.sourceFileAttribution?.affiliateEmail;
+          const extractedBusinessEmail = (evidence.extractedSignals.email || '').trim();
+          const staffSubmitted =
+            input.sourceFileAttribution?.sourceChannel === 'admin_import' ||
+            input.sourceFileAttribution?.sourceChannel === 'manual_upload' ||
+            Boolean(input.sourceFileAttribution?.intakeSubmittedBy);
+          if (input.sourceFileAttribution && isEmailLike(affiliateAttributionEmail)) {
+            upsertAffiliateTrackingLedgerRow({
+              affiliate_attribution_email: affiliateAttributionEmail || '',
+              affiliate_user_id: input.sourceFileAttribution.affiliateId || '',
+              affiliate_source_folder_id: input.sourceFolderId || '',
+              affiliate_source_folder_name:
+                input.sourceFileAttribution.attributionSource === 'folder_context'
+                  ? input.sourceFileAttribution.affiliate_attribution_folder || affiliateAttributionEmail || ''
+                  : input.sourceFolder || '',
+              attribution_method: ledgerAttributionMethod(input.sourceFileAttribution),
+              attribution_confidence: ledgerAttributionConfidence(input.sourceFileAttribution),
+              submitted_by_staff: staffSubmitted ? 'true' : 'false',
+              staff_placed_in_affiliate_folder:
+                staffSubmitted && input.sourceFileAttribution.attributionSource === 'folder_context' ? 'true' : 'false',
+              brand_lane: 'MEALSCOUT',
+              source_file_id: file.drive_file_id,
+              source_file_name: file.file_name,
+              source_file_path: input.drivePath || '',
+              batch_id: batchId,
+              target_profile_type: 'food_truck',
+              profile_action: 'profile_seed_from_evidence',
+              profile_name: (evidence.extractedSignals.truckName || '').trim(),
+              profile_email: extractedBusinessEmail,
+              verification_email_status: extractedBusinessEmail ? 'not_sent' : 'not_available',
+              seed_status: 'preview_ready',
+              audit_notes:
+                'affiliate folder email is attribution credit only; profile_email is extracted from business evidence; no verification email sent'
+            });
+          }
           const refs = Object.entries(evidence.extractedSignals || {})
             .filter(([, value]) => {
               if (Array.isArray(value)) return value.length > 0;

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { before, after, beforeEach, test } from 'node:test';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import type { DriveClient } from '../src/driveClient.ts';
 
 process.env.MERLIN_RUNTIME = 'test';
@@ -9,6 +11,7 @@ process.env.MERLIN_DRIVE_MODE = 'oauth';
 process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
 process.env.MERLIN_DRIVE_SYNC_MODE = 'manual';
 process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+process.env.MEALSCOUT_AFFILIATE_TRACKING_LEDGER_PATH = join(tmpdir(), 'mealscout-affiliate-tracking-ledger-test.csv');
 process.env.GOOGLE_CLIENT_ID = 'test-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
 process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/callback';
@@ -23,6 +26,7 @@ process.env.MEALSCOUT_AFFILIATE_EMAIL_MAP = JSON.stringify([
 const { createMerlinServer } = await import('../src/server.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 const { parseMealScoutSignalsFromText } = await import('../src/mealscoutScreenshotExtraction.ts');
+const { readAffiliateTrackingLedgerRows } = await import('../src/mealscoutAffiliateTrackingLedger.ts');
 const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
 const { closeLisaStore } = await import('../src/lisa.ts');
 const { closeReplayStore } = await import('../src/replay.ts');
@@ -294,6 +298,19 @@ test('email-named parent folder credits affiliate without replacing business ema
 
   const parsed = parseMealScoutSignalsFromText('Juniper Dumplings\nEmail: business@example.com\nPhone: 504-555-1212\nCity: Metairie');
   assert.equal(parsed.extractedSignals.email, 'business@example.com');
+
+  const ledgerRows = readAffiliateTrackingLedgerRows();
+  const ledgerRow = ledgerRows.find((row) => row.source_file_id === 'folder-affiliate-profile-1');
+  assert.ok(ledgerRow);
+  assert.equal(ledgerRow?.affiliate_attribution_email, 'foldercredit@example.com');
+  assert.equal(ledgerRow?.affiliate_source_folder_name, 'foldercredit@example.com');
+  assert.equal(ledgerRow?.attribution_method, 'nearest_email_parent_folder');
+  assert.equal(ledgerRow?.brand_lane, 'MEALSCOUT');
+  assert.equal(ledgerRow?.batch_id, response.body.batchId);
+  assert.equal(ledgerRow?.profile_email, 'business@example.com');
+  assert.equal(ledgerRow?.verification_email_status, 'not_sent');
+  assert.equal(ledgerRow?.seed_status, 'preview_ready');
+  assert.equal(ledgerRow?.audit_notes.includes('attribution credit only'), true);
 });
 
 test('second run processes next unprocessed slice and reports skip breakdown unless reprocess true', async () => {
