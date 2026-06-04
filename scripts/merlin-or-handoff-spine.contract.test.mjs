@@ -49,16 +49,17 @@ const cleanupTicketMatches = [...doc.matchAll(/^\d+\. .+/gm)].filter((match) => 
 });
 assert.ok(cleanupTicketMatches.length >= 5 && cleanupTicketMatches.length <= 10, 'Expected 5 to 10 cleanup tickets');
 
-const forbiddenFeaturePhrases = [
-  'new user-facing feature',
-  'new product surface',
+const cleanupSection = doc.split('## Next cleanup tickets')[1]?.split('## No new product features proposed')[0] || '';
+const forbiddenCleanupPhrases = [
+  'add a new product feature',
+  'add new product surface',
   'enable live connector execution',
   'add payout logic',
   'mark email_verified true',
   'mark insurance_verified true'
 ];
-for (const phrase of forbiddenFeaturePhrases) {
-  assert.equal(doc.toLowerCase().includes(`propose ${phrase}`), false, `Handoff spine must not propose ${phrase}`);
+for (const phrase of forbiddenCleanupPhrases) {
+  assert.equal(cleanupSection.toLowerCase().includes(phrase), false, `Cleanup tickets must not propose ${phrase}`);
 }
 
 includes('does not propose new user-facing features', 'Document must explicitly avoid new product features');
