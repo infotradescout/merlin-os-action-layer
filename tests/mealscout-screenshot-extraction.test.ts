@@ -130,6 +130,17 @@ test('classifies social screenshot', () => {
   assert.equal(evidence.extractedSignals.instagram, '@tacoorbit');
 });
 
+test('cuisine tagline is not misclassified as city area', () => {
+  const parsed = parseMealScoutSignalsFromText("Lettys Backyard\nall authentic fresh filipino");
+  assert.equal(parsed.extractedSignals.cityArea, undefined);
+  assert.equal(parsed.extractedSignals.cuisine, 'Filipino');
+});
+
+test('location-like marker remains city area', () => {
+  const parsed = parseMealScoutSignalsFromText('Serving Pensacola, FL\nLocation: 123 Main St');
+  assert.equal(Boolean(parsed.extractedSignals.cityArea), true);
+});
+
 test('unknown low-signal file remains unknown', () => {
   const evidence = createMealScoutEvidenceFromScreenshotInput({
     fileId: 'unknown-1',

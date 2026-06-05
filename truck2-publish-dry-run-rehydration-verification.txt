@@ -1,0 +1,65 @@
+Truck #2 Publish Dry-Run Rehydration Verification
+Generated: 2026-05-31
+
+Target legacy recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Current matched publish-plan recordId
+- none
+
+Match method used
+- none (no successful bind)
+
+Stable binding values present on legacy correction rows
+- stableReviewKey: none
+- sourceFileClusterId: none
+- normalizedPhone: none
+- normalizedBusinessName: none
+- normalizedCityArea: none
+
+Dry-run context
+- current planId: ms-plan-e4771581-bcd6-4d14-a9c5-5be13e93f87a
+- drive folder used: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+- mutationAllowed: false
+
+Accepted fields in dry-run payload
+- none (target candidate not matched in current plan)
+
+Rejected fields excluded
+- not applicable in current run because no target candidate binding occurred
+
+Deferred fields preserved
+- legacy correction rows are present for Truck #2 intent
+- no current candidate binding to verify payload-level deferral projection
+
+reviewState
+- none on matched current record (no matched current record)
+
+AMBIGUOUS_REVIEW_BINDING
+- not present (no candidate matched for binding attempt)
+
+Final recommendation
+- BLOCKED_FROM_PUBLISH
+
+Blocked reason
+- legacy correction set predates stable-binding metadata; no bindable stable identity exists on those rows, and legacy recordId is not in current regenerated plan context.
+
+Publish execution called
+- no
+
+Live mutation occurred
+- no
+
+mutationAllowed values
+- preview: false
+- corrections API: false
+- publish audit API: false
+
+Validation result
+- Dry-run was generated safely.
+- No publish execution endpoint called.
+- No live profile mutation occurred.
+- KPI not met yet: old correction -> current candidate rehydration did not occur for this specific legacy Truck #2 correction set.
+
+Next safe action
+- Backfill stable identity metadata onto this legacy correction chain (or add one bridging correction entry carrying stableReviewKey/normalizedPhone/name+city for this legacy record), then rerun this same verification.

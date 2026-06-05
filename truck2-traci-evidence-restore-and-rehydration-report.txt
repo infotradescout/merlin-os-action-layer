@@ -1,0 +1,74 @@
+Truck #2 Traci Evidence Restore and Rehydration Report
+
+Target business:
+- Traci's Cherished Creations LLC
+
+Known identity:
+- phone: 850-255-8396
+- cityArea: Pensacola, FL
+- socialHandle: tracischerishedcreations
+- legacy correction recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Original Traci evidence file IDs/names found in recovery artifacts:
+- 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 | Screenshot_20260527_115713_Facebook.jpg
+- 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq | Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg
+- 1ZSODmteznUWR8MHthOfzuGkC15AEP4ps | FB_IMG_1779901042554.jpg
+
+Artifacts used:
+- truck2-recovery-artifact-scan.json
+- truck2-recovery-folders.json
+- truck2-recovery-file-audit.json
+- truck2-recovery-batches.json
+
+Active intake folder:
+- id: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- name/path: Merlin OR Storage/MealScout Intake/incoming/unknown
+
+Existence + location checks:
+- Historical evidence: PRESENT in prior run artifacts (multiple references to all 3 file IDs).
+- Current live intake context (file-audit for folder 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF):
+  - file count: 200
+  - current visible set is a different IMG_59xx-style set
+  - direct matches for the 3 Traci IDs/names: 0
+- Current batches endpoint: empty in this runtime context.
+
+Restore attempt/action:
+- Intended safe action: copy original 3 files into active intake folder (keep source copy, no delete).
+- Direct Drive restore via local client was BLOCKED by runtime gate:
+  - error: "Drive sync is disabled"
+  - no copy/move/requeue mutation executed.
+- Because restore could not be executed from this runtime, source files could not be reintroduced programmatically in this step.
+
+File-audit visibility after restore:
+- Not restored in this run (blocked by Drive sync gate).
+- Traci files remain not visible in current active context.
+
+Preview candidate regeneration:
+- current Traci candidate generated: no (not observable)
+- preview call with full Drive-folder load timed out in this runtime and did not return a candidate payload in time.
+
+Stable correction rehydration:
+- rehydrated: no
+- match method: n/a (no current candidate available)
+- reviewState: n/a (candidate missing)
+
+Rejected/deferred field checks:
+- rejected fields excluded: not re-evaluable without current candidate context
+- deferred fields preserved: not re-evaluable without current candidate context
+
+Final recommendation:
+- SOURCE_EVIDENCE_UNAVAILABLE
+- blocked reason: Original Traci evidence is not present in current active intake context, and automated restore/copy was blocked by Drive sync being disabled in runtime.
+
+Exact operational fix required next:
+1. Enable Drive sync/write path for this runtime or run restore using a Drive-authorized operator path.
+2. Copy (do not move/delete) the 3 Traci files into active intake folder:
+   - 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg (incoming/unknown)
+3. Verify file-audit contains those file IDs (or their copied IDs) and names.
+4. Re-run preview with loadFromDriveFolder to regenerate a current Traci candidate.
+5. Re-run Truck #2 dry-run rehydration verification.
+
+Safety confirmation:
+- publish execution called: no
+- live mutation: no
+- mutationAllowed values: remained false on read-only intake/audit endpoints used in this diagnostic flow.

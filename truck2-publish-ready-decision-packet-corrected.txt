@@ -1,0 +1,24 @@
+Truck #2 Publish-Ready Decision Packet (Corrected)
+
+- original recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Original planned fields (from packet):
+- truckName: Traci's Cherished
+- phone: 850-255-8396
+- facebook: DINNERS
+- cityArea: Pensacola, FL
+- cuisine: BBQ
+
+Rejected fields:
+- facebook: DINNERS
+- cuisine: BBQ
+
+Corrected candidate fields:
+- truckName/businessName: Traci's Cherished Creations LLC
+- phone: 850-255-8396
+- cityArea: Pensacola, FL
+- socialHandle: tracischerishedcreations
+
+Recommendation: HOLD_FOR_REVIEW
+Reason: field correction needed before execution.
+Notes: valid business identity found, but planned social/cuisine fields are not reliable enough to execute as-is.

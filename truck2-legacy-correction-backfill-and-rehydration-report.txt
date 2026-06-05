@@ -1,0 +1,68 @@
+Truck #2 Legacy Correction Backfill and Rehydration Report
+Generated: 2026-05-31
+
+target legacy recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+metadata fields before backfill
+- rows without stable metadata: 8
+- sample correction IDs without metadata: ms-correction-d91b5f37-5d51-4d47-a4c6-40f2dafcea9b, ms-correction-93e6424a-083b-433e-ae6b-f6adee939b2f, ms-correction-61b9b463-c64a-47f2-95ac-9abfa6f5b8c4, ms-correction-bdab9dda-bf92-4c07-8594-43881694c429, ms-correction-22b643c6-4374-49ae-932e-053340f6c71b
+
+metadata fields after backfill
+- rows with stable metadata: 2
+- backfill correctionId: ms-correction-75dffe76-ecd4-4ab6-b536-6f7ff3ad95c8
+- stableReviewKey: ||8502558396||tracischerishedcreationsllc||pensacola, fl
+- normalizedPhone: 8502558396
+- normalizedBusinessName: tracischerishedcreationsllc
+- normalizedCityArea: pensacola, fl
+
+stableReviewKey generated
+- ||8502558396||tracischerishedcreationsllc||pensacola, fl
+
+collision/conflict check result
+- correction stable-key collisions with other recordIds: 0
+- result: no collision
+
+sourceFileClusterId result
+- omitted (not safely derivable from legacy record context in current runtime plan)
+
+current matched publish-plan recordId
+- none
+
+match method used
+- none
+
+reviewState
+- none
+
+accepted fields in dry-run payload
+- none (no matched candidate)
+
+rejected fields excluded
+- not verifiable in payload (no matched candidate)
+
+deferred fields preserved
+- stored in corrections; payload projection not verifiable without matched candidate
+
+final recommendation
+- BLOCKED_FROM_PUBLISH
+
+blocked reason
+- record_not_in_current_publish_plan_context
+
+publish execution called
+- no
+
+live mutation
+- no
+
+mutationAllowed values
+- preview: 
+- corrections API: False
+- publish audit API: 
+
+validation result
+- legacy correction metadata backfill entry created
+- stable key collision check passed
+- rehydration to current candidate: not matched (no current candidate for Truck #2 identity in active plan context)
+- no publish execution; no live mutation

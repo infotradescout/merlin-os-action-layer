@@ -1,0 +1,23 @@
+Pilot 7S smoke summary (local test-backed)
+Date: 2026-05-30
+
+Scope:
+- Duplicate filename detection via /api/mealscout/intake/file-audit
+- Safe-mode duplicate skipping in /api/mealscout/intake/batches/run
+- No Drive mutations
+
+Results:
+- duplicate filename groups detected: PASS
+  - exact_filename_duplicate groups included IMG_4645.PNG pattern in test fixture
+  - groups preserve distinct file IDs and deterministic recommendedPrimaryFileId
+- safe-mode duplicate handling: PASS
+  - high-confidence duplicate candidates skipped by default
+  - skip reason surfaced as already_duplicate
+  - skippedDuplicateCount reported
+- mutation safety: PASS
+  - mutationAllowed:false for file audit and batch endpoints
+  - no rename/move/delete/publish execution added
+
+Notes:
+- This smoke used test fixtures and endpoint behavior checks.
+- Real-folder smoke should be run separately against folder 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF before commit if required.

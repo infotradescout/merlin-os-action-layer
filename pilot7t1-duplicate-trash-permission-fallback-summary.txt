@@ -1,0 +1,33 @@
+Pilot 7T.1 - Duplicate Trash Permission Fallback Summary
+Date: 2026-05-30
+
+Validation
+- npm run check: PASS
+- npx tsx --test tests/mealscout-batch-intake.test.ts: PASS
+- npx tsx --test tests/mealscout-profile-import.test.ts tests/mealscout-review-queue-ui.test.ts tests/mealscout-review-decision-persistence.test.ts tests/mealscout-publish-plan-preview.test.ts tests/mealscout-publish-execution.test.ts tests/mealscout-screenshot-extraction.test.ts tests/mealscout-ocr-adapter.test.ts: PASS
+
+Smoke (permission-blocked trash fallback path)
+- Mode: removalMode=trash with dangerous mode enabled (test fixture)
+- Drive trash permission: denied
+- Behavior:
+  - duplicate not trashed from Drive
+  - duplicate marked suppressed in MealScout intake
+  - result path: failed_permission_marked_suppressed
+  - reason: duplicate_removal_blocked_permission
+  - audit row written
+  - future safe-mode run skips suppressed duplicate as already_duplicate
+
+Observed counters
+- trashFailedPermissionCount: 1
+- markedSuppressedAfterPermissionFailureCount: 1
+- filesStillInDriveCount: 1
+
+Safety confirmation
+- Primary file remains protected (cannot remove primary file rule still enforced)
+- No publish execution called
+- No publish plan execution logic changed
+- Preview paths remain mutationAllowed:false
+- Attribution fields preserved in duplicate-removal audit inputs/rows
+
+Note
+- Live-folder endpoint smoke attempt crashed the running local server process during this session; fallback behavior is confirmed via deterministic endpoint test fixture that exercises the exact permission-denied branch.

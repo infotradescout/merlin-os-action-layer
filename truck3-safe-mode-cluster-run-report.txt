@@ -1,0 +1,68 @@
+Truck #3 Safe-Mode Cluster Run Report
+Date: 2026-05-30T18:12:24.1647877-05:00
+
+Request payload used:
+{
+  "safeMode": true,
+  "processByCluster": true,
+  "maxFiles": 5,
+  "mode": "process",
+  "repId": "MANUAL_OPERATOR",
+  "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+  "sourceChannel": "admin_safe_mode_review"
+}
+
+Batch run endpoint result:
+- endpoint: POST /api/mealscout/intake/batches/run
+- status: 200
+- ok: True
+
+Run summary:
+- batchId: ms-intake-batch-9c02d7b2-fc41-4743-beec-c11cb7cb698e
+- status: completed
+- mutationAllowed: False
+- scannedFileCount: 3
+- eligibleFileCount: 3
+- processedFileCount: 1
+- skippedFileCount: 0
+- failedFileCount: 0
+- draftCount: 1
+- safeMode: True
+- warnings: processing_cluster:ctx-cluster-1
+
+Files selected:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD | 707990078_2109431996279825_93215142009434330_n.jpg | class=menu | ocr=True
+
+Skipped files and reasons:
+- none
+
+Clusters detected:
+- ctx-cluster-1 | name= | status=weak_cluster | files=18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+- ctx-cluster-2 | name= | status=weak_cluster | files=1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+- ctx-cluster-3 | name= | status=weak_cluster | files=1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+
+Draft/profile candidates created or updated:
+- draftId=ms-draft-7f87da4fa7e32ba0 type=create_new truckName=powk DIES reviewStatus=missing_required
+- draftId=ms-draft-57de1c837c0dd82e type=create_new truckName=Lettys Backyard reviewStatus=missing_required
+
+Existing truck match attempts/results:
+- recordId=ms-plan-record-ms-draft-7f87da4fa7e32ba0 action=blocked existingTruckId= publishReady=False
+- recordId=ms-plan-record-ms-draft-57de1c837c0dd82e action=blocked existingTruckId= publishReady=False
+
+Menu/logo/profile evidence extracted:
+- draftId=ms-draft-7f87da4fa7e32ba0: menuItems=0 attachedMedia=0
+- draftId=ms-draft-57de1c837c0dd82e: menuItems=0 attachedMedia=0
+
+Missing fields:
+- recordId=ms-plan-record-ms-draft-7f87da4fa7e32ba0: blockedReasons=missing_city_or_service_area|missing_contact_or_web_or_social warnings=
+- recordId=ms-plan-record-ms-draft-57de1c837c0dd82e: blockedReasons=missing_contact_or_web_or_social|missing_menu_or_menu_deferred warnings=menu missing and not deferred
+
+Mutation/publish safety:
+- mutationAllowed (preview): False
+- publish execution called: no
+
+Post-run checks:
+- POST /api/mealscout/intake/preview => status=200, ok=True
+- GET /api/mealscout/intake/file-audit => status=200, ok=True
+- GET /api/mealscout/intake/batches => status=200, ok=True
+- server alive => True

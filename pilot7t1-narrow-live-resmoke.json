@@ -1,0 +1,14 @@
+{
+  "duplicateGroupId": "dup-img_4536_png-1q8rm1",
+  "primaryFileId": "1q8rm1mvi7AFwVhKhu4-nF7kgdBs1Gy6y",
+  "duplicateFileId": "1NL_5xU5PvCTpC2v3LtNnrm_ERQtwqG4k",
+  "drivePermissionResult": "duplicate_removal_blocked_permission",
+  "fallbackResult": "marked_duplicate",
+  "trashFailedPermissionCount": 1,
+  "markedSuppressedAfterPermissionFailureCount": 1,
+  "filesStillInDriveCount": 1,
+  "auditId": "ms-dup-audit-94e41062-0bdf-48b5-ae09-fde54741b5ff",
+  "serverAlive": false,
+  "previewMutationAllowed": null,
+  "suppressedSkippedInBatch": false
+}

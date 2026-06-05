@@ -1,0 +1,112 @@
+Truck #2 Publish-Plan Inclusion Diagnostic
+Generated: 2026-05-31
+
+Target recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Known state validated
+- Corrections persisted: yes (9 correction rows currently for target recordId)
+- Final review recommendation stored in corrections: REVIEW_READY/HOLD_FOR_REVIEW notes exist
+- Publish dry-run outcome: BLOCKED_FROM_PUBLISH in current context
+- Publish execution called: no
+- Live mutation: no
+- mutationAllowed on review/preview paths: false
+
+1. Publish-plan generator location/function/endpoint
+- Endpoint: POST /api/mealscout/intake/preview (src/server.ts)
+- Plan build call: buildMealScoutPublishPlanPreview(drafts, reviewDecisions, { corrections, attachmentDecisions })
+- Builder: src/mealscoutPublishPlan.ts -> buildMealScoutPublishPlanPreview()
+- Record ID generation: `recordId = ms-plan-record-<joined draftIds>` (derived per generated draft group each preview run)
+
+2. Source data used by publish-plan
+- Source drafts are generated from the current preview request inputs only (current OCR/hydration result).
+- No persistent draft store is queried for historical drafts by recordId.
+- Corrections are loaded globally, then applied only to currently generated plan records by exact recordId match.
+- Review decisions model supports: same_truck | keep_separate | needs_review (no REVIEW_READY decision type).
+
+3. Filters/conditions applied (inclusion)
+- Inclusion set = drafts generated in this preview call.
+- Record appears only if its draft/group is regenerated in this run.
+- Corrections rehydration requires exact current `record.recordId === correction.recordId`.
+- If draft IDs/grouping differ, recordId changes and prior corrections do not bind.
+
+4. Target presence by store
+- Raw intake draft records:
+  - Not persisted as a long-lived store; generated per preview/batch run context.
+  - Historical artifact (`truck2-preview.json`) shows target draft/record existed earlier.
+- Review corrections store:
+  - Present (9 rows for target recordId).
+- Review-ready queue:
+  - No dedicated persistent REVIEW_READY queue/store in current backend model.
+  - REVIEW_READY is currently represented by correction notes, not a first-class publish-plan inclusion state.
+- Publish-plan candidate set (current run):
+  - Target record NOT present.
+- File audit:
+  - In current explicit folder audit (`folderId=1Mw14...`), original Traci file IDs used earlier are not present.
+- Batch records:
+  - Historical Truck #2 batch ID not found currently (in-memory batch history is runtime-ephemeral).
+
+5. Exact reason target is missing
+Primary cause: data/context + ID binding gap.
+- Publish plan is regenerated from current folder evidence, producing a new draft/record universe.
+- Target recordId is run-derived and transient (depends on current draft IDs/grouping).
+- Corrections are keyed to old recordId; current plan has no matching recordId, so corrections are not applied.
+- Additional contributor: relevant original Traci source file IDs from the earlier run are not present in current folder audit snapshot, so the same draft may not re-materialize.
+
+6. Classification of issue
+- Not a publish safety failure.
+- Type: query/filter logic + correction rehydration key mismatch + ephemeral state behavior.
+  - Query/filter: plan candidates come only from current preview drafts.
+  - Rehydration gap: corrections keyed by transient recordId.
+  - State behavior: batch/draft context is runtime-ephemeral; historical IDs are not guaranteed stable.
+
+7. REVIEW_READY inclusion status
+- REVIEW_READY is not a first-class review decision type in `mealscoutReviewDecisions`.
+- Current publish-plan inclusion does not explicitly include/exclude by REVIEW_READY status; it includes current generated drafts, then evaluates blockers.
+
+8. menuDeferred/cuisineDeferred impact
+- menuDeferred can remove menu blocker when present on the current matching plan record.
+- cuisineDeferred is currently stored as correction metadata/note and not a core gate field in builder logic.
+- Neither deferral matters if the target record itself is absent from current plan context.
+
+9. recordId prefix/type exclusion check
+- No special exclusion of `ms-plan-record-ms-draft-*` prefix detected.
+- Exclusion is effectively by non-membership in current generated record set and by exact recordId mismatch for corrections.
+
+10. Suppressed/archived/stale checks
+- No evidence that the target was excluded by publish execution state.
+- Strong evidence of stale context:
+  - historical target record exists in prior artifacts,
+  - current run context produces different/no matching record,
+  - original Traci file IDs not found in current explicit folder audit snapshot.
+
+Recommended smallest safe patch (do not implement yet)
+Option A (preferred minimal safety patch):
+- Add a stable correction-binding key independent of transient recordId, e.g. draft fingerprint based on sourceFileIds + normalized identity signals.
+- Apply corrections by:
+  1) exact recordId match (current behavior), else
+  2) draftId match, else
+  3) stable fingerprint match.
+
+Option B (small operational patch):
+- Persist preview draft snapshots for REVIEW_READY candidates with immutable draftSnapshotId.
+- Publish dry-run/execute references draftSnapshotId instead of transient plan recordId.
+
+Either patch must keep:
+- no auto-publish,
+- mutationAllowed:false for preview,
+- stale-plan checks,
+- full audit trail.
+
+Validation steps for patch
+1. Recreate Truck #2 correction scenario.
+2. Regenerate preview in changed context (new draft IDs).
+3. Confirm corrected draft still appears in publish-plan dry-run via stable binding.
+4. Confirm rejected fields remain excluded.
+5. Confirm deferred fields remain attached.
+6. Confirm no publish execution occurs.
+
+Safety confirmation
+- Publish execution called: no
+- Live public profile mutation: no
+- mutationAllowed remained false for diagnostic/preview/corrections paths.

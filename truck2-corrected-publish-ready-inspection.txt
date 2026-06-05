@@ -1,0 +1,25 @@
+Inspect corrected Truck #2 publish-ready record after Pilot 7R
+truckName = Traci's Cherished Creations LLC
+phone = 850-255-8396
+cityArea = Pensacola, FL
+socialHandle = tracischerishedcreations
+facebook:DINNERS removed = true
+cuisine:BBQ removed = true
+menuEvidenceAttached = true
+logoCandidatePresent = true
+blockedReasons = none
+warnings = menu missing and not deferred,menu_image_attached_pending_structuring
+onlyAcceptableWarnings = true
+attributionPreserved = true
+evidenceRefsPresent = true
+sourceFileIdsPresent = true
+recommendation = APPROVE_FOR_EXECUTION
+execute payload (do not run):
+{
+  "planId": "ms-plan-611da695-1cee-445b-a45c-9d5bd28e76d6",
+  "recordIds": [
+    "ms-plan-record-ms-draft-6dd6fa51a86deb48"
+  ],
+  "confirmation": true,
+  "operatorId": "MANUAL_OPERATOR"
+}

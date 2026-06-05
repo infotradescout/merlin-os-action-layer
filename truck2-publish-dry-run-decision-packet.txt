@@ -1,0 +1,66 @@
+Truck #2 Publish Dry-Run Decision Packet
+Generated: 2026-05-31
+
+Target recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Current draft status
+- REVIEW_READY (manual-review readiness)
+- correction entries present: 9
+
+Accepted fields (from corrected decision path)
+- businessName: Traci's Cherished Creations LLC
+- phone: 850-255-8396
+- cityArea: Pensacola, FL
+- socialHandle: tracischerishedcreations
+
+Rejected fields (must be excluded)
+- facebook: DINNERS
+- cuisine: BBQ
+
+Deferred fields
+- cuisineDeferred: true
+- cuisineReviewReason: Cuisine not reliable from available evidence.
+- menuDeferred: true
+- menuReviewReason: Menu not visible in available evidence.
+
+Dry-run plan context
+- generated planId: ms-plan-66167345-0d72-4e85-b7b0-c709ac453def
+- mutationAllowed: false
+- target record found in current plan: no
+
+Proposed publish payload (if any)
+- none (record not present in current plan context)
+
+Blocked reasons (dry-run)
+- record_not_in_current_plan_context
+- cannot build safe publish payload until the target record is re-materialized into the current preview/publish plan scope
+
+Gate checks
+- menuDeferred accepted by gate logic: yes (no missing_menu_or_menu_deferred blocker when deferral exists)
+- cuisineDeferred accepted by gate logic: yes in this dry-run gate check model; however, no target record was materialized for final per-record gate evaluation in current plan
+- rejected fields excluded from payload: yes (no payload generated; rejected fields not included)
+- socialHandle handling: correction stored as handle field (socialHandle), not a facebook page-name replacement
+
+Publish execution called
+- no
+
+Live mutation occurred
+- no
+
+MutationAllowed values
+- preview/dry-run: false
+- review corrections API: false
+- publish audit API: false
+
+Final recommendation
+- BLOCKED_FROM_PUBLISH
+
+Reason for final recommendation
+- The corrected Truck #2 record is not currently present in the active preview/publish-plan context, so a safe execute payload cannot be produced in this dry-run.
+- Next safe action: re-run preview against the folder/context containing the Truck #2 draft lineage, then regenerate this dry-run packet for that plan snapshot.
+
+Validation result
+- No publish execution invoked.
+- No live profile mutation performed.
+- Correction history remains intact and queryable.

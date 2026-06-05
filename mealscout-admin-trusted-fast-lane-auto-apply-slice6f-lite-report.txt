@@ -1,0 +1,135 @@
+# MealScout Admin Trusted Fast-Lane Auto Apply Slice 6F-Lite Report
+
+## Scope Result
+Implemented an admin-only trusted fast lane that runs:
+Drive sync -> process new batches -> evaluate cards with strict eligibility -> auto-apply only clean safe cards -> route risky cards to manual review.
+
+## Files Changed
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+## Endpoint Added
+### `POST /api/mealscout/intake/drive/admin-fast-lane`
+
+Role gate:
+- `admin/super-admin/operator/staff` only
+
+Request:
+- `confidenceThreshold` (default `0.85`)
+- `applyReason` (default `admin_fast_lane`)
+- `generateNotificationPreview` (boolean)
+
+Behavior:
+- Reuses existing sync/process pipeline behavior for newly detected + queued batches
+- Builds action cards via existing durable card ledger flow
+- Evaluates each card against strict fast-lane eligibility
+- Auto-applies only safe `create_profile_draft` and `update_existing_profile` cards
+- Routes all non-eligible/risky cards to manual review with explicit `skippedReason`
+- Preserves audit/attribution metadata
+- No auto-notification send
+- No Drive cleanup/delete/archive/suppress
+
+Response includes:
+- `status`
+- `detectedFileCount`
+- `newBatchCount`
+- `processedBatchCount`
+- `cardsCreatedCount`
+- `autoAppliedCount`
+- `manualReviewCount`
+- `failedApplyCount`
+- `notificationPreviewCount`
+- `batches`
+- `autoAppliedCards`
+- `manualReviewCards`
+- `failedCards`
+- `duplicateFileWarnings`
+- `errors`
+- `mutationAllowed:true`
+
+## Fast-Lane Eligibility Enforced
+Auto-apply is blocked unless all required conditions pass, including:
+- allowed role
+- card type is `create_profile_draft` or `update_existing_profile`
+- supported MealScout entity type
+- decision state pending/approved_for_apply only
+- not already applied
+- confidence >= threshold
+- no duplicate/conflict/replacement warnings
+- no create-with-existingEntityMatch
+- required identity fields present
+- dry-run produces actionable create/update result
+- no stale before-state conflict
+- no empty overwrite risk on updates
+
+## Non-Eligible Routing
+Non-eligible cards remain in review queue with explicit reasons (examples):
+- low confidence
+- duplicate/conflict/replacement warnings
+- unsupported card/entity type
+- existing match blocks create
+- missing required identity
+- dry-run skipped/no-op
+- stale conflict
+- prior apply failure
+
+## State/Audit Behavior
+- Pending cards can be promoted to `approved_for_apply` with reason including `admin_fast_lane`
+- `appliedBy`/`decisionBy` set to current operator identity
+- `applyResult` persists with source lineage
+- Existing rejected/deferred cards are not auto-applied
+- Re-run is idempotent: already applied cards are not re-applied
+
+## Notification Preview Behavior
+- If `generateNotificationPreview=true`, preview artifacts are generated for successfully applied cards
+- No notification send is executed
+- Notification state remains preview/manual-copy oriented per existing conventions
+
+## UI Changes
+In `/admin/mealscout-review-queue` Drive Intake section:
+- Added button:
+  - `Admin Fast Lane: Sync + Process + Auto-Apply Safe Cards`
+- Added confirmation prompt with safety scope warning
+- Added confidence threshold input (default `0.85`)
+- Added fast-lane run summary line with:
+  - detected files
+  - processed batches
+  - cards created
+  - auto-applied
+  - manual review
+  - failed
+  - notification previews
+  - duplicate warnings
+- Added quick filters:
+  - `Show Manual Review Required`
+  - `Show Auto-Applied`
+- Existing review queue and manual controls remain intact
+
+## Safety Guarantees Preserved
+- No automatic notification sending
+- No Drive cleanup/delete/archive/suppress
+- No affiliate payout logic
+- No affiliate portal behavior
+- No TradeScout mutation behavior
+- Duplicate/replacement warning behavior preserved
+
+## Validation
+- `npm run check` ✅
+- `npm run test -- --runInBand` ✅
+- `npm run build` ✅
+
+## Tests Added/Updated
+- Added backend test:
+  - `admin fast-lane auto-applies only safe cards and leaves risky cards for manual review`
+- Updated UI/client test to cover:
+  - fast-lane UI controls
+  - fast-lane client call
+  - fast-lane endpoint request usage
+
+## Operating Model Locked
+Two lanes:
+- Admin Fast Lane: clean high-confidence cards auto-applied
+- Manual Review: duplicates/conflicts/replacements/low-confidence/missing-info/unsupported cards

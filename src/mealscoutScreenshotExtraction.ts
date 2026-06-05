@@ -38,12 +38,12 @@ export type MealScoutScreenshotInput = {
     affiliateId?: string;
     affiliateEmail?: string;
     affiliateCode?: string;
+    repId?: string;
     affiliate_attribution_email?: string;
     affiliate_attribution_source?: 'folder_email_token';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
-    repId?: string;
     needsAttributionReview?: boolean;
     sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
     batchId?: string;
@@ -55,9 +55,12 @@ const CUISINE_KEYWORDS: Array<{ keyword: RegExp; value: string }> = [
   { keyword: /\bcajun\b/i, value: 'Cajun' },
   { keyword: /\bbbq\b|\bbarbecue\b/i, value: 'BBQ' },
   { keyword: /\bmexican\b|\btaco\b/i, value: 'Mexican' },
+  { keyword: /\bfilipino\b/i, value: 'Filipino' },
   { keyword: /\bseafood\b/i, value: 'Seafood' },
   { keyword: /\bburger\b/i, value: 'Burgers' },
   { keyword: /\bitalian\b/i, value: 'Italian' },
+  { keyword: /\bdessert\b|\bcake\b|\bcupcake\b|\bcookie\b|\bice\s*cream\b/i, value: 'Desserts' },
+  { keyword: /\bcoffee\b|\bespresso\b|\blatte\b/i, value: 'Coffee' },
   { keyword: /\basian\b|\bsushi\b|\bramen\b/i, value: 'Asian' },
   { keyword: /\bpizza\b/i, value: 'Pizza' },
   { keyword: /\bfusion\b/i, value: 'Fusion' }
@@ -106,12 +109,34 @@ function extractCuisine(text: string): string | undefined {
   return undefined;
 }
 
+function looksLikeLocationPhrase(value: string): boolean {
+  const safe = (value || '').trim();
+  if (!safe) return false;
+  if (/\b(authentic|fresh|homemade|delicious|best|family|owned|since)\b/i.test(safe)) return false;
+  if (/\b(menu|special|deal|plate|combo|order)\b/i.test(safe)) return false;
+  if (extractCuisine(safe)) return false;
+  if (/\b(\d{1,6}\s+[a-z0-9.'-]+\s+(st|street|rd|road|ave|avenue|blvd|lane|ln|dr|drive)\b)/i.test(safe)) return true;
+  if (/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})\b/.test(safe)) return true;
+  if (/\b(serving|located in|location|city|service area|based in)\b/i.test(safe)) return true;
+  return false;
+}
+
 function extractCityArea(text: string): string | undefined {
   const marker = text.match(/\b(city|location|area|serving|service area)[:\s]+([^\n]+)/i);
-  if (marker) return marker[2].trim();
+  if (marker) {
+    const candidate = marker[2].trim();
+    if (looksLikeLocationPhrase(candidate)) return candidate;
+  }
   const cityState = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*,\s*([A-Z]{2})\b/);
   if (cityState) return `${cityState[1]}, ${cityState[2]}`;
   return undefined;
+}
+
+function cleanupTruckName(value: string): string {
+  return value
+    .replace(/[^a-z0-9 '&.-]/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function extractTruckName(text: string): string | undefined {
@@ -127,12 +152,22 @@ function extractTruckName(text: string): string | undefined {
     if (/[@]|https?:\/\/|www\.|^\$/.test(line)) continue;
     if (/\$?\s?\d{1,3}(?:\.\d{2})\b/.test(line)) continue;
     if (/phone|email|menu|hours|location|city|facebook|instagram|tiktok/i.test(line)) continue;
-    const cleaned = line.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '').trim();
+    const cleaned = cleanupTruckName(line.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '').trim());
     if (!cleaned) continue;
     if (isMenuLikeTruckName(cleaned)) continue;
     return cleaned;
   }
   return undefined;
+}
+
+function looksNoisyMenuLine(value: string): boolean {
+  const safe = value.trim();
+  if (!safe) return true;
+  const alphaChars = (safe.match(/[a-z]/gi) || []).length;
+  const symbolChars = (safe.match(/[^a-z0-9\s$.,'-]/gi) || []).length;
+  if (alphaChars < 4) return true;
+  if (symbolChars > Math.max(3, Math.floor(alphaChars * 0.35))) return true;
+  return false;
 }
 
 function extractMenuItems(text: string): MealScoutExtractedMenuItem[] {
@@ -147,6 +182,7 @@ function extractMenuItems(text: string): MealScoutExtractedMenuItem[] {
     const priceValue = price[1].replace(/\s+/g, '');
     const name = line.replace(price[0], ' ').replace(/[-–:]+$/, '').trim();
     if (!name) continue;
+    if (looksNoisyMenuLine(name)) continue;
     out.push({ name, price: priceValue.startsWith('$') ? priceValue : `$${priceValue}` });
   }
   return out;

@@ -1,0 +1,63 @@
+Merlin PRD Voice + Affiliate Update Report
+Date: 2026-05-31
+
+Scope:
+- PRD and implementation-plan language update only.
+- No apply/publish implementation added.
+- No live mutation behavior changed.
+
+File updated:
+- docs/merlin-prd-v1.md
+
+Updates added:
+1) Input modes
+- Added explicit Merlin input modes:
+  - button-first input
+  - upload-first input
+  - voice-first input
+
+2) Voice-first rule
+- Added section defining voice as evidence/intent context only.
+- Added explicit non-authority rule:
+  - no publish from voice
+  - no live mutation from voice
+  - no preview/approval bypass
+
+3) Affiliate profile-link workflow
+- Added affiliate workflow for MealScout/TradeScout:
+  - affiliate uploads evidence
+  - Merlin builds draft/review preview
+  - affiliate receives shareable review/claim link
+  - outreach message: "Here’s your profile. Come check it out and maintain it."
+- Added constraint: affiliate uploads do not grant authority and do not auto-publish.
+
+4) Voice workflow chain
+- Added voice flow:
+  - voice -> transcript -> intent/action suggestion -> extracted changes -> preview/edit packet -> approval later
+
+5) Safety requirements reaffirmed
+- No silent publishing
+- No live mutation from voice
+- No authority granted from affiliate upload
+- No staff/admin bypass
+- Stop at preview/review until explicit approval/apply phase
+
+6) Future endpoint/type placeholders (documented only)
+- POST /api/merlin/intake/voice
+- POST /api/merlin/intake/voice/:voiceInputId/suggest-actions
+- POST /api/merlin/intake/voice/:voiceInputId/confirm-action
+- POST /api/merlin/intake/voice/:voiceInputId/preview
+- Documented VoiceInput fields in PRD
+
+7) KPI update
+- Added KPI language that users can click, upload, or speak and still end at preview without live updates.
+
+Implementation impact:
+- No runtime endpoint changes in this update.
+- No publish/apply path changes.
+- No data mutation behavior changes.
+
+Safety confirmation:
+- publish execution called: no
+- live mutation: no
+- apply implementation added: no

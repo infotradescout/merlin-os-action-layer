@@ -1,4 +1,6 @@
 export type AffiliateFolderAttribution = {
+  attributionSource?: 'folder_context';
+  attributionStatus?: 'matched_affiliate_folder' | 'unknown';
   affiliate_attribution_email?: string;
   affiliate_attribution_source?: 'folder_email_token';
   affiliate_attribution_folder?: string;
@@ -16,13 +18,23 @@ function cleanFolderSegment(segment: string): string {
     .trim();
 }
 
+export function extractNearestAffiliateEmailFolder(input: {
+  folderPath?: string;
+  drivePath?: string;
+  fileName?: string;
+}): string | undefined {
+  return resolveAffiliateFolderAttributionFromPath(input).affiliate_attribution_email;
+}
+
 export function resolveAffiliateFolderAttributionFromPath(input: {
   folderPath?: string;
   drivePath?: string;
   fileName?: string;
 }): AffiliateFolderAttribution {
   const rawPath = (input.folderPath || input.drivePath || '').trim();
-  if (!rawPath) return {};
+  if (!rawPath) {
+    return {};
+  }
   const parts = rawPath
     .split(/[\\/]+/)
     .map(cleanFolderSegment)
@@ -41,24 +53,20 @@ export function resolveAffiliateFolderAttributionFromPath(input: {
       warnings.push('invalid_email_named_parent_folder');
     }
   });
-  if (validEmailFolders.length === 0) {
-    return warnings.length > 0 ? { affiliate_attribution_warnings: Array.from(new Set(warnings)) } : {};
+  if (validEmailFolders.length > 0) {
+    if (validEmailFolders.length > 1) warnings.push('multiple_email_named_parent_folders');
+    const nearest = validEmailFolders[validEmailFolders.length - 1];
+    return {
+      attributionSource: 'folder_context',
+      attributionStatus: 'matched_affiliate_folder',
+      affiliate_attribution_email: nearest.email,
+      affiliate_attribution_source: 'folder_email_token',
+      affiliate_attribution_folder: nearest.folder,
+      affiliate_attribution_folder_path: parts.slice(0, nearest.index + 1).join('/'),
+      affiliate_attribution_warnings: Array.from(new Set(warnings))
+    };
   }
-  if (validEmailFolders.length > 1) warnings.push('multiple_email_named_parent_folders');
-  const nearest = validEmailFolders[validEmailFolders.length - 1];
   return {
-    affiliate_attribution_email: nearest.email,
-    affiliate_attribution_source: 'folder_email_token',
-    affiliate_attribution_folder: nearest.folder,
-    affiliate_attribution_folder_path: parts.slice(0, nearest.index + 1).join('/'),
-    affiliate_attribution_warnings: Array.from(new Set(warnings))
+    affiliate_attribution_warnings: rawPath.includes('@') ? ['invalid_email_named_parent_folder'] : undefined
   };
-}
-
-export function extractNearestAffiliateEmailFolder(input: {
-  folderPath?: string;
-  drivePath?: string;
-  fileName?: string;
-}): string | undefined {
-  return resolveAffiliateFolderAttributionFromPath(input).affiliate_attribution_email;
 }

@@ -1,0 +1,106 @@
+Merlin Intake Admin Review UI + Card Decision States Slice 3 Report
+Date: 2026-05-31
+
+Goal
+- Make action cards operationally reviewable in UI with explicit decision states.
+- Keep live mutation disabled.
+
+Files changed
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- public/mealscout-review-queue.html
+- public/mealscout-review-queue-client.js
+- tests/merlin-intake-action-cards-dryrun.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+Implemented behavior
+1) Decision state model added
+- Cards now persist decision metadata:
+  - decisionState: pending | approved_for_apply | rejected | deferred
+  - decisionBy
+  - decisionAt
+  - decisionReason
+- Default state is pending.
+- Rejected/deferred preserve sourceFileIds and extractedFields.
+
+2) Backend decision endpoint added
+- PATCH /api/mealscout/intake/action-cards/:cardId/decision
+- Accepts:
+  - decisionState: approved_for_apply | rejected | deferred
+  - decisionReason optional
+- Returns:
+  - cardId, batchId, decisionState, decisionBy, decisionAt, decisionReason, mutationAllowed:false
+- Invalid decision state -> 400 invalid_decision_state
+- Unknown card -> 404 action_card_not_found
+- Role-gated (admin/operator/staff style gate)
+
+3) Review queue endpoints available
+- GET /api/mealscout/intake/action-cards
+- GET /api/mealscout/intake/batches/:batchId/action-cards
+- Cards include decision state data and remain non-mutating.
+
+4) Dry-run behavior preserved
+- POST /api/mealscout/intake/action-cards/:cardId/dry-run still non-mutating.
+- Remains available irrespective of decision state.
+- mutationAllowed remains false.
+
+5) Admin Review UI section added
+- Existing /admin/mealscout-review-queue now includes “Merlin Intake Action Card Review”.
+- UI shows:
+  - card type, entity type, confidence, title
+  - extracted fields, missing fields
+  - existing entity match
+  - source file IDs
+  - decision state + reason
+- UI filters:
+  - batchId, card type, decision state, confidence band
+- UI controls:
+  - Dry Run
+  - Approve for Apply
+  - Reject
+  - Defer
+- Controls call backend endpoints through client methods.
+- Approve for Apply is clearly state-only; no publish/apply mutation added.
+
+6) Client API additions
+- getActionCards(filters)
+- getBatchActionCards(batchId)
+- dryRunActionCard(cardId)
+- setActionCardDecision(cardId, payload)
+
+7) Safety guarantees maintained
+- No live profile mutation path added.
+- No publish endpoint calls from new decision logic.
+- No notifications.
+- No Drive cleanup/delete behavior.
+- Existing preview/dry-run behavior remains backward compatible.
+
+Tests added/updated
+- tests/merlin-intake-action-cards-dryrun.test.ts
+  - default decisionState pending
+  - decision endpoint approved_for_apply update with no mutation
+  - rejected/deferred updates preserve evidence fields
+  - invalid decision state 400
+  - unknown card 404
+  - non-admin access denied
+  - dry-run non-mutation verified
+- tests/mealscout-review-queue-ui.test.ts
+  - page renders new action card review section and controls
+  - client methods call action-card list/dry-run/decision endpoints
+
+Validation
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (333/333)
+- npm run build: PASS
+
+Safety confirmations
+- publish execution called: no (from new slice behavior)
+- live mutation occurred: no
+- cleanup/delete called: no
+
+Decision gate status
+- Slice 3 gate achieved:
+  - cards can be reviewed
+  - dry-run can be inspected
+  - decisions can be recorded
+  - still no live apply/publish mutation

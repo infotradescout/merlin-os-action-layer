@@ -25,6 +25,7 @@ export interface DriveFileInfo {
 
 export interface DriveClient {
   listFilesInFolder(folderId: string): Promise<DriveFileInfo[]>;
+  listSubfoldersInFolder?(folderId: string): Promise<DriveFolderInfo[]>;
   getFileMetadata(fileId: string): Promise<DriveFileInfo>;
   downloadFileContent(fileId: string): Promise<string | undefined>;
   downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
@@ -84,6 +85,18 @@ class GoogleDriveClient implements DriveClient {
     return files
       .filter((file) => Boolean(file.id) && Boolean(file.name))
       .map(mapDriveFileInfo);
+  }
+
+  async listSubfoldersInFolder(folderId: string): Promise<DriveFolderInfo[]> {
+    const response = await this.drive.files.list({
+      q: `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+      fields: 'files(id,name)',
+      pageSize: 200
+    });
+    const folders = (response.data.files ?? []) as drive_v3.Schema$File[];
+    return folders
+      .filter((folder) => Boolean(folder.id) && Boolean(folder.name))
+      .map((folder) => ({ id: String(folder.id), name: String(folder.name) }));
   }
 
   async downloadFileContent(fileId: string): Promise<string | undefined> {

@@ -21,12 +21,12 @@ export type MealScoutFileAttribution = {
   affiliateId?: string;
   affiliateEmail?: string;
   affiliateCode?: string;
+  repId?: string;
   affiliate_attribution_email?: string;
   affiliate_attribution_source?: 'folder_email_token';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
   affiliate_attribution_warnings?: string[];
-  repId?: string;
   needsAttributionReview?: boolean;
   sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
   batchId?: string;

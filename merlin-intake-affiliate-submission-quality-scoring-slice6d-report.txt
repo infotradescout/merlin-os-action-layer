@@ -1,0 +1,148 @@
+# Merlin Intake Affiliate Submission Quality Scoring Slice 6D Report
+
+## Scope Result
+Implemented Slice 6D quality scoring for MealScout intake as an advisory-only layer over existing attribution/audit workflow.
+
+## Files Changed
+- src/server.ts
+- src/merlin/intake/actionCardQueue.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+## Durable Fields Added
+### Action Cards (durable store)
+- qualityScore
+- qualityBand (`unscored | high | medium | low | blocked`)
+- qualitySignals
+- qualityWarnings
+- qualityScoredAt
+- qualityScoredBy
+- qualityScoreVersion
+
+### Batch Runtime Records (MealScout drive automation batches)
+- qualityScore
+- qualityBand (`unscored | high | medium | low | blocked`)
+- qualitySignals
+- qualityWarnings
+- qualityScoredAt
+- qualityScoredBy
+- qualityScoreVersion
+
+## Endpoints Added
+1. `POST /api/mealscout/intake/batches/:batchId/quality/score`
+- role-gated to admin/operator/staff
+- recomputes quality for batch + all batch cards
+- persists card quality fields
+- persists batch quality aggregate
+- returns advisory quality result envelope
+- `mutationAllowed:false`
+
+2. `GET /api/mealscout/intake/affiliates/quality-summary`
+- role-gated to admin/operator/staff
+- returns affiliate-level quality aggregates:
+  - high/medium/low/blocked counts
+  - averageQualityScore
+  - applied/open/claim counts
+  - qualityWarnings
+- `mutationAllowed:false`
+- no payout math
+
+3. `PATCH /api/mealscout/intake/action-cards/:cardId/quality/override` (optional preferred in spec)
+- role-gated
+- requires `qualityReason`
+- manual band override with audit signal/warning capture
+- does not mutate apply/payout/notification/profile states
+- `mutationAllowed:false`
+
+## Scoring Behavior
+Added deterministic card scoring with:
+
+Positive signals (examples):
+- identity_name_present
+- contact_signal_present
+- location_signal_present
+- menu_or_service_details_present
+- multi_file_coherent_cluster
+- high_confidence_card
+- applied_profile_change
+- profile_link_generated
+- profile_link_opened
+- claim_or_review_started
+
+Negative/warning signals (examples):
+- duplicate_conflict_unresolved
+- conflict_warning_unresolved
+- replacement_candidate_unresolved
+- card_rejected
+- apply_failed_safety
+- missing_required_identity_fields
+- low_extraction_confidence
+- no_valid_recipient
+- no_profile_link
+- insufficient_evidence
+
+Banding:
+- `blocked` for rejected/apply-failed/replacement-risk safety conditions
+- `high` for strong score with no unresolved conflict warnings
+- `medium` for usable but incomplete/conflicted states
+- `low` for weak/unsafe evidence
+- `unscored` when insufficient processed evidence exists
+
+## UI/Client Updates
+### Client methods
+- `scoreBatchQuality(batchId)`
+- `getAffiliateQualitySummary()`
+- `setActionCardQualityOverride(cardId, payload)`
+
+### Review UI
+- Batch status cards now display quality band/score/warnings
+- Added per-batch `Score Quality` control
+- Action cards now display quality band/score/signals/warnings
+- Added per-card `Quality Override` control
+- Affiliate dashboard remains explicit about non-payout behavior
+
+## Safety Rules Preserved
+- Quality score is advisory only
+- No payout calculations
+- No payout execution
+- No automatic payout-ready approval
+- No automatic apply
+- No automatic notifications
+- No profile mutation from quality endpoints
+- No Drive cleanup/delete/archive/suppress behavior
+- No TradeScout quality scoring mutation path
+- Duplicate/replacement warnings remain visible and separate
+
+## Validation
+- `npm run check` ✅
+- `npm run test -- --runInBand` ✅
+- `npm run build` ✅
+
+## Test Coverage Added/Updated
+- Added `affiliate quality scoring is advisory and does not mutate profile/apply/notification state`
+  - role gate checks
+  - score endpoint response behavior
+  - quality summary shape and no payout amounts
+  - manual override reason requirement
+  - manual override persistence behavior
+- Updated UI/client integration tests to cover:
+  - quality scoring endpoint
+  - quality summary endpoint
+  - quality override endpoint
+  - associated client calls
+
+## Runtime Mutation Confirmation
+- Publish execution called: **no**
+- Payout calculations added: **no**
+- Payout execution added: **no**
+- Live profile mutation from quality endpoints: **no**
+- Auto-apply added: **no**
+- Auto-notify added: **no**
+- Drive cleanup/delete/archive/suppress path added: **no**
+
+## Canonical Lines
+- Quality score is advisory, not payout approval.
+- Upload volume is not value.
+- Duplicates are evidence conflicts, not trash.

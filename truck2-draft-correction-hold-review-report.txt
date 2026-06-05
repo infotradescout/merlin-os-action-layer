@@ -1,0 +1,67 @@
+Truck #2 Draft Correction Hold Review Report
+Generated: 2026-05-31
+
+Target recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Current decision
+- HOLD_FOR_REVIEW
+
+Previous planned fields
+- truckName: Traci's Cherished
+- phone: 850-255-8396
+- facebook: DINNERS
+- cityArea: Pensacola, FL
+- cuisine: BBQ
+
+Rejected fields
+- facebook: DINNERS
+  - correctionId: ms-correction-b4f1a8b9-832a-4536-a411-598cbf26fcb6
+  - action: reject_field
+  - reason: Menu section label, not a social handle
+  - evidenceRef: DINNERS All Dinners come with 2 sides
+- cuisine: BBQ
+  - correctionId: ms-correction-1953a1de-1e27-4fcb-8689-4ba507f50631
+  - action: reject_field
+  - reason: Weak sauce/menu text, not reliable cuisine identity
+  - evidenceRef: ...BBQ-Honey Mustard...
+
+Corrected fields applied
+- truckName/businessName: Traci's Cherished Creations LLC
+  - correctionId: ms-correction-09467f11-1094-4d13-90a0-48d310c800b3
+  - action: replace_field
+  - originalValue: Traci's Cherished
+  - correctedValue: Traci's Cherished Creations LLC
+  - evidenceRef: Traci's Cherished Creations LLC
+- socialHandle: tracischerishedcreations
+  - correctionId: ms-correction-c42d1be0-64a5-46ee-b7df-c6f4cf9765ae
+  - action: add_field_with_evidence_note
+  - evidenceRef: @tracischerishedcreations
+- review recommendation note
+  - correctionId: ms-correction-9183824a-dca5-4c45-b9ac-9ee11dad2d22
+  - action: add_field_with_evidence_note
+  - fieldName: reviewRecommendation
+  - correctedValue: HOLD_FOR_REVIEW
+  - reason: Valid business identity found, but planned social/cuisine fields were not reliable enough to execute as-is.
+
+Original evidence/correction note preservation
+- Preserved: yes
+- All corrections include evidenceRef and operatorId=MANUAL_OPERATOR
+- All correction rows returned with mutationAllowed=false
+
+Live mutation checks
+- Any live public profile mutation occurred: NO
+- Publish execution endpoint called: NO
+- Publish audit endpoint state after correction call: mutationAllowed=false, records=[]
+
+Final recommendation
+- HOLD_FOR_REVIEW
+
+Final reason
+- Field correction needed before execution.
+- Valid business identity found, but planned social/cuisine fields were not reliable enough to execute as-is.
+
+Validation result
+- POST /api/mealscout/review-corrections (5 entries): success (201-equivalent ok responses)
+- GET /api/mealscout/review-corrections?recordId=...: success, correctionCount=5
+- No publish/execute operations performed.

@@ -1,0 +1,32 @@
+Pilot 7N Smoke Summary (safe low-batch mode)
+Date: 2026-05-30
+Folder: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+
+Run request:
+POST /api/mealscout/intake/batches/run
+{"folderId":"1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF","mode":"process","safeMode":true,"maxFiles":5}
+
+Observed response:
+- safeMode: true
+- safeModeLimits.defaultMaxFiles: 5
+- safeModeLimits.hardMaxFiles: 8
+- safeModeLimits.groupingMode: strict
+- scannedFileCount: 38
+- eligibleFileCount: 38
+- processedFileCount: 5
+- skippedFileCount: 33 (reason: not_selected)
+- failedFileCount: 0
+- draftCount: 4
+- mutationAllowed: false
+
+Behavior notes:
+- tiny-batch processing enforced (5 files)
+- strict safe-mode grouping path active
+- weak OCR / weak identity is forced toward needs_review in safe-mode logic
+- attribution preserved on processedFiles (sourceFileAttribution present)
+- no auto-publish behavior added
+
+Safety confirmation:
+- preview endpoints remain mutationAllowed:false
+- batch run is intake-only, no publish execution invoked
+- existing execution gates unchanged

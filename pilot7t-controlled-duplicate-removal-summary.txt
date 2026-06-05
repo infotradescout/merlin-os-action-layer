@@ -1,0 +1,26 @@
+Pilot 7T controlled duplicate removal summary
+Date: 2026-05-30
+
+Implemented:
+- POST /api/mealscout/intake/duplicates/remove (role-gated)
+- confirmation required
+- prevents primary file removal
+- supports removalMode: quarantine | mark_only | trash
+- trash blocked unless MEALSCOUT_ENABLE_DANGEROUS_TRASH_MODE=true
+- attribution conflict requires attributionConflictApproval=true
+- confidence threshold enforced (<0.95 skipped unless forceReviewApproved=true)
+- in-memory suppression state for duplicate-removed files
+- safe-mode intake now skips suppressed duplicate files
+- duplicate removal audit entries created per attempted file
+- file-audit includes duplicate suppression status and recommended action
+
+Safety:
+- no auto-publish
+- no publish execution call from duplicate flow
+- preview endpoints remain mutationAllowed:false
+- no payout logic
+
+Test highlights:
+- duplicate removal endpoint blocks primary removal
+- duplicate file can be mark_only suppressed
+- suppressed duplicate is skipped in subsequent safe-mode run

@@ -1,0 +1,133 @@
+MealScout Dedicated Drive Root Intake Orchestrator Report
+Date: 2026-06-01
+
+Summary
+Implemented dedicated-drive intake orchestration so MealScout can discover/process supported evidence across the connected Drive (not just /incoming/unknown), while preserving strict safety boundaries.
+
+Files Changed
+- src/server.ts
+- src/driveClient.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+
+What Was Implemented
+
+1) Drive scope modes
+- Added effective scope mode handling:
+  - managed_folder
+  - managed_folder_recursive
+  - dedicated_drive
+- Runtime default scope mode is now dedicated_drive for this workflow.
+
+2) Dedicated-drive scope endpoint
+- Added endpoint:
+  - PATCH /api/mealscout/intake/drive/scope
+- Supports request:
+  - { driveScopeMode: "dedicated_drive", reason: "..." }
+- Behavior:
+  - admin/operator/staff-gated
+  - no folderId required in dedicated mode
+  - ensures managed MealScout intake folder tree via discovery/provision call
+  - stores scope mode and audit metadata
+  - no file processing, no file move/delete/archive, no profile mutation
+  - mutationAllowed:false
+
+3) Inventory diagnostic (scope-aware)
+- Extended endpoint:
+  - GET /api/mealscout/intake/drive/inventory-diagnostic
+- Supports driveScopeMode query and reports:
+  - driveScopeMode
+  - managedFoldersReady
+  - managedFolders
+  - driveVisibleFileCount
+  - supportedEvidenceFileCount
+  - unsupportedFileCount
+  - folderCount
+  - mimeTypeCounts
+  - alreadySeenCount
+  - unattachedSeenCount
+  - eligibleForQueueCount
+  - sampleFiles/sampleFolders
+  - mutationAllowed:false
+
+4) Dedicated-drive discovery and recursive traversal
+- Added DriveClient capability:
+  - listSubfoldersInFolder(folderId)
+- Added server traversal helpers:
+  - listDriveFilesForScope(...)
+  - listDriveFilesForDedicatedScope(...)
+- dedicated_drive mode scans from root recursively and dedupes by fileId.
+
+5) Sync/sync-and-process/admin-fast-lane scope-aware options
+- Updated endpoints:
+  - POST /api/mealscout/intake/drive/sync
+  - POST /api/mealscout/intake/drive/sync-and-process
+  - POST /api/mealscout/intake/drive/admin-fast-lane
+- Added request support:
+  - driveScopeMode
+  - recursive
+  - folderId (for managed modes)
+  - includeUnattachedSeen
+  - maxFiles (default 100)
+  - maxFilesPerBatch (default 25)
+  - createdAfter (optional)
+  - modifiedAfter (optional)
+- Response now includes scope metadata and exclusion counts.
+
+6) Batch chunking strategy
+- Added deterministic chunking helper:
+  - chunkDriveFilesForBatches(files, maxFilesPerBatch)
+- Strategy:
+  - group by parent folder first
+  - deterministic order via modified-time sort
+  - chunk by maxFilesPerBatch
+- Avoids one giant batch by default.
+
+7) Seen-state requeue behavior
+- Added includeUnattachedSeen-aware selection path in sync selection logic.
+- Exclusion reasons surfaced via syncExclusionCounts including:
+  - already_seen_attached
+  - already_seen_unattached_requeue_available
+
+8) UI updates (/admin/mealscout-review-queue)
+- Added scope selector:
+  - Dedicated Drive
+  - Managed Folder
+  - Managed Folder Recursive
+- Added inputs/toggles:
+  - maxFiles (default 100)
+  - maxFilesPerBatch (default 25)
+  - recursive scan
+  - include unattached already-seen
+- Added controls:
+  - Run Inventory Diagnostic
+  - Set Intake Folder
+- Dedicated mode no longer requires folder ID for scope set.
+
+Safety Confirmation
+- No auto-send notification path added.
+- No file delete/archive/suppress path added.
+- No move-file behavior added in this patch.
+- Discovery/sync endpoints remain non-profile-mutating.
+- Sync-and-process remains non-apply.
+- Admin Fast Lane continues using existing strict eligibility before apply.
+- Duplicate/replacement/conflict warnings remain visible and gating behavior remains.
+
+Validation
+- npm run check: PASS
+- npx tsx --test tests/mealscout-batch-intake.test.ts tests/mealscout-review-queue-ui.test.ts: PASS
+- npm run build: PASS
+
+Tests Added/Updated
+- tests/mealscout-batch-intake.test.ts
+  - folder-scope + inventory diagnostic coverage
+  - dedicated_drive scope set without folderId
+  - dedicated-drive sync discovery coverage
+  - updated drive client stubs for root/subfolder traversal support
+
+Operational Next Step
+1. Set scope to dedicated_drive (or verify it is set).
+2. Run inventory diagnostic first.
+3. Confirm supportedEvidenceFileCount/eligibleForQueueCount are meaningful.
+4. Run sync-and-process capped at maxFiles=100, maxFilesPerBatch=25.

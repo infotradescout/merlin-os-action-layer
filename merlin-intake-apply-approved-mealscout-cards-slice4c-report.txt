@@ -1,0 +1,89 @@
+Decision
+
+Slice 4C is implemented and validated.
+
+Report: merlin-intake-apply-approved-mealscout-cards-slice4c-report.txt
+Date: 2026-06-01
+Status: PASS
+
+Goal
+
+Enable live apply execution for already-approved MealScout action cards only, using durable action-card ledger records and dry-run contract checks as the apply source.
+
+Files Changed
+
+- src/server.ts
+- src/merlin/intake/actionCardApplyRuntime.ts
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-dryrun.test.ts
+
+Implemented Behavior
+
+1. Approved-only apply gate
+- POST /api/mealscout/intake/action-cards/:cardId/apply remains role-gated to admin/operator/staff.
+- decisionState must be approved_for_apply or request returns 409.
+- Unknown card id returns 404.
+
+2. Durable idempotency
+- applyState/appliedBy/appliedAt/applyResult/applyError continue to persist via durable action-card queue.
+- Re-applying an already-applied card returns prior result with skippedReason: already_applied and no duplicate mutation.
+
+3. Dry-run contract re-check before mutation
+- Apply path re-runs dry-run simulation in-request.
+- update_existing_profile now carries before values from current entity snapshot in dry-run fieldDiffs.
+- Runtime mutation now verifies expected before value per field before applying patch.
+- If before-state changed, apply fails with stale_before_state_conflict.
+
+4. Exact mutation scope
+- update_existing_profile mutates only approved dry-run diff fields.
+- Empty/null/blank extracted values do not overwrite existing non-empty values.
+- create_profile_draft mutates only extractedFields payload.
+- sourceFileIds are preserved through apply metadata.
+
+5. Duplicate/replacement conflict behavior preserved
+- Duplicate-looking cards are not suppressed.
+- duplicateWarnings/conflictWarnings/replacementCandidate remain included in dry-run/apply responses.
+- Duplicate-like create requires allowDuplicateCreate:true; otherwise apply_failed with duplicate_override_required.
+
+6. Claim/missing/defer safe non-mutation handling
+- claim_existing_profile: no direct ownership transfer; returns apply_failed with pending_claim_not_supported.
+- request_missing_info: returns apply_failed with missing_info_task_not_supported.
+- defer_unclassified: returns apply_failed with defer_unclassified_no_apply.
+
+7. Apply response contract tightened
+- apply response now includes applyError when applicable.
+- optional applyReason request field is accepted and recorded into auditWarnings/applyResult metadata.
+
+8. UI behavior
+- Existing review queue UI still shows Apply Approved only for approved_for_apply and not-applied cards.
+- Duplicate/replacement confirmation gate remains (confirm prompt before override).
+- Apply result line now includes applyError in addition to skippedReason, warnings, replacement, and fieldDiff.
+
+Safety Confirmations
+
+- No affiliate/customer notifications were added.
+- No Drive cleanup/delete/archive/suppress behavior was added.
+- No TradeScout live apply behavior was added.
+- Duplicate/replacement warnings were not removed.
+- Preview endpoint remains mutationAllowed:false.
+- Dry-run endpoint remains mutationAllowed:false.
+- Decision endpoint remains mutationAllowed:false.
+- mutationAllowed:true is only returned by the apply endpoint for this flow.
+
+Validation
+
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (342/342)
+- npm run build: PASS
+
+Key Test Coverage Added/Updated
+
+- claim/request_missing/defer apply paths verified non-mutating with explicit skipped reasons.
+- applyReason accepted and reflected with applyError on blocked duplicate create.
+- stale before-state conflict enforcement remains covered on update path.
+- duplicate override required path remains covered.
+- idempotent re-apply remains covered.
+
+Result
+
+Slice 4C now supports controlled live MealScout mutation from approved cards with durable state, conflict surfacing, strict update checks, and no cross-scope side effects.

@@ -1,0 +1,29 @@
+Pilot 7T.1 Second Narrow Live Re-Smoke Summary
+Date: 2026-05-30
+
+Duplicate group used
+- duplicateGroupId: dup-img_4536_png-1q8rm1
+- primary file kept: 1q8rm1mvi7AFwVhKhu4-nF7kgdBs1Gy6y
+- duplicate file attempted: 1NL_5xU5PvCTpC2v3LtNnrm_ERQtwqG4k
+- duplicate was already suppressed before this run: True
+
+Drive permission / fallback
+- Drive permission result: duplicate_removal_blocked_permission
+- suppression result: marked_duplicate
+- trashFailedPermissionCount: 1
+- markedSuppressedAfterPermissionFailureCount: 1
+- filesStillInDriveCount: 1
+- audit ID: ms-dup-audit-04f7e1b4-2a6c-4092-b678-9491e273fe01
+
+Post-request server checks
+- preview check: ok
+- preview mutationAllowed: False
+- file audit check: ok
+- batch history check: ok
+- server alive: True
+
+Safety confirmation
+- no publish execution
+- primary file protected
+- fallback suppression path active
+- server stayed responsive after request

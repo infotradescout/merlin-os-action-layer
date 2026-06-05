@@ -1,12 +1,9 @@
-Merlin Real Screenshot Profile Seed Run Report
-generated_at: 2026-06-02T21:29:54.241Z
-git_head: current origin/main clean worktree
-verification_webhook_configured: false
-drive_preview_status: 200
-drive_source: {"folderId":"15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg","folderSource":"discovered","listedCount":3,"filteredOutCount":0}
-health_status: 200
-auth_health_status: 200
-auth_health_body: {"status":"disabled","auth":{"ready":true,"configured":true,"reason":null,"checkedAt":"2026-06-02T21:29:42.991Z"},"managedFolders":{"ready":false,"missing":["inbox","processed","needs_review","archived_sources","entity_files","exports","audit","system"]}}
+Merlin visible screenshot profile seed run report
+
+generated_at: 2026-06-05T15:35:06.304Z
+drive_scope_used: Merlin OR Storage/MealScout Intake/incoming/unknown
+affiliate_folders_found_count: 0
+screenshots_found_count: 3
 screenshots_processed_count: 3
 mealscout_created_count: 0
 mealscout_updated_count: 0
@@ -18,65 +15,18 @@ affiliate_ledger_rows_written: 0
 verification_email_sent_count: 0
 verification_email_failed_count: 0
 verification_email_not_available_count: 0
-provider_message_ids_count: 0
-safety_proof:
-email_verified_false: true
-insurance_verified_false: true
-claim_status_unclaimed: true
-affiliate_folder_email_not_used_as_recipient: true
-no_cleanup_delete_archive: true
-no_payout_path: true
-blocked_reason:
-MERLIN_PRODUCT_VERIFICATION_EMAIL_WEBHOOK_URL is not configured; no real verification email transport can send.
-Committed Drive preview discovered only 3 files in the active folder; larger dedicated-drive inventory endpoint is not present on current main.
-source_files:
-[
-  {
-    "fileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
-    "fileName": "707990078_2109431996279825_93215142009434330_n.jpg",
-    "sourceFolderId": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg"
-  },
-  {
-    "fileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
-    "fileName": "705770904_918342954569744_6077113333953277063_n.jpg",
-    "sourceFolderId": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg"
-  },
-  {
-    "fileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
-    "fileName": "706216881_1495538075647692_5427253878307980612_n.jpg",
-    "sourceFolderId": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg"
-  }
-]
-verification_email_records:
-[]
-seed_results:
-[
-  {
-    "seedId": "profile-seed-36a05e7c-5572-481e-b247-c7e60216ffe8",
-    "brand_lane": "MEALSCOUT",
-    "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
-    "sourceFileName": "707990078_2109431996279825_93215142009434330_n.jpg",
-    "seed_status": "blocked",
-    "verification_email_status": "blocked",
-    "blockedReason": "missing_required_identity",
-    "mutationAllowed": false
-  },
-  {
-    "seedId": "profile-seed-9f2b53ce-1625-46fb-a8d8-77ead22f9ba5",
-    "sourceFileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
-    "sourceFileName": "705770904_918342954569744_6077113333953277063_n.jpg",
-    "seed_status": "blocked",
-    "verification_email_status": "blocked",
-    "blockedReason": "ambiguous_or_unsupported_brand",
-    "mutationAllowed": false
-  },
-  {
-    "seedId": "profile-seed-c6f572a2-fbcb-4c86-b52f-9d11dab85fdb",
-    "sourceFileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
-    "sourceFileName": "706216881_1495538075647692_5427253878307980612_n.jpg",
-    "seed_status": "blocked",
-    "verification_email_status": "blocked",
-    "blockedReason": "ambiguous_or_unsupported_brand",
-    "mutationAllowed": false
-  }
-]
+folders_without_valid_email_count: 1
+files_without_attribution_count: 3
+
+safety_confirmations:
+- email_verified false
+- insurance_verified false
+- claim_status unclaimed
+- affiliate folder email not used as business email
+- no cleanup/delete/archive/suppress
+- no payout logic
+
+processed_results:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD | 707990078_2109431996279825_93215142009434330_n.jpg | MEALSCOUT | blocked |  |  | blocked | missing_required_identity
+- 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM | 705770904_918342954569744_6077113333953277063_n.jpg |  | blocked |  |  | blocked | ambiguous_or_unsupported_brand
+- 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl | 706216881_1495538075647692_5427253878307980612_n.jpg |  | blocked |  |  | blocked | ambiguous_or_unsupported_brand

@@ -1,0 +1,134 @@
+MealScout Drive Intake Inventory Diagnostic Report
+Date: 2026-06-01
+
+Goal
+- Explain why Admin Fast Lane returned detectedFileCount: 0 and newBatchCount: 0.
+
+Runtime Config / Scope
+- MERLIN_DRIVE_MODE=oauth
+- MERLIN_DRIVE_SYNC_ENABLED=true
+- MERLIN_DRIVE_ROOT_MODE=dedicated_drive
+- MERLIN_DRIVE_ROOT_FOLDER_NAME=Merlin OR Storage
+- MERLIN_DRIVE_SYNC_MODE=manual
+- Active MealScout intake folder (runtime discovery): Merlin OR Storage/MealScout Intake/incoming/unknown
+- Active folder ID: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+
+Folder Resolution Proof
+- /api/mealscout/intake/folders status: ready
+- Root folder ID: 1Ht0Fk5p8YhyaaHE74F8fzh2g75SyIiYc
+- MealScout Intake root ID: 1UT4rR8p1SVPbE-jRRZbyinurGvTT5od9
+- incoming ID: 1pZOsk3pXSb_2mjBgVHx6KD0ZIoUcp52t
+- incoming/unknown ID: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- incoming/screenshots ID: 1hrGNFOdmYVHj5ZoWg-xY4ANSkmYj75Gb
+- incoming/logos ID: 1fLKTWLPmSlmuv1_RsqjYZe6jx4oDtQyk
+- incoming/menus ID: 1MkWq-coeHMyo55EuU3o8sHANf4nUSC3i
+
+Drive Listing Counts
+- Direct files in incoming/unknown (the folder sync actually scans): 3
+- Direct files in incoming/screenshots: 0
+- Direct files in incoming/logos: 0
+- Direct files in incoming/menus: 0
+- Direct files in incoming (parent): 0
+- Total files across known incoming subfolders: 3
+
+MIME Counts (active scanned folder: incoming/unknown)
+- image/jpeg: 3
+- image/png: 0
+- image/webp: 0
+- application/pdf: 0
+- folders: 0 (folders excluded by query)
+- unsupported/other: 0
+
+Recursion Check
+- Current sync is NOT recursive.
+- Code path uses driveClient.listFilesInFolder(resolved.folderId) with resolved.folderId = incoming/unknown.
+- It does not scan sibling folders or nested subfolders.
+
+File-Audit Comparison
+- /api/mealscout/intake/file-audit returned 3 file assumptions.
+- All 3 active-folder files are already in file-audit with status=unattached.
+- Comparison:
+  - visible in Drive but not audited: 0
+  - audited but not attached to batch: 3
+  - audited and attached: 0 (no persisted batch linkage visible in batch-history endpoint)
+  - audited suppressed/ignored/unknown: 3 unknown/unattached
+
+Sync Exclusion Evidence
+- POST /api/mealscout/intake/drive/sync returned:
+  - detectedFileCount: 0
+  - newBatchCount: 0
+  - ignoredFileCount: 3
+- Exclusion reason from sync logic: already_seen (in-memory mealScoutDriveFileToBatchId contains these 3 IDs).
+
+Why detectedFileCount is 0
+Likely reasons confirmed:
+1) already_seen
+- The 3 visible files in incoming/unknown are treated as previously seen by in-memory file-to-batch map, so they are ignored.
+
+2) active folder population mismatch
+- Runtime active folder currently contains only 3 files, not hundreds.
+- If hundreds exist elsewhere, they are outside current active scan scope.
+
+Not indicated by evidence:
+- unsupported_mime: no
+- permission_denied: no
+- query_filter_excluded for type: no (all 3 are supported image/jpeg)
+- wrong OAuth account auth failure: no (auth ready)
+- subfolder_not_scanned inside incoming/unknown: not applicable from current sample; sync is single-folder, non-recursive by design.
+
+10 Sample File Rows (available rows: 3)
+1)
+- fileId: 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+- name: 707990078_2109431996279825_93215142009434330_n.jpg
+- mimeType: image/jpeg
+- parentFolderId: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- createdTime: unavailable in current list response
+- modifiedTime: 2026-05-29T04:15:40.000Z
+- auditState: unattached / attribution unknown
+- batchId: not exposed in current read endpoints
+- exclusionReason: already_seen
+
+2)
+- fileId: 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+- name: 705770904_918342954569744_6077113333953277063_n.jpg
+- mimeType: image/jpeg
+- parentFolderId: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- createdTime: unavailable in current list response
+- modifiedTime: 2026-05-29T04:15:36.000Z
+- auditState: unattached / attribution unknown
+- batchId: not exposed in current read endpoints
+- exclusionReason: already_seen
+
+3)
+- fileId: 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+- name: 706216881_1495538075647692_5427253878307980612_n.jpg
+- mimeType: image/jpeg
+- parentFolderId: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- createdTime: unavailable in current list response
+- modifiedTime: 2026-05-29T04:15:33.000Z
+- auditState: unattached / attribution unknown
+- batchId: not exposed in current read endpoints
+- exclusionReason: already_seen
+
+Conclusion
+- Screenshot processing pipeline is not the immediate blocker.
+- Immediate blocker is intake inventory/scope state:
+  - Active scanned folder currently has only 3 files.
+  - Those 3 are being ignored as already_seen.
+- If you expect hundreds, they are not currently visible in this active folder path/scope.
+
+Recommended Next Action (no behavior change yet)
+1) Verify the exact Drive folder where the “hundreds” are currently stored and compare its folder ID to active ID 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg.
+2) If hundreds are in a different folder, move/copy them into incoming/unknown (or change runtime target folder intentionally).
+3) For the 3 already-seen files, use the existing requeue endpoint when needed:
+   - POST /api/mealscout/intake/drive/requeue-files
+4) Optional hardening patch after confirmation:
+   - add /api/mealscout/intake/drive/inventory-diagnostic endpoint
+   - add explicit exclusionReason breakdown in sync response.
+
+Safety Confirmation
+- No file delete/move/archive/suppress executed in this diagnostic.
+- No card apply executed.
+- No notifications sent.
+- No profile mutation executed.
+- mutationAllowed remained false for diagnostic/read paths.

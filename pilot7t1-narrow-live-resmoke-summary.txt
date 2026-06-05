@@ -1,0 +1,36 @@
+Pilot 7T.1 Narrow Live Re-Smoke Summary
+Date: 2026-05-30
+
+Scope
+- One exact-filename duplicate group only
+- removalMode: trash
+- confirmation: true
+- operatorId: MANUAL_OPERATOR
+- attributionConflictApproval: true
+- forceReviewApproved: true
+- folderId: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+
+Duplicate group used
+- duplicateGroupId: dup-img_4536_png-1q8rm1
+- primaryFileId kept: 1q8rm1mvi7AFwVhKhu4-nF7kgdBs1Gy6y
+- duplicateFileId attempted: 1NL_5xU5PvCTpC2v3LtNnrm_ERQtwqG4k
+
+Result
+- Drive permission result: duplicate_removal_blocked_permission
+- fallback result: marked_duplicate
+- trashFailedPermissionCount: 1
+- markedSuppressedAfterPermissionFailureCount: 1
+- filesStillInDriveCount: 1
+- auditId: ms-dup-audit-94e41062-0bdf-48b5-ae09-fde54741b5ff
+
+Server stability
+- Server remained alive through duplicate-removal response, but follow-up preview/batch calls encountered connection-close/refusal during this run.
+- server alive after sequence: false at immediate post-call check.
+
+Preview safety
+- preview mutationAllowed:false could not be confirmed in the same sequence due connection interruption.
+
+Conclusion
+- Fallback branch is confirmed in live request for one group:
+  permission denied -> suppressed duplicate + audit created.
+- Stability issue still present in post-cleanup request path; restart and additional narrow re-smoke are required before full cleanup.

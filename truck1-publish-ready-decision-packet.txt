@@ -1,0 +1,88 @@
+Truck #1 Publish-Ready Decision Packet
+
+1. Publish-ready record identity
+- recordId: ms-plan-record-ms-draft-c53451ab-24e1-40fe-9957-a1af8a0acc3a
+- draftIds: ms-draft-c53451ab-24e1-40fe-9957-a1af8a0acc3a
+- plannedAction: create_new
+- existingTruckId: 
+- truckName: Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+- city/serviceArea: Pensacola, FL / 
+- contact method/social/website: 850-255-8396 / DINNERS / 
+- menu status: menu_items:2
+- attached media: 0
+- source file IDs: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+- attribution source: request_context
+- repId: MANUAL_OPERATOR
+- affiliateCode: UNKNOWN_SOURCE_REVIEW
+
+2. Evidence check
+- field: truckName
+  value: Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+  source file: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 / Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: 11:57 & 9 Fw!
+
+<
+
+Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+
+Deep Fried tossed with Pea
+  confidence: 0.85
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: phone
+  value: 850-255-8396
+  source file: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 / Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: 11:57 & 9 Fw!
+
+<
+
+Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+
+Deep Fried tossed with Peach Crown sauc
+  confidence: 0.98
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: facebook
+  value: DINNERS
+  source file: 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq / Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg
+  raw snippet: ease Follow us on Facebook
+
+DINNERS All Dinners come with 2 sides
+  confidence: 0.9
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: cityArea
+  value: Pensacola, FL
+  source file: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 / Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: Reviews)
+
+o) Open now
+
+©) Pensacola, FL, United States
+
+sus] Pensac
+  confidence: 0.75
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: cuisine
+  value: BBQ
+  source file: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 / Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: - 6 oineapple-Sweet Jalapeno- BBQ-Honey Mustard Heavenlv Koolai
+  confidence: 0.7
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+
+3. Blocker check
+- no unresolved conflicts: True
+- required fields present: True
+- evidence refs present: True
+- source file IDs present: True
+- media did not create identity: True
+- no weak OCR name warning on publish-ready record: True
+- operator identity quality concern (menu-like truckName): True
+
+4. Operator recommendation
+- HOLD_FOR_REVIEW
+
+5. If APPROVE_FOR_EXECUTION payload (do not run)
+{
+  "planId": "ms-plan-2e6179a9-9db5-4227-8c7d-79cf155d4273",
+  "recordIds": ["ms-plan-record-ms-draft-c53451ab-24e1-40fe-9957-a1af8a0acc3a"],
+  "confirmation": true,
+  "operatorId": "MANUAL_OPERATOR"
+}

@@ -1,0 +1,661 @@
+{
+  "status": "ok",
+  "mutationAllowed": false,
+  "driveSource": {
+    "folderId": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+    "folderSource": "discovered",
+    "listedCount": 3,
+    "filteredOutCount": 0
+  },
+  "debugOcr": [
+    {
+      "fileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+      "name": "707990078_2109431996279825_93215142009434330_n.jpg",
+      "mimeType": "image/jpeg",
+      "byteLength": 56201,
+      "downloadAttempted": true,
+      "downloadSucceeded": true,
+      "downloadSource": "drive_binary_download",
+      "detectedEngineCandidates": [
+        {
+          "engine": "tesseract",
+          "status": "AVAILABLE"
+        },
+        {
+          "engine": "paddleocr",
+          "status": "PADDLEOCR_NOT_INSTALLED"
+        },
+        {
+          "engine": "easyocr",
+          "status": "EASYOCR_NOT_INSTALLED"
+        }
+      ],
+      "selectedEngine": "tesseract",
+      "engine": "local_tesseract_cli",
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 321,
+      "extractedTextSnippet": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHICKEN PANCT 2-4 « pORK ADO 4\r\ncnicKen cuaRY 12.98 porn noccOU 1195\r\n\r\n* ewicKen  poRK CURRY RD\r\nproccot! rs: ‘3 rane? 2:99 7\r\n\r\n1 poRK LUMP 14\r\n\r\noe\r\nss n®\r\n\r\nye prs\r\n\r\nee occ\r\nore\r\n",
+      "classification": {
+        "detectedType": "menu",
+        "confidence": 0.9
+      },
+      "detectedSignals": {
+        "truckName": "powk DIES",
+        "menuItemCount": 2,
+        "contactSignals": [],
+        "priceSignals": [
+          "$10.95",
+          "$12.98"
+        ],
+        "socialSignals": []
+      }
+    },
+    {
+      "fileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+      "name": "705770904_918342954569744_6077113333953277063_n.jpg",
+      "mimeType": "image/jpeg",
+      "byteLength": 65315,
+      "downloadAttempted": true,
+      "downloadSucceeded": true,
+      "downloadSource": "drive_binary_download",
+      "detectedEngineCandidates": [
+        {
+          "engine": "tesseract",
+          "status": "AVAILABLE"
+        },
+        {
+          "engine": "paddleocr",
+          "status": "PADDLEOCR_NOT_INSTALLED"
+        },
+        {
+          "engine": "easyocr",
+          "status": "EASYOCR_NOT_INSTALLED"
+        }
+      ],
+      "selectedEngine": "tesseract",
+      "engine": "local_tesseract_cli",
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 407,
+      "extractedTextSnippet": "2:04 08 8\r\n\r\nLettys Backyard\r\n\r\n146 followers - 0 following - 6 posts\r\n\r\nProfile - Digital creator\r\n\r\nLetty's backyard serving all authentic fresh filipino\r\nfood\r\n\r\n® Digital creator - Q East Milton, FL\r\n\r\n@ Followed by Levon McCabe\r\n\r\n&. Cancel request ® Message\r\n\r\nUg Send a private message...\r\nAll",
+      "classification": {
+        "detectedType": "profile",
+        "confidence": 0.8
+      },
+      "detectedSignals": {
+        "truckName": "Lettys Backyard",
+        "menuItemCount": 0,
+        "contactSignals": [],
+        "priceSignals": [],
+        "socialSignals": []
+      }
+    },
+    {
+      "fileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
+      "name": "706216881_1495538075647692_5427253878307980612_n.jpg",
+      "mimeType": "image/jpeg",
+      "byteLength": 59949,
+      "downloadAttempted": true,
+      "downloadSucceeded": true,
+      "downloadSource": "drive_binary_download",
+      "detectedEngineCandidates": [
+        {
+          "engine": "tesseract",
+          "status": "AVAILABLE"
+        },
+        {
+          "engine": "paddleocr",
+          "status": "PADDLEOCR_NOT_INSTALLED"
+        },
+        {
+          "engine": "easyocr",
+          "status": "EASYOCR_NOT_INSTALLED"
+        }
+      ],
+      "selectedEngine": "tesseract",
+      "engine": "local_tesseract_cli",
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 43,
+      "extractedTextSnippet": "|)|Letty's Backyard) |\r\n') FILLIPINO FOOD I",
+      "classification": {
+        "detectedType": "profile",
+        "confidence": 0.8
+      },
+      "detectedSignals": {
+        "truckName": "Letty's Backyard",
+        "menuItemCount": 0,
+        "contactSignals": [],
+        "priceSignals": [],
+        "socialSignals": []
+      }
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "fileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+      "fileName": "707990078_2109431996279825_93215142009434330_n.jpg",
+      "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/707990078_2109431996279825_93215142009434330_n.jpg",
+      "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+      "detectedType": "menu",
+      "extractedSignals": {
+        "truckName": "powk DIES",
+        "menuItems": [
+          {
+            "name": "° CHICKEN FRIED  = PORK FRIED 10.45",
+            "price": "$10.95"
+          },
+          {
+            "name": "cnicKen cuaRY  porn noccOU 1195",
+            "price": "$12.98"
+          }
+        ]
+      },
+      "rawExtractedText": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHICKEN PANCT 2-4 « pORK ADO 4\r\ncnicKen cuaRY 12.98 porn noccOU 1195\r\n\r\n* ewicKen  poRK CURRY RD\r\nproccot! rs: ‘3 rane? 2:99 7\r\n\r\n1 poRK LUMP 14\r\n\r\noe\r\nss n®\r\n\r\nye prs\r\n\r\nee occ\r\nore\r\n\r\nsuis!\r\n__ suaiae Fl",
+      "confidence": 0.9,
+      "sourceFileAttribution": {
+        "attributionSource": "unknown",
+        "attributionStatus": "unknown",
+        "modifiedAt": "2026-05-29T04:15:40Z",
+        "needsAttributionReview": true,
+        "sourceChannel": "drive_upload",
+        "capturedAt": "2026-05-30T20:22:26.979Z"
+      }
+    },
+    {
+      "fileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+      "fileName": "705770904_918342954569744_6077113333953277063_n.jpg",
+      "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/705770904_918342954569744_6077113333953277063_n.jpg",
+      "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+      "detectedType": "profile",
+      "extractedSignals": {
+        "truckName": "Lettys Backyard",
+        "cityArea": "all authentic fresh filipino"
+      },
+      "rawExtractedText": "2:04 08 8\r\n\r\nLettys Backyard\r\n\r\n146 followers - 0 following - 6 posts\r\n\r\nProfile - Digital creator\r\n\r\nLetty's backyard serving all authentic fresh filipino\r\nfood\r\n\r\n® Digital creator - Q East Milton, FL\r\n\r\n@ Followed by Levon McCabe\r\n\r\n&. Cancel request ® Message\r\n\r\nUg Send a private message...\r\nAll Reels Photos\r\nPersonal details\r\n© East Milton, Florida\r\n\r\nFriends See all\r\n\r\npe\r\n\r\n>,\r\nO\r\n\r\n<\r\n\r\nLim\r\n\r\nN,",
+      "confidence": 0.8,
+      "sourceFileAttribution": {
+        "attributionSource": "unknown",
+        "attributionStatus": "unknown",
+        "modifiedAt": "2026-05-29T04:15:36Z",
+        "needsAttributionReview": true,
+        "sourceChannel": "drive_upload",
+        "capturedAt": "2026-05-30T20:22:26.979Z"
+      }
+    },
+    {
+      "fileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
+      "fileName": "706216881_1495538075647692_5427253878307980612_n.jpg",
+      "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/706216881_1495538075647692_5427253878307980612_n.jpg",
+      "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+      "detectedType": "profile",
+      "extractedSignals": {
+        "truckName": "Letty's Backyard"
+      },
+      "rawExtractedText": "|)|Letty's Backyard) |\r\n') FILLIPINO FOOD I",
+      "confidence": 0.8,
+      "sourceFileAttribution": {
+        "attributionSource": "unknown",
+        "attributionStatus": "unknown",
+        "modifiedAt": "2026-05-29T04:15:33Z",
+        "needsAttributionReview": true,
+        "sourceChannel": "drive_upload",
+        "capturedAt": "2026-05-30T20:22:26.979Z"
+      }
+    }
+  ],
+  "clusters": [
+    {
+      "clusterId": "cluster-1",
+      "files": [
+        {
+          "fileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+          "fileName": "707990078_2109431996279825_93215142009434330_n.jpg",
+          "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/707990078_2109431996279825_93215142009434330_n.jpg",
+          "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+          "detectedType": "menu",
+          "extractedSignals": {
+            "truckName": "powk DIES",
+            "menuItems": [
+              {
+                "name": "° CHICKEN FRIED  = PORK FRIED 10.45",
+                "price": "$10.95"
+              },
+              {
+                "name": "cnicKen cuaRY  porn noccOU 1195",
+                "price": "$12.98"
+              }
+            ]
+          },
+          "rawExtractedText": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHICKEN PANCT 2-4 « pORK ADO 4\r\ncnicKen cuaRY 12.98 porn noccOU 1195\r\n\r\n* ewicKen  poRK CURRY RD\r\nproccot! rs: ‘3 rane? 2:99 7\r\n\r\n1 poRK LUMP 14\r\n\r\noe\r\nss n®\r\n\r\nye prs\r\n\r\nee occ\r\nore\r\n\r\nsuis!\r\n__ suaiae Fl",
+          "confidence": 0.9,
+          "sourceFileAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:40Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        }
+      ],
+      "likelyTruckName": "powk dies",
+      "matchSignals": [],
+      "confidence": 0.9,
+      "reviewStatus": "missing_required"
+    },
+    {
+      "clusterId": "cluster-2",
+      "files": [
+        {
+          "fileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+          "fileName": "705770904_918342954569744_6077113333953277063_n.jpg",
+          "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/705770904_918342954569744_6077113333953277063_n.jpg",
+          "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+          "detectedType": "profile",
+          "extractedSignals": {
+            "truckName": "Lettys Backyard",
+            "cityArea": "all authentic fresh filipino"
+          },
+          "rawExtractedText": "2:04 08 8\r\n\r\nLettys Backyard\r\n\r\n146 followers - 0 following - 6 posts\r\n\r\nProfile - Digital creator\r\n\r\nLetty's backyard serving all authentic fresh filipino\r\nfood\r\n\r\n® Digital creator - Q East Milton, FL\r\n\r\n@ Followed by Levon McCabe\r\n\r\n&. Cancel request ® Message\r\n\r\nUg Send a private message...\r\nAll Reels Photos\r\nPersonal details\r\n© East Milton, Florida\r\n\r\nFriends See all\r\n\r\npe\r\n\r\n>,\r\nO\r\n\r\n<\r\n\r\nLim\r\n\r\nN,",
+          "confidence": 0.8,
+          "sourceFileAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:36Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        },
+        {
+          "fileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
+          "fileName": "706216881_1495538075647692_5427253878307980612_n.jpg",
+          "drivePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/706216881_1495538075647692_5427253878307980612_n.jpg",
+          "sourceFolder": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+          "detectedType": "profile",
+          "extractedSignals": {
+            "truckName": "Letty's Backyard"
+          },
+          "rawExtractedText": "|)|Letty's Backyard) |\r\n') FILLIPINO FOOD I",
+          "confidence": 0.8,
+          "sourceFileAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:33Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        }
+      ],
+      "likelyTruckName": "lettys backyard",
+      "matchSignals": [
+        "truck_name_similar",
+        "name_merge"
+      ],
+      "confidence": 0.8,
+      "reviewStatus": "missing_required"
+    }
+  ],
+  "drafts": [
+    {
+      "draftId": "ms-draft-7f87da4fa7e32ba0",
+      "draftType": "create_new",
+      "truckName": "powk DIES",
+      "menu": [
+        {
+          "name": "° CHICKEN FRIED  = PORK FRIED 10.45",
+          "price": "$10.95",
+          "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+        },
+        {
+          "name": "cnicKen cuaRY  porn noccOU 1195",
+          "price": "$12.98",
+          "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+        }
+      ],
+      "menuDeferred": false,
+      "socials": {},
+      "sourceFiles": [
+        {
+          "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+          "sourcePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/707990078_2109431996279825_93215142009434330_n.jpg",
+          "sourceType": "menu",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:40Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        }
+      ],
+      "attachedMedia": [],
+      "missingFields": [
+        "phone_or_email",
+        "cityArea",
+        "cuisine"
+      ],
+      "warnings": [],
+      "duplicateCandidates": [],
+      "confidence": 0.27,
+      "reviewStatus": "missing_required",
+      "extractedFieldEvidence": {
+        "truckName": {
+          "value": "powk DIES",
+          "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+          "sourceFileName": "707990078_2109431996279825_93215142009434330_n.jpg",
+          "extractionMethod": "ocr",
+          "confidence": 0.85,
+          "rawSnippet": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:40Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        },
+        "menuItems": [
+          {
+            "value": "° CHICKEN FRIED  = PORK FRIED 10.45 $10.95",
+            "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+            "sourceFileName": "707990078_2109431996279825_93215142009434330_n.jpg",
+            "extractionMethod": "ocr",
+            "confidence": 0.8,
+            "rawSnippet": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHIC",
+            "sourceAttribution": {
+              "attributionSource": "unknown",
+              "attributionStatus": "unknown",
+              "modifiedAt": "2026-05-29T04:15:40Z",
+              "needsAttributionReview": true,
+              "sourceChannel": "drive_upload",
+              "capturedAt": "2026-05-30T20:22:26.979Z"
+            }
+          },
+          {
+            "value": "cnicKen cuaRY  porn noccOU 1195 $12.98",
+            "sourceFileId": "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+            "sourceFileName": "707990078_2109431996279825_93215142009434330_n.jpg",
+            "extractionMethod": "ocr",
+            "confidence": 0.8,
+            "rawSnippet": "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHIC",
+            "sourceAttribution": {
+              "attributionSource": "unknown",
+              "attributionStatus": "unknown",
+              "modifiedAt": "2026-05-29T04:15:40Z",
+              "needsAttributionReview": true,
+              "sourceChannel": "drive_upload",
+              "capturedAt": "2026-05-30T20:22:26.979Z"
+            }
+          }
+        ]
+      },
+      "sourceAttribution": {
+        "contributingRepIds": [],
+        "sourceFileIds": [
+          "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+        ],
+        "attributionPolicy": "first_required_field_contributor"
+      },
+      "mutationAllowed": false
+    },
+    {
+      "draftId": "ms-draft-57de1c837c0dd82e",
+      "draftType": "create_new",
+      "truckName": "Lettys Backyard",
+      "cityArea": "all authentic fresh filipino",
+      "menu": [],
+      "menuDeferred": false,
+      "socials": {},
+      "sourceFiles": [
+        {
+          "sourceFileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+          "sourcePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/705770904_918342954569744_6077113333953277063_n.jpg",
+          "sourceType": "screenshot",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:36Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        },
+        {
+          "sourceFileId": "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl",
+          "sourcePath": "drive://15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg/706216881_1495538075647692_5427253878307980612_n.jpg",
+          "sourceType": "screenshot",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:33Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        }
+      ],
+      "attachedMedia": [],
+      "missingFields": [
+        "phone_or_email",
+        "cuisine",
+        "menu"
+      ],
+      "warnings": [
+        "menu missing and not deferred"
+      ],
+      "duplicateCandidates": [],
+      "confidence": 0.33,
+      "reviewStatus": "missing_required",
+      "extractedFieldEvidence": {
+        "truckName": {
+          "value": "Lettys Backyard",
+          "sourceFileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+          "sourceFileName": "705770904_918342954569744_6077113333953277063_n.jpg",
+          "extractionMethod": "ocr",
+          "confidence": 0.85,
+          "rawSnippet": "2:04 08 8\r\n\r\nLettys Backyard\r\n\r\n146 followers - 0 followin",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:36Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        },
+        "cityArea": {
+          "value": "all authentic fresh filipino",
+          "sourceFileId": "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+          "sourceFileName": "705770904_918342954569744_6077113333953277063_n.jpg",
+          "extractionMethod": "ocr",
+          "confidence": 0.75,
+          "rawSnippet": "r\r\n\r\nLetty's backyard serving all authentic fresh filipino\r\nfood\r\n\r\n® Digital creator - ",
+          "sourceAttribution": {
+            "attributionSource": "unknown",
+            "attributionStatus": "unknown",
+            "modifiedAt": "2026-05-29T04:15:36Z",
+            "needsAttributionReview": true,
+            "sourceChannel": "drive_upload",
+            "capturedAt": "2026-05-30T20:22:26.979Z"
+          }
+        }
+      },
+      "sourceAttribution": {
+        "contributingRepIds": [],
+        "sourceFileIds": [
+          "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+          "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl"
+        ],
+        "attributionPolicy": "first_required_field_contributor"
+      },
+      "mutationAllowed": false
+    }
+  ],
+  "unattachedMedia": [],
+  "mergeAssist": {
+    "candidateGroups": [
+      {
+        "groupId": "merge-ms-draft-7f87da4fa7e32ba0-ms-draft-57de1c837c0dd82e",
+        "draftIds": [
+          "ms-draft-7f87da4fa7e32ba0",
+          "ms-draft-57de1c837c0dd82e"
+        ],
+        "recommendation": "possible_match",
+        "confidence": 0.62,
+        "reasons": [
+          {
+            "type": "shared_file_context",
+            "detail": "Drafts share folder or filename context from source paths.",
+            "sourceDraftIds": [
+              "ms-draft-7f87da4fa7e32ba0",
+              "ms-draft-57de1c837c0dd82e"
+            ],
+            "sourceFileIds": [
+              "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+              "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+              "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl"
+            ]
+          },
+          {
+            "type": "menu_profile_link",
+            "detail": "One draft appears menu-focused while the other appears profile-focused.",
+            "sourceDraftIds": [
+              "ms-draft-7f87da4fa7e32ba0",
+              "ms-draft-57de1c837c0dd82e"
+            ],
+            "sourceFileIds": [
+              "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD",
+              "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+              "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl"
+            ]
+          }
+        ],
+        "conflicts": []
+      }
+    ]
+  },
+  "fieldCorrections": [],
+  "attachmentDecisions": [],
+  "publishPlan": {
+    "planId": "ms-plan-5d66f870-11d8-47e5-8de5-ec8efd8c8150",
+    "signature": "[{\"recordId\":\"ms-plan-record-ms-draft-7f87da4fa7e32ba0\",\"plannedAction\":\"blocked\",\"publishReady\":false,\"draftIds\":[\"ms-draft-7f87da4fa7e32ba0\"],\"profileFields\":{\"truckName\":{\"value\":\"powk DIES\",\"confidence\":0.85,\"evidenceRefs\":[\"| MENU\\r\\n\\r\\npowk DIES\\r\\n\\r\\naE REN DESTES\\r\\n\\r\\n° CHICKEN\"],\"sourceFileIds\":[\"18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD\"]}},\"menuItems\":[{\"name\":\"° CHICKEN FRIED  = PORK FRIED 10.45\",\"price\":\"$10.95\",\"evidenceRefs\":[\"| MENU\\r\\n\\r\\npowk DIES\\r\\n\\r\\naE REN DESTES\\r\\n\\r\\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\\r\\n‘cnucnen ADOBS 10% spon panctt 5\\r\\nCHIC\"],\"sourceFileIds\":[\"18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD\"]},{\"name\":\"cnicKen cuaRY  porn noccOU 1195\",\"price\":\"$12.98\",\"evidenceRefs\":[\"| MENU\\r\\n\\r\\npowk DIES\\r\\n\\r\\naE REN DESTES\\r\\n\\r\\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\\r\\n‘cnucnen ADOBS 10% spon panctt 5\\r\\nCHIC\"],\"sourceFileIds\":[\"18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD\"]}],\"blockedReasons\":[\"missing_city_or_service_area\",\"missing_contact_or_web_or_social\"],\"correctionVersion\":0,\"attachmentDecisionVersion\":0},{\"recordId\":\"ms-plan-record-ms-draft-57de1c837c0dd82e\",\"plannedAction\":\"blocked\",\"publishReady\":false,\"draftIds\":[\"ms-draft-57de1c837c0dd82e\"],\"profileFields\":{\"truckName\":{\"value\":\"Lettys Backyard\",\"confidence\":0.85,\"evidenceRefs\":[\"2:04 08 8\\r\\n\\r\\nLettys Backyard\\r\\n\\r\\n146 followers - 0 followin\"],\"sourceFileIds\":[\"1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM\"]},\"cityArea\":{\"value\":\"all authentic fresh filipino\",\"confidence\":0.75,\"evidenceRefs\":[\"r\\r\\n\\r\\nLetty's backyard serving all authentic fresh filipino\\r\\nfood\\r\\n\\r\\n® Digital creator - \"],\"sourceFileIds\":[\"1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM\"]}},\"menuItems\":[],\"blockedReasons\":[\"missing_contact_or_web_or_social\",\"missing_menu_or_menu_deferred\"],\"correctionVersion\":0,\"attachmentDecisionVersion\":0}]",
+    "reviewDecisionVersion": 0,
+    "correctionVersion": 0,
+    "attachmentDecisionVersion": 0,
+    "generatedAt": "2026-05-30T20:22:26.989Z",
+    "mutationAllowed": false,
+    "records": [
+      {
+        "recordId": "ms-plan-record-ms-draft-7f87da4fa7e32ba0",
+        "plannedAction": "blocked",
+        "publishReady": false,
+        "draftIds": [
+          "ms-draft-7f87da4fa7e32ba0"
+        ],
+        "profileFields": {
+          "truckName": {
+            "value": "powk DIES",
+            "confidence": 0.85,
+            "evidenceRefs": [
+              "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN"
+            ],
+            "sourceFileIds": [
+              "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+            ]
+          }
+        },
+        "menuItems": [
+          {
+            "name": "° CHICKEN FRIED  = PORK FRIED 10.45",
+            "price": "$10.95",
+            "evidenceRefs": [
+              "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHIC"
+            ],
+            "sourceFileIds": [
+              "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+            ]
+          },
+          {
+            "name": "cnicKen cuaRY  porn noccOU 1195",
+            "price": "$12.98",
+            "evidenceRefs": [
+              "| MENU\r\n\r\npowk DIES\r\n\r\naE REN DESTES\r\n\r\n° CHICKEN FRIED 10.95 = PORK FRIED 10.45\r\n‘cnucnen ADOBS 10% spon panctt 5\r\nCHIC"
+            ],
+            "sourceFileIds": [
+              "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+            ]
+          }
+        ],
+        "blockedReasons": [
+          "missing_city_or_service_area",
+          "missing_contact_or_web_or_social"
+        ],
+        "sourceAttribution": {
+          "contributingRepIds": [],
+          "sourceFileIds": [
+            "18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD"
+          ],
+          "attributionPolicy": "first_required_field_contributor"
+        }
+      },
+      {
+        "recordId": "ms-plan-record-ms-draft-57de1c837c0dd82e",
+        "plannedAction": "blocked",
+        "publishReady": false,
+        "draftIds": [
+          "ms-draft-57de1c837c0dd82e"
+        ],
+        "profileFields": {
+          "truckName": {
+            "value": "Lettys Backyard",
+            "confidence": 0.85,
+            "evidenceRefs": [
+              "2:04 08 8\r\n\r\nLettys Backyard\r\n\r\n146 followers - 0 followin"
+            ],
+            "sourceFileIds": [
+              "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM"
+            ]
+          },
+          "cityArea": {
+            "value": "all authentic fresh filipino",
+            "confidence": 0.75,
+            "evidenceRefs": [
+              "r\r\n\r\nLetty's backyard serving all authentic fresh filipino\r\nfood\r\n\r\n® Digital creator - "
+            ],
+            "sourceFileIds": [
+              "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM"
+            ]
+          }
+        },
+        "menuItems": [],
+        "blockedReasons": [
+          "missing_contact_or_web_or_social",
+          "missing_menu_or_menu_deferred"
+        ],
+        "warnings": [
+          "menu missing and not deferred"
+        ],
+        "sourceAttribution": {
+          "contributingRepIds": [],
+          "sourceFileIds": [
+            "1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM",
+            "1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl"
+          ],
+          "attributionPolicy": "first_required_field_contributor"
+        }
+      }
+    ]
+  },
+  "summary": {
+    "inputs": 3,
+    "evidenceCount": 3,
+    "clusterCount": 2,
+    "draftCount": 2
+  }
+}

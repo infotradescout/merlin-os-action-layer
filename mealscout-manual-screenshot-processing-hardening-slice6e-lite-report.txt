@@ -1,0 +1,99 @@
+# MealScout Manual Screenshot Processing Hardening Slice 6E-Lite Report
+
+## Scope Result
+Implemented manual Drive-folder processing hardening for `/admin/mealscout-review-queue` with a combined sync+process workflow and clearer operator status/controls.
+
+## Files Changed
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+## Backend Endpoint Added
+### `POST /api/mealscout/intake/drive/sync-and-process`
+- Role-gated: `admin/super-admin/operator/staff`
+- Behavior:
+  - Runs Drive sync detection for supported files
+  - Creates new queued batch for newly detected files
+  - Processes only `detected/queued` batches
+  - Builds clusters/drafts/action cards via existing flow
+  - Persists cards in durable ledger
+  - Propagates attribution metadata
+- Safety:
+  - `mutationAllowed:false`
+  - no card apply/approval
+  - no notification send
+  - no Drive cleanup/delete/archive/suppress
+  - no TradeScout behavior
+- Response includes:
+  - `status`
+  - `detectedFileCount`
+  - `newBatchCount`
+  - `processedBatchCount`
+  - `cardsCreatedCount`
+  - `cardsReadyCount`
+  - `failedBatchCount`
+  - `duplicateFileWarnings`
+  - `batches`
+  - `errors`
+  - `mutationAllowed:false`
+
+## UI Hardening
+### Drive Intake section updates
+- Added button: `Sync + Process New Batches`
+- Added button: `Show Cards Ready for Review`
+- Added operator summary line for sync+process run:
+  - detected files
+  - new batches
+  - processed batches
+  - cards created/ready
+  - failures
+  - duplicate warnings
+- Added clear empty-state/runbook message:
+  - “Drop screenshots into the configured MealScout Drive intake folder, then click Sync + Process New Batches.”
+- Added status labels per batch:
+  - Ready to Review
+  - Needs Processing
+  - Failed - Retry
+  - Already Processed
+- Added batch quality visibility line (existing 6D fields shown consistently)
+
+### Action card quick-review support
+- `Show Cards Ready for Review` narrows visible cards to pending + not-applied cards.
+
+## Client API Additions
+- `syncAndProcessDriveFolder()`
+
+## Idempotency / State Protection
+- Re-running sync-and-process with no new files:
+  - does not create duplicate batches
+  - does not create duplicate action cards
+  - does not overwrite existing card `decisionState`/`applyState`
+
+## Validation
+- `npm run check` ✅
+- `npx tsx --test tests/mealscout-batch-intake.test.ts tests/mealscout-review-queue-ui.test.ts` ✅
+- `npm run test -- --runInBand` ✅
+- `npm run build` ✅
+
+## Tests Added/Updated
+- Added backend test:
+  - `sync-and-process endpoint processes queued batches into cards without apply/notify or duplicate reruns`
+- Updated UI/client test coverage for:
+  - new page controls (`Sync + Process New Batches`, `Show Cards Ready for Review`)
+  - new client method call
+  - new endpoint mock usage and assertions
+
+## Safety Confirmation
+- No profile mutation from sync/sync-and-process endpoints
+- No auto-apply introduced
+- No auto-notify introduced
+- No Drive cleanup/delete/archive/suppress introduced
+- Duplicate warnings remain visible
+- Existing decision/apply states preserved on reruns
+
+## KPI Status
+Manual screenshots dropped into intake folder can now move faster through:
+Drive sync -> batch process -> cards ready for review,
+with a single operator action and clearer status visibility.

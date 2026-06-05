@@ -1,0 +1,133 @@
+Truck #1 QA Report
+
+1. Batch result
+- batchId: ms-intake-batch-a3c13a34-19c2-4a48-b81e-93ed38968b39
+- scanned files: 38
+- processed files: 5
+- skipped files: 33
+- failed files: 0
+- safeMode status: True
+- maxFiles applied: requested 5 / cap 8
+- mutationAllowed: False
+
+2. Processed files
+- fileId: 1aN5oxymvN9GMWlHBIr5I4K_yls3opsmf
+  fileName: FB_IMG_1779900506791.jpg
+  classification: unknown
+  byteLength: 60061
+  OCR attempted: True
+  OCR succeeded: False
+  extracted text length: 0
+  attribution source: unknown
+  repId: 
+  affiliateCode: 
+  uploader: 
+- fileId: 1khJvon3PghE7QPvOVMovc8bjpMSdWpaO
+  fileName: Screenshot_20260527_114835_Facebook.jpg
+  classification: profile
+  byteLength: 488713
+  OCR attempted: True
+  OCR succeeded: True
+  extracted text length: 317
+  attribution source: unknown
+  repId: 
+  affiliateCode: 
+  uploader: 
+- fileId: 1j1vO-zqg0pFLKrfdJyv-BYM-hZJcAxDD
+  fileName: FB_IMG_1779900598703.jpg
+  classification: profile
+  byteLength: 413836
+  OCR attempted: True
+  OCR succeeded: True
+  extracted text length: 372
+  attribution source: unknown
+  repId: 
+  affiliateCode: 
+  uploader: 
+- fileId: 1-W39no0GJPdrOVkMx2QOuAz_FVr-q8HC
+  fileName: Screenshot_20260527_115443_Samsung Notes.jpg
+  classification: profile
+  byteLength: 110000
+  OCR attempted: True
+  OCR succeeded: True
+  extracted text length: 102
+  attribution source: unknown
+  repId: 
+  affiliateCode: 
+  uploader: 
+- fileId: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97
+  fileName: Screenshot_20260527_115713_Facebook.jpg
+  classification: profile
+  byteLength: 576350
+  OCR attempted: True
+  OCR succeeded: True
+  extracted text length: 734
+  attribution source: unknown
+  repId: 
+  affiliateCode: 
+  uploader: 
+
+3. Draft result
+- draft count: 4
+- draft IDs: ms-draft-dcc3ffb6-74b3-484e-b39f-8c82fd4de058, ms-draft-69c8c01a-f5ef-4df6-98a7-2358bbfda2c8, ms-draft-6a8b7272-11fc-4e34-a505-f7739f6c2e13, ms-draft-9552a271-a375-4336-8f37-8d75f73f05b1
+- draftId: ms-draft-dcc3ffb6-74b3-484e-b39f-8c82fd4de058 type/status: create_new / missing_required
+  truckName found?: True
+  phone/email/website/social found?: True
+  city/service area found?: False
+  menu items found?: 0
+  logo/media attached?: False
+  source files per draft: 1khJvon3PghE7QPvOVMovc8bjpMSdWpaO
+- draftId: ms-draft-69c8c01a-f5ef-4df6-98a7-2358bbfda2c8 type/status: create_new / missing_required
+  truckName found?: True
+  phone/email/website/social found?: True
+  city/service area found?: False
+  menu items found?: 0
+  logo/media attached?: False
+  source files per draft: 1j1vO-zqg0pFLKrfdJyv-BYM-hZJcAxDD
+- draftId: ms-draft-6a8b7272-11fc-4e34-a505-f7739f6c2e13 type/status: create_new / missing_required
+  truckName found?: True
+  phone/email/website/social found?: False
+  city/service area found?: False
+  menu items found?: 0
+  logo/media attached?: False
+  source files per draft: 1-W39no0GJPdrOVkMx2QOuAz_FVr-q8HC, 1Iwo2sgbuiML03fZU1J-uP8m7uaPapR6t
+- draftId: ms-draft-9552a271-a375-4336-8f37-8d75f73f05b1 type/status: create_new / ready_for_review
+  truckName found?: True
+  phone/email/website/social found?: True
+  city/service area found?: True
+  menu items found?: 2
+  logo/media attached?: False
+  source files per draft: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+- unattached media?: 1
+
+4. Warnings / review flags
+- weak_ocr_name: False
+- missing_required_identity: False
+- weak_media_linkage: False
+- uncertain_merge: False
+- missing menu: True
+- unknown attribution: True
+
+5. Publish plan preview
+- planId: ms-plan-cc27c125-1c4d-42cb-a116-09a08d381a8d
+- record count: 4
+- publishReady count: 1
+- blocked count: 3
+- needsReview count: 0
+- planned create/update count: create_new=1, update_existing=0
+- blocked reasons: missing_city_or_service_area; missing_menu_or_menu_deferred; missing_city_or_service_area; missing_menu_or_menu_deferred; missing_city_or_service_area; missing_contact_or_web_or_social; missing_menu_or_menu_deferred
+- missing required fields: 
+- evidence present for fields?: True
+
+6. Operator recommendation
+- NEEDS_REVIEW
+
+7. Metrics
+- files processed: 5
+- drafts created: 4
+- publish-ready %: 25
+- needs-review %: 0
+- unattached media count: 1
+- unknown attribution count: 5
+- wrong grouping observed? no
+- estimated operator review time: ~12 minutes

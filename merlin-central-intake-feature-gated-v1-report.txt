@@ -1,0 +1,72 @@
+Merlin Central Intake Feature-Gated v1 Report
+Date: 2026-05-31
+
+Files changed (feature slice):
+- src/server.ts
+- src/merlin/intake/intakeTypes.ts
+- src/merlin/intake/intentRegistry.ts
+- src/merlin/intake/uploadIntentStore.ts
+- src/merlin/intake/router.ts
+- src/merlin/intake/previewBuilder.ts
+- src/merlin/intake/approvalGate.ts
+- src/merlin/intake/intakeFeatureFlags.ts
+- src/merlin/adapters/mealscoutAdapter.ts
+- src/merlin/routes/merlinIntakeRoutes.ts
+- tests/merlin-intake-engine.test.ts
+- tests/upload-intent-packet.test.ts
+
+Feature flags added:
+- MERLIN_INTAKE_ENABLED
+- MERLIN_INTAKE_MEALSCOUT_ENABLED
+- MERLIN_INTAKE_TRADESCOUT_ENABLED
+- MERLIN_INTAKE_HOMEID_ENABLED
+- MERLIN_INTAKE_ADMIN_ENABLED
+- MERLIN_INTAKE_APPLY_ENABLED
+- MERLIN_INTAKE_CLEANUP_ENABLED
+
+Default behavior:
+- Global and per-product intake disabled by default unless explicitly true.
+- Apply disabled by default.
+- Cleanup disabled by default.
+
+Merlin modules added:
+- Core intake types, registry, store, router, preview builder, approval status/types, feature-flag helper
+- MealScout adapter actions (owner + staff/admin)
+- Merlin intake route handler
+
+Endpoint behavior when enabled:
+- POST /api/merlin/intake/upload-intents validates action registry and snapshots intent constraints.
+- GET /api/merlin/intake/upload-intents/:uploadId returns stored intent.
+- POST /api/merlin/intake/upload-intents/:uploadId/files attaches files only to valid intents.
+- POST /api/merlin/intake/upload-intents/:uploadId/route returns routing decisions.
+- POST /api/merlin/intake/upload-intents/:uploadId/preview returns preview-only packet.
+- GET /api/merlin/intake/actions?brand=MEALSCOUT returns registered actions.
+
+Endpoint behavior when disabled:
+- Global disabled => MERLIN_INTAKE_DISABLED
+- Product disabled => PRODUCT_INTAKE_DISABLED
+- No intent creation, routing, or preview execution while disabled.
+
+Preview/edit gate behavior:
+- Preview packets return mutationAllowed:false and implementationAllowed:false.
+- Statuses stop at PREVIEW_READY, HELD_FOR_REVIEW, or ERROR.
+- No publish/apply path added in this slice.
+
+Routing conflict behavior:
+- Intent/evidence mismatch held as INTENT_EVIDENCE_CONFLICT.
+- Wrong-domain evidence held as AMBIGUOUS_OR_WRONG_DOMAIN.
+- No silent cross-brand routing.
+
+Tests added/updated:
+- tests/merlin-intake-engine.test.ts
+- tests/upload-intent-packet.test.ts
+
+Validation results:
+- npm run check: PASS
+- npx tsx --test tests/merlin-intake-engine.test.ts tests/upload-intent-packet.test.ts: PASS (16/16)
+- npm run test -- --runInBand: PASS (317/317)
+
+Safety confirmations:
+- publish execution called: no
+- live mutation occurred: no
+- cleanup/delete called: no

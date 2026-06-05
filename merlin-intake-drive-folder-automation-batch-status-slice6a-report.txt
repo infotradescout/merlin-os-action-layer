@@ -1,0 +1,108 @@
+Decision
+
+Slice 6A is implemented and validated.
+
+Report: merlin-intake-drive-folder-automation-batch-status-slice6a-report.txt
+Date: 2026-06-01
+Status: PASS
+
+Goal
+
+Enable MealScout Drive-folder ingestion automation for batch detection, queued processing into action cards, and durable batch status visibility without apply/notify/cleanup side effects.
+
+Files Changed
+
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+
+What Was Added
+
+1. Drive sync endpoint
+- POST /api/mealscout/intake/drive/sync
+- Role-gated to admin/operator/staff.
+- Scans configured MealScout intake folder using existing Drive resolution/listing path.
+- Detects new supported files not already assigned to a drive-automation batch.
+- Creates queued drive-folder batch records.
+- Preserves source file IDs and filenames.
+- Returns duplicate filename warnings as evidence warnings (no deletion/suppression).
+- mutationAllowed:false.
+
+2. Batch status endpoint
+- GET /api/mealscout/intake/batches/status
+- Role-gated to admin/operator/staff.
+- Returns drive-automation batch list + summary counts by required status categories.
+- mutationAllowed:false.
+
+3. Batch process endpoint
+- POST /api/mealscout/intake/batches/:batchId/process
+- Role-gated to admin/operator/staff.
+- Moves batch to processing state, hydrates listed files, builds evidence/clusters/drafts/action cards.
+- Persists action cards in existing durable card ledger using batch linkage (`rememberActionCards(actionCards, batchId)`).
+- Updates batch status to cards_ready, needs_review, or failed.
+- Does not apply cards, does not notify.
+- mutationAllowed:false.
+
+4. Drive automation batch runtime model
+Added drive automation runtime records in server:
+- id
+- sourceType
+- sourceFolderId/sourceFolderName
+- sourceFileIds/sourceFileNames
+- detectedAt/queuedAt/processingStartedAt/processingFinishedAt
+- status/statusReason
+- fileCount/processedFileCount/actionCardCount
+- errorCount/lastError
+- createdBy/createdAt/updatedAt
+- duplicateFileWarnings
+
+Notes:
+- For this slice, storage is runtime-memory scoped to process lifecycle.
+- Existing durable action-card ledger remains the durable system of record for downstream review/apply.
+
+5. Admin UI additions
+In /admin/mealscout-review-queue:
+- New section: "Drive Automation / Batch Status"
+- Buttons:
+  - Sync Drive Folder
+  - Refresh Batch Status
+  - Process Batch (per batch)
+  - View Cards (per batch, filters by batch action cards)
+- Shows status, file count, processed count, card count, errors, and duplicate warnings.
+- No direct apply/notify controls added in batch list.
+
+6. Client API additions
+- syncDriveFolder()
+- getBatchStatus()
+- processDetectedBatch(batchId)
+
+Safety Boundaries Preserved
+
+- No auto-apply behavior added.
+- No auto-notification behavior added.
+- No Drive delete/move/archive/suppress behavior added.
+- No TradeScout live apply behavior added.
+- Duplicate/replacement warning behavior preserved.
+- Sync/process endpoints always return mutationAllowed:false.
+
+Validation
+
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (349/349)
+- npm run build: PASS
+
+Tests Added/Updated
+
+Updated tests/mealscout-batch-intake.test.ts with 6A coverage:
+- Drive sync endpoint role gate
+- Drive sync creates batch record from new files
+- Drive sync does not duplicate already-detected files on repeat sync
+- Drive sync preserves source IDs and names
+- Batch status endpoint returns batch + summary safely
+- Batch process endpoint generates and persists batch-linked action cards
+- Process flow remains no-apply/no-notify mutation-safe
+
+KPI Outcome
+
+Drive folder upload context -> sync detection -> queued batch -> process to action cards -> review queue population, with no apply/notify/cleanup side effects.

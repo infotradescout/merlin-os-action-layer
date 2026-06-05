@@ -1,0 +1,66 @@
+MealScout Drive File Requeue + Reprocess Existing Files Patch Report
+
+Status: completed
+
+Files changed:
+- src/server.ts
+- tests/mealscout-batch-intake.test.ts
+
+Implemented endpoints:
+1) POST /api/mealscout/intake/drive/requeue-files
+- Admin/operator/staff gated.
+- Validates sourceFileIds.
+- Verifies file IDs against active Drive intake folder listing.
+- Creates a durable new batch with selected file IDs/names.
+- Returns mutationAllowed:false.
+- Supports processNow:true to run extraction/card generation immediately.
+- No apply, no notify, no cleanup/delete/archive/suppress.
+
+2) POST /api/mealscout/intake/batches/:batchId/reprocess
+- Admin/operator/staff gated.
+- Requires forceRegenerateCards:true.
+- Creates a new reprocess batch linked to originalBatchId (does not overwrite old batch/cards).
+- Supports immediate processing (default) while preserving existing decision/apply states on original cards.
+- Returns mutationAllowed:false.
+
+Runtime refactor:
+- Added shared helper processMealScoutDriveAutomationBatch(batch) to reuse safe batch processing flow.
+- Existing /batches/:batchId/process now uses same helper.
+
+Safety behavior preserved:
+- No auto-apply introduced.
+- No auto-notification introduced.
+- No Drive cleanup/delete/archive/suppress introduced.
+- No profile mutation paths changed.
+- Duplicate/replacement warnings unchanged.
+
+Tests added/updated (tests/mealscout-batch-intake.test.ts):
+- Requeue endpoint role gate.
+- Requeue unknown file ids safe rejection.
+- Requeue known file ids creates durable batch with source ids/names.
+- Requeue processNow path produces action cards with mutationAllowed:false.
+- Reprocess creates new batch and preserves existing original card decision state.
+
+Validation:
+- npm run check: PASS
+- npm run test -- --runInBand: PASS
+- npm run build: PASS
+
+Live reprocess run (post-patch):
+Request:
+POST /api/mealscout/intake/drive/requeue-files
+sourceFileIds:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+- 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+- 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+reason: ocr_patch_validation
+forceNewBatch: true
+processNow: true
+
+Response summary:
+- status: ok
+- batchId: ms-drive-batch-3f7584b4-74fb-40ef-9c91-d128a42f1dd1
+- fileCount: 3
+- actionCardCount: 2
+- errors: []
+

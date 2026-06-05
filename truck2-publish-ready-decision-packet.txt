@@ -1,0 +1,95 @@
+Truck #2 Publish-Ready Decision Packet
+
+1. Publish-ready record identity
+- recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+- draftIds: ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+- plannedAction: create_new
+- existingTruckId: 
+- truckName: Traci's Cherished
+- city/serviceArea: Pensacola, FL / 
+- contact method / social / website: 850-255-8396 / DINNERS / 
+- menu status: menu_items:2
+- attached media: 0
+- source file IDs: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+- attribution source: request_context
+- repId: MANUAL_OPERATOR
+- affiliateCode: UNKNOWN_SOURCE_REVIEW
+
+2. Identity quality check
+- truckName looks like a real business/truck name: True
+- truckName is not a menu item: True
+- truckName is not a price/quantity line: True
+- truckName is not just a food item: True
+- contact/social/website supports identity: True
+- city/serviceArea exists: True
+- evidence source is clear: True
+
+3. Evidence check
+- field: truckName
+  value: Traci's Cherished
+  source file: Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: Koolaide $2 med / $3 laree
+
+Traci's Cherished
+Creations LLC
+1.8K follower
+  confidence: 0.85
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: phone
+  value: 850-255-8396
+  source file: Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: 11:57 & 9 Fw!
+
+<
+
+Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+
+Deep Fried tossed with Peach Crown sauc
+  confidence: 0.98
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: facebook
+  value: DINNERS
+  source file: Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg
+  raw snippet: ease Follow us on Facebook
+
+DINNERS All Dinners come with 2 sides
+  confidence: 0.9
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: cityArea
+  value: Pensacola, FL
+  source file: Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: Reviews)
+
+o) Open now
+
+©) Pensacola, FL, United States
+
+sus] Pensac
+  confidence: 0.75
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+- field: cuisine
+  value: BBQ
+  source file: Screenshot_20260527_115713_Facebook.jpg
+  raw snippet: - 6 oineapple-Sweet Jalapeno- BBQ-Honey Mustard Heavenlv Koolai
+  confidence: 0.7
+  attribution: request_context|MANUAL_OPERATOR|UNKNOWN_SOURCE_REVIEW
+
+4. Blocker check
+- no unresolved conflicts: True
+- required fields present: True
+- evidence refs present: True
+- source file IDs present: True
+- media did not create identity: True
+- no weak OCR name warning: True
+- no menu_like_truck_name warning: True
+
+5. Operator recommendation
+- APPROVE_FOR_EXECUTION
+
+6. If and only if APPROVE_FOR_EXECUTION:
+{
+  "planId": "ms-plan-c0aa65be-5050-4bbb-aa59-fd63207dff7b",
+  "recordIds": ["ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167"],
+  "confirmation": true,
+  "operatorId": "MANUAL_OPERATOR"
+}

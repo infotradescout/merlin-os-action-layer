@@ -1,0 +1,127 @@
+Merlin Intake Approved Action Card Apply Runtime Slice 4A Report
+Date: 2026-05-31
+
+Goal
+- Enable real apply runtime for already-approved action cards (MealScout only), with strict guards, idempotency, and audit-visible output.
+- Keep notifications/cleanup/TradeScout apply out of scope.
+
+Files changed
+- src/merlin/intake/actionCardQueue.ts
+- src/merlin/intake/actionCardApplyRuntime.ts
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-dryrun.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+Implemented endpoint
+- POST /api/mealscout/intake/action-cards/:cardId/apply
+
+Authorization and gating
+- Role-gated to admin/operator/staff classes.
+- Unknown card -> 404 action_card_not_found.
+- Only decisionState=approved_for_apply can apply.
+- pending/rejected/deferred -> 409 card_not_approved_for_apply.
+- Already applied returns idempotent success envelope with prior metadata.
+
+Action-card state additions
+- applyState: not_applied | applied | apply_failed
+- appliedBy
+- appliedAt
+- applyResult
+- applyError
+- default applyState: not_applied
+
+Apply contract behavior
+- Apply path re-checks dry-run contract internally before mutation logic.
+- MealScout-only entity apply gate:
+  - supports food_truck / restaurant / caterer_private_chef
+  - unsupported types fail safely with apply_failed
+
+Per-card apply semantics
+1) create_profile_draft
+- Creates runtime MealScout entity projection from extracted fields.
+- Preserves sourceFileIds.
+- No invented fields.
+- Duplicate safety: if existingEntityMatch is now resolvable in runtime entity map, apply fails safely.
+
+2) update_existing_profile
+- Uses dry-run diff fields only.
+- Updates only non-empty approved after-values.
+- Never overwrites non-empty existing values with empty/null.
+- If target entity missing at apply time -> apply_failed: stale_before_state_conflict.
+- Returns fieldDiff in response.
+
+3) claim_existing_profile
+- No ownership transfer.
+- Returns pending claim result only (claimResult with ownershipTransferred:false).
+
+4) request_missing_info
+- No profile mutation.
+- apply_failed with missing_required_fields.
+
+5) defer_unclassified
+- No profile mutation.
+- apply_failed with deferred_unclassified_evidence.
+
+Apply response shape (implemented)
+- cardId
+- batchId
+- actionType
+- entityType
+- mutationAllowed: true (apply endpoint only)
+- applyState
+- appliedBy
+- appliedAt
+- createdEntity
+- updatedEntity
+- claimResult
+- fieldDiff
+- sourceFileIds
+- auditWarnings
+- skippedReason
+
+Dry-run/preview/decision mutation flags
+- preview mutationAllowed remains false
+- decision endpoint mutationAllowed remains false
+- dry-run endpoint mutationAllowed remains false
+- apply endpoint is the only place returning mutationAllowed true
+
+UI updates
+- Action card panel now shows apply state metadata.
+- Added “Apply Approved” button only when:
+  - decisionState === approved_for_apply
+  - applyState !== applied
+- UI surfaces apply results (created/updated/claim, skipped reason, field diff).
+- Dry Run and Apply remain visually distinct.
+
+What was explicitly NOT implemented in 4A
+- No TradeScout apply runtime.
+- No affiliate/customer notification sends.
+- No Drive cleanup/delete/archive/suppress behavior.
+- No public profile publish path added.
+
+Tests added/updated
+- tests/merlin-intake-action-cards-dryrun.test.ts
+  - apply approved create is successful once and idempotent thereafter
+  - pending/rejected/deferred apply denied safely
+  - update_existing_profile only applies approved non-empty diff fields
+  - stale update conflict fails safely
+  - claim does not transfer ownership
+  - request_missing_info/defer_unclassified do not mutate profile data
+  - apply role gate + unknown id safety
+  - decision-state and dry-run tests remain passing
+- tests/mealscout-review-queue-ui.test.ts
+  - client covers action-card apply call
+  - UI surface still renders with dry-run/decision controls and action card section
+
+Validation
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (338/338)
+- npm run build: PASS
+
+Safety confirmations
+- publish execution called by this slice: no
+- notification send path called: no
+- Drive cleanup/delete/suppress behavior called: no
+- live mutation limited to approved MealScout apply endpoint only with strict gate + idempotency

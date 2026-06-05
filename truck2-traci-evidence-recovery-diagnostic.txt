@@ -1,0 +1,119 @@
+Truck #2 Traci Evidence Recovery Diagnostic
+
+Target business: Traci's Cherished Creations LLC
+Known identity: phone 850-255-8396, cityArea Pensacola, FL, socialHandle tracischerishedcreations
+Legacy correction recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Searched terms
+- Traci
+- Cherished
+- Traci's Cherished Creations LLC
+- 850-255-8396
+- tracischerishedcreations
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+- source file IDs: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq, 1ZSODmteznUWR8MHthOfzuGkC15AEP4ps
+
+Stores/endpoints checked
+- Local artifacts scan: truck1/truck2/pilot7*/exact-filename files
+- GET /api/health
+- GET /api/drive/auth-health
+- GET /api/mealscout/intake/folders
+- GET /api/mealscout/intake/file-audit?folderId=1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF (role-gated call with admin headers)
+- GET /api/mealscout/intake/batches (role-gated call with admin headers)
+- GET /api/mealscout/review-corrections?recordId=ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167 (role-gated call with admin headers)
+- POST /api/mealscout/intake/preview (heavy call currently timing out in this runtime when loading full 200-file folder)
+
+Findings
+- Runtime health: OK (localhost:3030)
+- Active MealScout intake root: Merlin OR Storage/MealScout Intake [1UT4rR8p1SVPbE-jRRZbyinurGvTT5od9]
+- Active unknown intake folder: Merlin OR Storage/MealScout Intake/incoming/unknown [15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg]
+- file-audit for folder 1Mw14... returned 200 files
+- First 25 files in that folder are IMG_59xx-style PNGs and all unattached/unknown; sample:
+- 1B0dXVM2qslvPpND4LVztg84-N3GnbwoF | IMG_5982.PNG | role=unknown | status=unattached
+- 1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1 | IMG_5981.PNG | role=unknown | status=unattached
+- 1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm | IMG_5983.PNG | role=unknown | status=unattached
+- 1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB | IMG_5980.PNG | role=unknown | status=unattached
+- 1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ | IMG_5979.PNG | role=unknown | status=unattached
+- 1mNYAaywwcdvctQq18tVsiHw8Sxsr0ka_ | IMG_5976.PNG | role=unknown | status=unattached
+- 1Hoi6RAEqHetbLuyi4-G89pdMPXtjt1xZ | IMG_5977.PNG | role=unknown | status=unattached
+- 12kgpocgH-zsksRqKHWIeAp1szc1cY8Rr | IMG_5974.PNG | role=unknown | status=unattached
+- 1NANuDpEj4zIjjVbqrzEwKrUXMJLx0gNe | IMG_5978.PNG | role=unknown | status=unattached
+- 1ekz5LGGCkTp1RmuDGUX8yyjXK0KWYo0E | IMG_5972.PNG | role=unknown | status=unattached
+- 1JazEWhTdX2i_CzQwrhSvR-jlXDSk67KJ | IMG_5971.PNG | role=unknown | status=unattached
+- 15Ig43vT5rACrXfwz9SXzByWDt2CrSMEz | IMG_5975.PNG | role=unknown | status=unattached
+- 1mXPIbJWwbxMF1kXoj-KKAamB50ajG3cj | IMG_5970.PNG | role=unknown | status=unattached
+- 1u-iUkPUicEocU_kusLb4wYKYYaIJ8P_L | IMG_5929.PNG | role=unknown | status=unattached
+- 1urIMUwqzfqcwNA-pP79gpg74QWgScxUD | IMG_5969.PNG | role=unknown | status=unattached
+- 1IUfL3mNs5bpJHGBpGzZmHGePK-hY25O9 | IMG_5931.PNG | role=unknown | status=unattached
+- 13iC0hlcuIYdoiSqfRcgaQSDOzuo7vqt1 | IMG_5930.PNG | role=unknown | status=unattached
+- 1KBK-9_CA_XXplxxJzwGpfITLYAq8l_2u | IMG_5963.PNG | role=unknown | status=unattached
+- 1YLIbNyws8590LugZVLxLiOPG7Jt4mCV0 | IMG_5968.PNG | role=unknown | status=unattached
+- 17qs1b6JXOvR-S198cfxrVpxDyfpyB_Df | IMG_5965.PNG | role=unknown | status=unattached
+- 1iWHqh-GCpRD706i1D_Ns-YBbwfTaKQG1 | IMG_5964.PNG | role=unknown | status=unattached
+- 1pXW4y0ad7OlmXvw-XRJivtG72ummhaTd | IMG_5961.PNG | role=unknown | status=unattached
+- 1zU0BN6LR5qSQAeFOTX2bbqPyOik_oS18 | IMG_5962.PNG | role=unknown | status=unattached
+- 1N_Z4FcmF0jmKu6vAVscffVrYIh-15GPg | IMG_5960.PNG | role=unknown | status=unattached
+- 11pmImI-PYIOtI9vVJVZb4iBq1tUbeztV | IMG_5959.PNG | role=unknown | status=unattached
+- Live file-audit match for known Traci file IDs/names: 0
+- Known Traci files were found only in prior artifacts (historical context), including:
+  - pilot7o-truck1-batch-run.json
+  - pilot7o-truck1-preview.json
+  - pilot7p-preview-check.json
+  - pilot7p-truck2-batch-run.json
+  - pilot7p-truck2-followup-batch-run.json
+  - pilot7r-menu-attachment-readiness-summary.txt
+  - pilot7u-global-folder-context-assist-summary.txt
+  - truck1-batch-detail.json
+  - truck1-batch-run-attributed.json
+  - truck1-batch-run.json
+  - truck1-execution-audit.json
+  - truck1-execution-rerun-response.json
+  - truck1-execution-response.json
+  - truck1-execution-result.txt
+  - truck1-full-preview-attributed.json
+  - truck1-full-preview.json
+  - truck1-post-7o-publish-ready-inspection.txt
+  - truck1-publish-ready-decision-packet.txt
+  - truck1-safe-mode-qa-report-attributed.txt
+  - truck1-safe-mode-qa-report.txt
+  - truck2-batch-run.json
+  - truck2-execution-result.txt
+  - truck2-preview.json
+  - truck2-publish-ready-decision-packet.txt
+  - truck2-safe-mode-qa-report-final.txt
+  - truck2-tracis-three-image-linkage-report.txt
+- Prior artifacts confirm Traci evidence existed previously in processing context; current live folder context does not expose those original IDs/names.
+- Current review-corrections endpoint returns no rows for the legacy record in this runtime context.
+- Batches endpoint currently returns empty set in this runtime context.
+
+Status classification of original evidence
+- in a prior batch: historical artifacts indicate YES
+- marked already_processed: historical artifacts indicate YES in earlier runs
+- duplicate_suppressed: not directly shown for the 3 known Traci IDs in current live file-audit
+- in an inactive folder: likely/possible (not visible in currently queried active folder context)
+- in Drive but outside current active MealScout intake context: LIKELY YES
+- missing/deleted/trashed: UNKNOWN from available APIs in this run
+- permission-blocked: not indicated for read/list calls
+- only present in correction history: historical correction references exist, but not sufficient for publish context
+
+Reason evidence is missing from current plan context
+- Source-context drift: the current active folder content is a different file set than the earlier Traci evidence set, so preview candidate generation cannot produce a current Traci candidate to rehydrate against.
+
+Exact recommended action
+1. Restore Traci evidence into the active intake context (same folder path currently used by intake):
+   - Merlin OR Storage/MealScout Intake/incoming/unknown [15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg] OR explicitly run intake against the folder that contains the three Traci files.
+2. Ensure these files are present and visible by ID/name in file-audit before dry-run:
+   - 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97 (profile screenshot)
+   - 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq (menu image)
+   - 1ZSODmteznUWR8MHthOfzuGkC15AEP4ps (logo candidate)
+   If IDs changed, re-upload/copy and then re-bind via manual attachment + stable identity fields.
+3. Re-run preview on the restored source folder and verify a current Traci candidate exists.
+4. Only then re-run Truck #2 dry-run rehydration verification.
+
+Safety confirmations
+- publish execution called: no
+- live mutation occurred: no
+- mutationAllowed values: preview/file-audit/batches remain false in this diagnostic path
+
+Fail-safe result
+- NO CURRENT SOURCE EVIDENCE => NO PUBLISH DRY-RUN => NO PUBLISH

@@ -1,0 +1,46 @@
+Truck #2 Post-Upload Rehydration Verification
+
+Target: Traci's Cherished Creations LLC
+Legacy correction recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+1. Health/Auth
+- /api/health: ok
+- /api/drive/auth-health: disabled
+
+2. Active folder
+- folder id: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+- folder path: Merlin OR Storage/MealScout Intake/incoming/unknown
+- file-audit count: 3
+
+3. Restored file visibility (expected 3)
+- expected names: Screenshot_20260527_115713_Facebook.jpg; Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg; FB_IMG_1779901042554.jpg
+- matched count: 1
+  -  |  | role= | status=
+
+4. Preview / candidate regeneration
+- preview error: 
+- candidate generated for Traci: False
+- current candidate recordId: 
+- reviewState: 
+- blockedReasons: 
+
+5. Rehydration content checks
+- accepted businessName: 
+- accepted phone: 
+- accepted cityArea: 
+- accepted socialHandle: 
+- rejected facebook:DINNERS excluded: 
+- rejected cuisine:BBQ excluded: 
+- menuDeferred preserved: 
+- cuisineDeferred preserved: 
+- AMBIGUOUS_REVIEW_BINDING present: False
+
+6. Safety
+- publish execution called: False
+- live mutation: False
+- mutationAllowed.preview: False
+- mutationAllowed.fileAudit: False
+
+7. Final recommendation
+- SOURCE_CONTEXT_MISSING
+- blocked reason: Not all 3 expected Traci source files are visible in active intake folder file-audit.

@@ -1,0 +1,62 @@
+Truck #2 Manual Review Resolution Report
+Generated: 2026-05-31
+
+Target recordId
+- ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+Corrected fields read
+- truckName/businessName: Traci's Cherished Creations LLC (replace_field correction)
+- phone: 850-255-8396 (from prior reviewed packet evidence)
+- cityArea: Pensacola, FL (from prior reviewed packet evidence)
+- socialHandle: tracischerishedcreations (add_field_with_evidence_note correction)
+
+Rejected fields confirmed
+- facebook: DINNERS (reject_field correction present)
+- cuisine: BBQ (reject_field correction present)
+
+Publish-gate checklist (manual review resolution)
+- truckName/businessName: PASS
+- phone OR email: PASS (phone present)
+- cityArea: PASS
+- cuisine OR explicit cuisineDeferred/requiresConfirmation: PASS via deferral
+  - cuisineDeferred: true
+  - cuisineReviewReason: "Cuisine not reliable from available evidence."
+- menu.length >= 1 OR menuDeferred=true: PASS via deferral
+  - menuDeferred: true
+  - menuReviewReason: "Menu not visible in available evidence."
+
+Deferred fields added
+- cuisineDeferred=true
+  - correctionId: ms-correction-59a3d33b-a02c-4ddc-a010-ee5ee7ff2012
+- cuisineReviewReason="Cuisine not reliable from available evidence."
+  - correctionId: ms-correction-a981567b-5bc2-4303-9f71-22c10bc47932
+- menuDeferred=true
+  - correctionId: ms-correction-b2178805-93d8-49f0-8a32-25d52a295839
+- menuReviewReason="Menu not visible in available evidence."
+  - correctionId: ms-correction-bbcb11fa-fe15-4697-9a21-8bf0023988f2
+
+Final recommendation
+- REVIEW_READY
+
+Notes
+- REVIEW_READY is for manual-review completeness only; this does not mark publish-ready.
+- No publish path was invoked.
+- Draft detail endpoint for legacy draft ID returned 404 in current runtime context, but record-level corrections for target recordId are present and complete (9 corrections total).
+
+Live mutation yes/no
+- Live public profile mutation: NO
+
+Publish execution called yes/no
+- NO
+- Publish audit endpoint response: status=ok, mutationAllowed=false, records=[]
+
+mutationAllowed values
+- review corrections POST responses: mutationAllowed=false
+- review corrections GET response: mutationAllowed=false
+- publish audit GET response: mutationAllowed=false
+
+Validation result
+- Correction entries for target recordId verified.
+- Required deferral fields added with review reasons.
+- Rejected weak fields remain rejected.
+- Zero live profile mutation and zero publish execution.

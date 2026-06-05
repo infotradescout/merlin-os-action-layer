@@ -59,12 +59,12 @@ export type MealScoutEvidenceFile = {
     affiliateId?: string;
     affiliateEmail?: string;
     affiliateCode?: string;
+    repId?: string;
     affiliate_attribution_email?: string;
     affiliate_attribution_source?: 'folder_email_token';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
-    repId?: string;
     needsAttributionReview?: boolean;
     sourceChannel?: 'drive_upload' | 'manual_upload' | 'admin_import';
     batchId?: string;
@@ -144,11 +144,12 @@ export function classifyMealScoutDetectedType(input: {
   const hasProfileSignals = Boolean(
     signals.truckName || signals.phone || signals.email || signals.website || signals.cityArea || signals.cuisine
   );
+  const hasContactOrLocationSignals = Boolean(signals.phone || signals.email || signals.website || signals.cityArea);
 
   if (folder.includes('/logos') || folder.endsWith('logos') || hints.hasLogo) {
     return { detectedType: 'logo', confidence: 0.85 };
   }
-  if (folder.includes('/menus') || folder.endsWith('menus') || hints.hasMenuLayout || (signals.menuItems || []).length > 0) {
+  if (folder.includes('/menus') || folder.endsWith('menus') || hints.hasMenuLayout) {
     return { detectedType: 'menu', confidence: 0.9 };
   }
   if (folder.includes('/photos') || folder.endsWith('photos') || hints.hasSocialUi) {
@@ -162,8 +163,11 @@ export function classifyMealScoutDetectedType(input: {
   if (hints.hasHoursGrid) {
     return { detectedType: 'schedule', confidence: 0.8 };
   }
-  if (hasProfileSignals) {
+  if (hasProfileSignals && (hasContactOrLocationSignals || (signals.menuItems || []).length === 0)) {
     return { detectedType: 'profile', confidence: 0.8 };
+  }
+  if ((signals.menuItems || []).length > 0) {
+    return { detectedType: 'menu', confidence: 0.9 };
   }
   if (hints.hasSocialUi || signals.facebook || signals.instagram) {
     return { detectedType: 'social', confidence: 0.78 };

@@ -1,0 +1,21 @@
+Pilot 7P Safe Mode Next-Slice Summary
+- before Truck #2 processed count: 0
+- after Truck #2 processed count: 5
+- batchId: ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b
+- scanned/eligible: 38/38
+- skipped breakdown: already_processed=0, not_selected=33, unsupported=0, total=33
+- failedFileCount: 0
+- attribution request_context count: 5
+- publish execution called: no
+- preview mutationAllowed:false: true
+
+Changed files:
+- src/mealscoutBatchIntakeState.ts
+- src/server.ts
+- tests/mealscout-batch-intake.test.ts
+
+Follow-up proof (same settings, immediate next run):
+- batchId: ms-intake-batch-75201257-ae6b-4183-b0a1-6841c616049e
+- processedFileCount: 5
+- skippedAlreadyProcessedCount: 5
+- skippedNotSelectedCount: 28

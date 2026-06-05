@@ -1,0 +1,74 @@
+Truck #2 Review Binding Rehydration Patch Report
+Generated: 2026-05-31
+
+Files changed
+- src/mealscoutReviewCorrections.ts
+- src/mealscoutPublishPlan.ts
+- src/server.ts
+- tests/mealscout-review-corrections-attachments.test.ts
+
+Stable key algorithm (implemented)
+Save-time identity capture on each correction:
+1. stableReviewKey
+2. sourceFileClusterId
+3. normalizedPhone
+4. normalizedBusinessName
+5. normalizedCityArea
+
+Normalization rules:
+- normalizedPhone: digits only
+- normalizedBusinessName: lowercase alnum only
+- normalizedCityArea: lowercase trimmed text
+- sourceFileClusterId: deterministic sorted sourceFileIds joined as `cluster:<id1>|<id2>|...`
+
+How correction identity is populated
+- On POST /api/mealscout/review-corrections:
+  - Try payload-provided identity fields first.
+  - Otherwise resolve most recent publish-plan record by recordId and derive binding identity from that record.
+  - Store original recordId + derived stable identity fields.
+
+Rehydration flow (implemented in publish-plan build)
+When applying corrections to a current publish-plan record:
+1. Match by current recordId (legacy behavior)
+2. If none, match by stableReviewKey
+3. If none, match by sourceFileClusterId
+4. If none, match by normalizedPhone
+5. If none, match by normalizedBusinessName + normalizedCityArea
+
+Safety rule:
+- If matched corrections point to more than one original recordId, block record with:
+  - blockedReasons += AMBIGUOUS_REVIEW_BINDING
+  - warnings += ambiguous_review_binding
+  - publishReady = false
+  - plannedAction = blocked
+
+REVIEW_READY handling
+- Added first-class record review state support in publish-plan record:
+  - reviewState: HOLD_FOR_REVIEW | REVIEW_READY
+- Derived from correction action on fieldName=reviewRecommendation
+- REVIEW_READY is represented in dry-run context metadata and does not trigger execution.
+- Execution path remains separately gated and unchanged.
+
+Ambiguity behavior
+- Ambiguous cross-record binding is hard-blocked (no silent attachment).
+- No correction is applied when ambiguous binding is detected for a candidate record.
+
+Tests added/updated
+- tests/mealscout-review-corrections-attachments.test.ts
+  - Added: corrections rehydrate onto regenerated candidate using stable review binding.
+  - Added: ambiguous review binding blocks publish-ready record safely.
+
+Validation results
+- npm run check: PASS
+- npx tsx --test tests/mealscout-review-corrections-attachments.test.ts: PASS (5/5)
+- npx tsx --test tests/mealscout-screenshot-extraction.test.ts tests/mealscout-ocr-adapter.test.ts tests/mealscout-profile-import.test.ts tests/mealscout-review-queue-ui.test.ts tests/mealscout-review-decision-persistence.test.ts tests/mealscout-batch-intake.test.ts tests/mealscout-publish-plan-preview.test.ts tests/mealscout-publish-execution.test.ts: PASS (88/88)
+
+Publish execution called
+- no
+
+Live mutation occurred
+- no
+
+Notes
+- This is a narrow bridge patch: it improves correction-to-candidate durability across regenerated preview contexts while preserving legacy recordId matching as first fallback.
+- It does not weaken publish gating or enable auto-publish.

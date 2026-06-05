@@ -33,11 +33,13 @@ const MENU_KEYWORDS = [
 ];
 
 const BUSINESS_HINTS = ['truck', 'bbq', 'kitchen', 'catering', 'grill', 'food'];
+const OCR_PLACEHOLDER_NAMES = new Set(['title oo']);
 
 export function isMenuLikeTruckName(candidate: string | undefined): boolean {
   const name = (candidate || '').trim();
   if (!name) return false;
   const lower = name.toLowerCase();
+  const compactPlaceholder = lower.replace(/[^a-z0-9]+/g, ' ').trim();
 
   const hasPrice = /\$\s?\d{1,3}(?:\.\d{2})?\b|\b\d{1,3}\.\d{2}\b/.test(lower);
   const hasQuantity = /\b\d{1,2}\s*(wings?|pcs?|pieces?|oz|lb)\b/.test(lower);
@@ -47,6 +49,7 @@ export function isMenuLikeTruckName(candidate: string | undefined): boolean {
   const hasBusinessHint = BUSINESS_HINTS.some((token) => lower.includes(token));
   const longMenuLike = name.length > 40 && (hasMenuToken || hasPrice || hasQuantity);
 
+  if (OCR_PLACEHOLDER_NAMES.has(compactPlaceholder)) return true;
   if (hasBusinessHint && !hasPrice && !hasQuantity) {
     return false;
   }
