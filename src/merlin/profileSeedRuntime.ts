@@ -22,7 +22,7 @@ export type TradeScoutSeededProfile = {
   email_verified: false;
   insurance_verified: false;
   affiliate_attribution_email?: string;
-  affiliate_attribution_source?: 'folder_email_token';
+  affiliate_attribution_source?: 'folder_email_token' | 'admin_unattributed';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
   sourceFileIds: string[];

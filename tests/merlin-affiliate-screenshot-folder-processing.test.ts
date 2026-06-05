@@ -99,12 +99,15 @@ test('affiliate screenshot folder processing applies through existing seed runti
   assert.equal(report.mode, 'apply');
   assert.equal(report.affiliate_folders_found_count, 1);
   assert.equal(report.screenshots_found_count, 4);
-  assert.equal(report.screenshots_processed_count, 3);
+  assert.equal(report.screenshots_processed_count, 4);
+  assert.equal(report.affiliate_attributed_screenshots_count, 3);
+  assert.equal(report.admin_flow_screenshots_count, 1);
   assert.equal(report.mealscout_created_count, 1);
   assert.equal(report.tradescout_created_count, 1);
-  assert.equal(report.blocked_ambiguous_count, 1);
+  assert.equal(report.blocked_ambiguous_count, 2);
   assert.equal(report.folders_without_valid_email_count, 1);
   assert.equal(report.files_without_attribution_count, 1);
+  assert.equal(report.admin_flow_profiles_created_count, 0);
   assert.equal(report.verification_email_sent_count, 2);
 
   const ledger = readAffiliateTrackingLedgerRows();
@@ -378,6 +381,8 @@ test('affiliate screenshot folder preflight is read-only and reports valid affil
   assert.equal(report.folders_with_at_symbol_count, 1);
   assert.deepEqual(report.valid_affiliate_folder_names, ['Thehungerbrothers1@gmail.com Screenshots']);
   assert.equal(report.screenshots_found_count, 2);
+  assert.equal(report.affiliate_attributed_screenshots_count, 1);
+  assert.equal(report.admin_flow_screenshots_count, 1);
   assert.equal(report.screenshots_inside_affiliate_folders_count, 1);
   assert.equal(report.loose_unattributed_screenshots_count, 1);
   assert.deepEqual(report.mutation_methods_invoked, []);
@@ -386,7 +391,7 @@ test('affiliate screenshot folder preflight is read-only and reports valid affil
   assert.deepEqual(listVerificationEmailRecords(), []);
 });
 
-test('affiliate screenshot folder processing reports when no valid email token folder is visible', async () => {
+test('affiliate screenshot folder processing treats loose screenshots as admin flow without affiliate credit', async () => {
   const report = await processAffiliateScreenshotFolders({
     apply: true,
     localFolders: [
@@ -399,21 +404,29 @@ test('affiliate screenshot folder processing reports when no valid email token f
             fileId: 'unattributed-1',
             fileName: 'unattributed.jpg',
             mimeType: 'image/jpeg',
-            extractedText: 'Unattributed Truck\nEmail: unattributed@example.com\nPhone: 504-111-2222'
+            extractedText: 'Admin Flow Food Truck\nEmail: admin-flow@example.com\nPhone: 504-111-2222\nMenu: Gumbo $8'
           }
         ]
       }
     ]
   });
 
-  assert.equal(report.reason, 'no_valid_email_token_folder_visible');
+  assert.equal(report.reason, undefined);
   assert.equal(report.affiliate_folders_found_count, 0);
+  assert.equal(report.affiliate_attributed_screenshots_count, 0);
+  assert.equal(report.admin_flow_screenshots_count, 1);
+  assert.equal(report.loose_unattributed_screenshots_count, 1);
   assert.equal(report.folders_scanned_count, 1);
   assert.equal(report.folder_paths_scanned_count, 1);
   assert.deepEqual(report.folder_names_scanned_sample, ['Screenshots']);
   assert.equal(report.folders_with_at_symbol_count, 0);
   assert.equal(report.files_without_attribution_count, 1);
   assert.equal(report.files_missing_parent_folder_metadata_count, 0);
-  assert.equal(report.screenshots_processed_count, 0);
+  assert.equal(report.screenshots_processed_count, 1);
+  assert.equal(report.mealscout_created_count, 1);
+  assert.equal(report.admin_flow_profiles_created_count, 1);
+  assert.equal(report.affiliate_ledger_rows_written, 0);
   assert.equal(readAffiliateTrackingLedgerRows().length, 0);
+  const recipients = listVerificationEmailRecords().map((row) => row.recipient_email);
+  assert.deepEqual(recipients, ['admin-flow@example.com']);
 });

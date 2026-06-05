@@ -35,7 +35,7 @@ type PlannedMediaItem = {
     attributionPolicy: string;
     createdFromBatchId?: string;
     affiliate_attribution_email?: string;
-    affiliate_attribution_source?: 'folder_email_token';
+    affiliate_attribution_source?: 'folder_email_token' | 'admin_unattributed';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];
@@ -70,7 +70,7 @@ export type MealScoutPublishPlanRecord = {
     attributionPolicy: string;
     createdFromBatchId?: string;
     affiliate_attribution_email?: string;
-    affiliate_attribution_source?: 'folder_email_token';
+    affiliate_attribution_source?: 'folder_email_token' | 'admin_unattributed';
     affiliate_attribution_folder?: string;
     affiliate_attribution_folder_path?: string;
     affiliate_attribution_warnings?: string[];

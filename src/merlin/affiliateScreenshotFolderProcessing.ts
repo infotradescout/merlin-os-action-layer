@@ -71,6 +71,9 @@ export type AffiliateScreenshotFolderProcessingReport = {
   valid_affiliate_folder_names: string[];
   files_parent_folder_ids_sample: string[];
   files_parent_folder_names_sample: string[];
+  affiliate_attributed_screenshots_count: number;
+  admin_flow_screenshots_count: number;
+  loose_unattributed_screenshots_count: number;
   affiliate_folders_found_count: number;
   screenshots_found_count: number;
   screenshots_processed_count: number;
@@ -81,6 +84,8 @@ export type AffiliateScreenshotFolderProcessingReport = {
   blocked_ambiguous_count: number;
   blocked_missing_identity_count: number;
   affiliate_ledger_rows_written: number;
+  admin_flow_profiles_created_count: number;
+  admin_flow_profiles_updated_count: number;
   verification_email_sent_count: number;
   verification_email_failed_count: number;
   verification_email_not_available_count: number;
@@ -121,6 +126,8 @@ export type AffiliateScreenshotFolderPreflightReport = {
   folders_with_at_symbol_count: number;
   valid_affiliate_folder_names: string[];
   screenshots_found_count: number;
+  affiliate_attributed_screenshots_count: number;
+  admin_flow_screenshots_count: number;
   screenshots_inside_affiliate_folders_count: number;
   loose_unattributed_screenshots_count: number;
   mutation_methods_invoked: string[];
@@ -428,16 +435,14 @@ function summarizePreflight(input: {
   const status: AffiliateScreenshotFolderPreflightReport['status'] =
     input.discovery.status === 'error'
       ? 'error'
-      : input.discovery.status === 'disabled' || !folderMetadataAccessible || !hasValidAffiliateFolder
+      : input.discovery.status === 'disabled' || !folderMetadataAccessible
         ? 'blocked'
         : 'ok';
   const reason =
     input.discovery.reason ||
     (!folderMetadataAccessible
       ? 'folder_metadata_unavailable'
-      : !hasValidAffiliateFolder
-        ? 'no_valid_email_token_folder_visible'
-        : undefined);
+      : undefined);
 
   return {
     generated_at: input.generatedAt,
@@ -456,6 +461,8 @@ function summarizePreflight(input: {
     folders_with_at_symbol_count: folderNames.filter((name) => name.includes('@')).length,
     valid_affiliate_folder_names: validAffiliateFolders.map((folder) => folder.folderName),
     screenshots_found_count: screenshotsFoundCount,
+    affiliate_attributed_screenshots_count: screenshotsInsideAffiliateFoldersCount,
+    admin_flow_screenshots_count: looseUnattributedScreenshotsCount,
     screenshots_inside_affiliate_folders_count: screenshotsInsideAffiliateFoldersCount,
     loose_unattributed_screenshots_count: looseUnattributedScreenshotsCount,
     mutation_methods_invoked: input.mutationMethodsInvoked,
@@ -498,6 +505,9 @@ async function buildSeedInputs(input: {
   seedInputs: MerlinExistingScreenshotSeedInput[];
   affiliateFolders: AffiliateScreenshotFolderProcessingReport['affiliate_folders'];
   screenshotsFoundCount: number;
+  affiliateAttributedScreenshotsCount: number;
+  adminFlowScreenshotsCount: number;
+  adminFlowSourceFileIds: string[];
   foldersWithoutValidEmailCount: number;
   filesWithoutAttributionCount: number;
   filesMissingParentFolderMetadataCount: number;
@@ -508,6 +518,9 @@ async function buildSeedInputs(input: {
   let foldersWithoutValidEmailCount = 0;
   let filesWithoutAttributionCount = 0;
   let filesMissingParentFolderMetadataCount = 0;
+  let affiliateAttributedScreenshotsCount = 0;
+  let adminFlowScreenshotsCount = 0;
+  const adminFlowSourceFileIds: string[] = [];
 
   for (const folder of input.folders) {
     const folderPath = folder.folderPath || folder.folderName;
@@ -530,11 +543,24 @@ async function buildSeedInputs(input: {
     if (!attribution.affiliate_attribution_email) {
       foldersWithoutValidEmailCount += 1;
       filesWithoutAttributionCount += files.length;
-      continue;
+      adminFlowScreenshotsCount += files.length;
+      adminFlowSourceFileIds.push(...files.map((file) => file.fileId));
+    } else {
+      affiliateAttributedScreenshotsCount += files.length;
     }
 
     for (const file of files) {
       const extractedText = await readFileText(input.client, file);
+      const adminFlowAttribution: MerlinExistingScreenshotSeedInput['sourceFileAttribution'] = {
+        attributionSource: 'request_context',
+        attributionStatus: 'unmatched',
+        sourceChannel: 'admin_import',
+        modifiedAt: file.modifiedTime,
+        capturedAt: input.generatedAt,
+        needsAttributionReview: false,
+        affiliate_attribution_source: 'admin_unattributed',
+        affiliate_attribution_warnings: ['admin_unattributed']
+      };
       seedInputs.push({
         fileId: file.fileId,
         fileName: file.fileName,
@@ -545,15 +571,17 @@ async function buildSeedInputs(input: {
         modifiedTime: file.modifiedTime,
         extractedText,
         visualLabels: file.visualLabels,
-        sourceFileAttribution: {
-          attributionSource: 'folder_context',
-          attributionStatus: 'matched_affiliate_folder',
-          sourceChannel: 'drive_upload',
-          modifiedAt: file.modifiedTime,
-          capturedAt: input.generatedAt,
-          needsAttributionReview: false,
-          ...attribution
-        }
+        sourceFileAttribution: attribution.affiliate_attribution_email
+          ? {
+              attributionSource: 'folder_context',
+              attributionStatus: 'matched_affiliate_folder',
+              sourceChannel: 'drive_upload',
+              modifiedAt: file.modifiedTime,
+              capturedAt: input.generatedAt,
+              needsAttributionReview: false,
+              ...attribution
+            }
+          : adminFlowAttribution
       });
     }
   }
@@ -562,13 +590,16 @@ async function buildSeedInputs(input: {
     seedInputs,
     affiliateFolders,
     screenshotsFoundCount,
+    affiliateAttributedScreenshotsCount,
+    adminFlowScreenshotsCount,
+    adminFlowSourceFileIds,
     foldersWithoutValidEmailCount,
     filesWithoutAttributionCount,
     filesMissingParentFolderMetadataCount
   };
 }
 
-function countResults(results: MerlinProfileSeedResult[]): Pick<
+function countResults(results: MerlinProfileSeedResult[], adminFlowSourceFileIds: Set<string>): Pick<
   AffiliateScreenshotFolderProcessingReport,
   | 'mealscout_created_count'
   | 'mealscout_updated_count'
@@ -576,6 +607,8 @@ function countResults(results: MerlinProfileSeedResult[]): Pick<
   | 'tradescout_updated_count'
   | 'blocked_ambiguous_count'
   | 'blocked_missing_identity_count'
+  | 'admin_flow_profiles_created_count'
+  | 'admin_flow_profiles_updated_count'
   | 'verification_email_sent_count'
   | 'verification_email_failed_count'
   | 'verification_email_not_available_count'
@@ -587,6 +620,8 @@ function countResults(results: MerlinProfileSeedResult[]): Pick<
     tradescout_updated_count: results.filter((row) => row.brand_lane === 'TRADESCOUT' && row.profile_action === 'update').length,
     blocked_ambiguous_count: results.filter((row) => row.blockedReason === 'ambiguous_or_unsupported_brand').length,
     blocked_missing_identity_count: results.filter((row) => row.blockedReason === 'missing_required_identity').length,
+    admin_flow_profiles_created_count: results.filter((row) => adminFlowSourceFileIds.has(row.sourceFileId) && row.profile_action === 'create').length,
+    admin_flow_profiles_updated_count: results.filter((row) => adminFlowSourceFileIds.has(row.sourceFileId) && row.profile_action === 'update').length,
     verification_email_sent_count: results.filter((row) => row.verification_email_status === 'sent').length,
     verification_email_failed_count: results.filter((row) => row.verification_email_status === 'failed').length,
     verification_email_not_available_count: results.filter((row) => row.verification_email_status === 'not_available').length
@@ -610,7 +645,7 @@ export async function processAffiliateScreenshotFolders(
     results = processed.results;
   }
   const ledgerAfter = readAffiliateTrackingLedgerRows().length;
-  const counts = countResults(results);
+  const counts = countResults(results, new Set(built.adminFlowSourceFileIds));
   const validAffiliateFolderNames = built.affiliateFolders.map((folder) => folder.folder_name);
   const hasEmptyAffiliateFolder = built.affiliateFolders.some((folder) => folder.screenshot_count === 0);
   const folderNamesScanned = discovery.folders.map((folder) => folder.folderName).filter((name) => name.trim().length > 0);
@@ -624,9 +659,6 @@ export async function processAffiliateScreenshotFolders(
     discovery.reason ||
     (discovery.status === 'ok' && hasEmptyAffiliateFolder && built.screenshotsFoundCount === 0
       ? 'folder_empty'
-      : undefined) ||
-    (discovery.status === 'ok' && built.affiliateFolders.length === 0
-      ? 'no_valid_email_token_folder_visible'
       : undefined);
   const report: AffiliateScreenshotFolderProcessingReport = {
     generated_at: generatedAt,
@@ -651,6 +683,9 @@ export async function processAffiliateScreenshotFolders(
     valid_affiliate_folder_names: validAffiliateFolderNames,
     files_parent_folder_ids_sample: Array.from(new Set(fileParentFolderIds)).slice(0, 20),
     files_parent_folder_names_sample: Array.from(new Set(fileParentFolderNames)).slice(0, 20),
+    affiliate_attributed_screenshots_count: built.affiliateAttributedScreenshotsCount,
+    admin_flow_screenshots_count: built.adminFlowScreenshotsCount,
+    loose_unattributed_screenshots_count: built.adminFlowScreenshotsCount,
     affiliate_folders_found_count: built.affiliateFolders.length,
     screenshots_found_count: built.screenshotsFoundCount,
     screenshots_processed_count: results.length,
@@ -702,6 +737,9 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
     `files_parent_folder_ids_sample: ${report.files_parent_folder_ids_sample.join(', ')}`,
     `files_parent_folder_names_sample: ${report.files_parent_folder_names_sample.join(', ')}`,
+    `affiliate_attributed_screenshots_count: ${report.affiliate_attributed_screenshots_count}`,
+    `admin_flow_screenshots_count: ${report.admin_flow_screenshots_count}`,
+    `loose_unattributed_screenshots_count: ${report.loose_unattributed_screenshots_count}`,
     `affiliate_folders_found_count: ${report.affiliate_folders_found_count}`,
     `screenshots_found_count: ${report.screenshots_found_count}`,
     `screenshots_processed_count: ${report.screenshots_processed_count}`,
@@ -712,6 +750,8 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `blocked_ambiguous_count: ${report.blocked_ambiguous_count}`,
     `blocked_missing_identity_count: ${report.blocked_missing_identity_count}`,
     `affiliate_ledger_rows_written: ${report.affiliate_ledger_rows_written}`,
+    `admin_flow_profiles_created_count: ${report.admin_flow_profiles_created_count}`,
+    `admin_flow_profiles_updated_count: ${report.admin_flow_profiles_updated_count}`,
     `verification_email_sent_count: ${report.verification_email_sent_count}`,
     `verification_email_failed_count: ${report.verification_email_failed_count}`,
     `verification_email_not_available_count: ${report.verification_email_not_available_count}`,
@@ -762,6 +802,8 @@ export function renderAffiliateScreenshotFolderPreflightReport(report: Affiliate
     `folders_with_at_symbol_count: ${report.folders_with_at_symbol_count}`,
     `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
     `screenshots_found_count: ${report.screenshots_found_count}`,
+    `affiliate_attributed_screenshots_count: ${report.affiliate_attributed_screenshots_count}`,
+    `admin_flow_screenshots_count: ${report.admin_flow_screenshots_count}`,
     `screenshots_inside_affiliate_folders_count: ${report.screenshots_inside_affiliate_folders_count}`,
     `loose_unattributed_screenshots_count: ${report.loose_unattributed_screenshots_count}`,
     `mutation_methods_invoked: ${report.mutation_methods_invoked.join(', ')}`,
