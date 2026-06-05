@@ -39,6 +39,7 @@ export type AffiliateScreenshotFolderInput = {
 export type AffiliateScreenshotFolderProcessingOptions = {
   apply: boolean;
   reportPath?: string;
+  rootFolderId?: string;
   parentFolderId?: string;
   parentFolderPath?: string;
   maxDepth?: number;
@@ -52,6 +53,10 @@ export type AffiliateScreenshotFolderProcessingReport = {
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   drive_scope_used: string;
+  requested_root_folder_id: string;
+  effective_root_folder_id: string;
+  effective_root_folder_name: string;
+  root_folder_has_affiliate_email_token: boolean;
   scanned_root_id: string;
   scanned_root_name: string;
   drive_scope_mode: string;
@@ -168,6 +173,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   driveScopeUsed: string;
+  requestedRootFolderId: string;
+  effectiveRootFolderId: string;
+  effectiveRootFolderName: string;
+  rootFolderHasAffiliateEmailToken: boolean;
   scannedRootId: string;
   scannedRootName: string;
   driveScopeMode: string;
@@ -181,6 +190,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     return {
       status: 'ok',
       driveScopeUsed: 'local_input',
+      requestedRootFolderId: '',
+      effectiveRootFolderId: 'local_input',
+      effectiveRootFolderName: 'local_input',
+      rootFolderHasAffiliateEmailToken: false,
       scannedRootId: 'local_input',
       scannedRootName: 'local_input',
       driveScopeMode: 'local_input',
@@ -198,6 +211,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
       status: 'disabled',
       reason: profile.reason || 'Drive is not configured',
       driveScopeUsed: 'drive_unavailable',
+      requestedRootFolderId: options.rootFolderId || process.env.MERLIN_AFFILIATE_SCREENSHOT_ROOT_FOLDER_ID || '',
+      effectiveRootFolderId: '',
+      effectiveRootFolderName: '',
+      rootFolderHasAffiliateEmailToken: false,
       scannedRootId: '',
       scannedRootName: '',
       driveScopeMode: authConfig.rootMode,
@@ -214,6 +231,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
       status: 'error',
       reason: 'Drive client does not support folder discovery',
       driveScopeUsed: 'drive_client_missing_list_subfolders',
+      requestedRootFolderId: options.rootFolderId || process.env.MERLIN_AFFILIATE_SCREENSHOT_ROOT_FOLDER_ID || '',
+      effectiveRootFolderId: '',
+      effectiveRootFolderName: '',
+      rootFolderHasAffiliateEmailToken: false,
       scannedRootId: '',
       scannedRootName: '',
       driveScopeMode: authConfig.rootMode,
@@ -225,14 +246,47 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     };
   }
 
-  let rootFolderId = options.parentFolderId || process.env.MERLIN_AFFILIATE_SCREENSHOT_PARENT_FOLDER_ID || authConfig.rootFolderId;
+  const requestedRootFolderId = options.rootFolderId || process.env.MERLIN_AFFILIATE_SCREENSHOT_ROOT_FOLDER_ID || '';
+  let rootFolderId =
+    requestedRootFolderId ||
+    options.parentFolderId ||
+    process.env.MERLIN_AFFILIATE_SCREENSHOT_PARENT_FOLDER_ID ||
+    authConfig.rootFolderId;
   let rootFolderPath = options.parentFolderPath || process.env.MERLIN_AFFILIATE_SCREENSHOT_PARENT_FOLDER_PATH || '';
   if (!rootFolderId) {
     rootFolderId = 'root';
     rootFolderPath = rootFolderPath || 'root';
   }
+  if (requestedRootFolderId) {
+    try {
+      const metadata = await client.getFileMetadata(requestedRootFolderId);
+      rootFolderId = metadata.drive_file_id || requestedRootFolderId;
+      rootFolderPath = metadata.file_name || requestedRootFolderId;
+    } catch (error) {
+      return {
+        status: 'error',
+        reason: `root_folder_metadata_unavailable:${error instanceof Error ? error.message : 'unknown_error'}`,
+        driveScopeUsed: requestedRootFolderId,
+        requestedRootFolderId,
+        effectiveRootFolderId: requestedRootFolderId,
+        effectiveRootFolderName: '',
+        rootFolderHasAffiliateEmailToken: false,
+        scannedRootId: requestedRootFolderId,
+        scannedRootName: '',
+        driveScopeMode: authConfig.rootMode,
+        authMode: authConfig.mode,
+        discoveryMode: 'drive_folder_walk',
+        recursiveScanEnabled: false,
+        folders: [],
+        client
+      };
+    }
+  }
   if (!rootFolderPath) rootFolderPath = rootFolderId;
   const scannedRootName = rootFolderPath.split(/[\\/]+/).filter(Boolean).pop() || rootFolderPath;
+  const rootFolderHasAffiliateEmailToken = Boolean(
+    resolveAffiliateFolderAttributionFromPath({ folderPath: rootFolderPath }).affiliate_attribution_email
+  );
 
   const discovered: DiscoveredFolder[] = [{ folderId: rootFolderId, folderName: rootFolderPath, folderPath: rootFolderPath }];
   await walkDriveFolders({
@@ -259,6 +313,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   return {
     status: 'ok',
     driveScopeUsed: rootFolderPath,
+    requestedRootFolderId,
+    effectiveRootFolderId: rootFolderId,
+    effectiveRootFolderName: scannedRootName,
+    rootFolderHasAffiliateEmailToken,
     scannedRootId: rootFolderId,
     scannedRootName,
     driveScopeMode: authConfig.rootMode,
@@ -293,6 +351,14 @@ async function buildSeedInputs(input: {
     const folderPath = folder.folderPath || folder.folderName;
     const attribution = resolveAffiliateFolderAttributionFromPath({ folderPath });
     const files = folder.files.filter((file) => isSupportedScreenshot(file.fileName, file.mimeType));
+    if (attribution.affiliate_attribution_email) {
+      affiliateFolders.push({
+        folder_id: folder.folderId,
+        folder_name: folder.folderName,
+        affiliate_attribution_email: attribution.affiliate_attribution_email,
+        screenshot_count: files.length
+      });
+    }
     if (files.length === 0) continue;
     screenshotsFoundCount += files.length;
     if (!folder.folderPath?.trim() && !folder.folderName?.trim()) {
@@ -304,13 +370,6 @@ async function buildSeedInputs(input: {
       filesWithoutAttributionCount += files.length;
       continue;
     }
-
-    affiliateFolders.push({
-      folder_id: folder.folderId,
-      folder_name: folder.folderName,
-      affiliate_attribution_email: attribution.affiliate_attribution_email,
-      screenshot_count: files.length
-    });
 
     for (const file of files) {
       const extractedText = await readFileText(input.client, file);
@@ -391,6 +450,7 @@ export async function processAffiliateScreenshotFolders(
   const ledgerAfter = readAffiliateTrackingLedgerRows().length;
   const counts = countResults(results);
   const validAffiliateFolderNames = built.affiliateFolders.map((folder) => folder.folder_name);
+  const hasEmptyAffiliateFolder = built.affiliateFolders.some((folder) => folder.screenshot_count === 0);
   const folderNamesScanned = discovery.folders.map((folder) => folder.folderName).filter((name) => name.trim().length > 0);
   const fileParentFolderIds = discovery.folders
     .flatMap((folder) => folder.files.map((file) => file.parentFolderId || folder.folderId))
@@ -400,6 +460,9 @@ export async function processAffiliateScreenshotFolders(
     .filter((value) => value.trim().length > 0);
   const reason =
     discovery.reason ||
+    (discovery.status === 'ok' && hasEmptyAffiliateFolder && built.screenshotsFoundCount === 0
+      ? 'folder_empty'
+      : undefined) ||
     (discovery.status === 'ok' && built.affiliateFolders.length === 0
       ? 'no_valid_email_token_folder_visible'
       : undefined);
@@ -409,6 +472,10 @@ export async function processAffiliateScreenshotFolders(
     status: discovery.status,
     reason,
     drive_scope_used: discovery.driveScopeUsed,
+    requested_root_folder_id: discovery.requestedRootFolderId,
+    effective_root_folder_id: discovery.effectiveRootFolderId,
+    effective_root_folder_name: discovery.effectiveRootFolderName,
+    root_folder_has_affiliate_email_token: discovery.rootFolderHasAffiliateEmailToken,
     scanned_root_id: discovery.scannedRootId,
     scanned_root_name: discovery.scannedRootName,
     drive_scope_mode: discovery.driveScopeMode,
@@ -456,6 +523,10 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `status: ${report.status}`,
     `reason: ${report.reason || ''}`,
     `drive_scope_used: ${report.drive_scope_used}`,
+    `requested_root_folder_id: ${report.requested_root_folder_id}`,
+    `effective_root_folder_id: ${report.effective_root_folder_id}`,
+    `effective_root_folder_name: ${report.effective_root_folder_name}`,
+    `root_folder_has_affiliate_email_token: ${report.root_folder_has_affiliate_email_token}`,
     `scanned_root_id: ${report.scanned_root_id}`,
     `scanned_root_name: ${report.scanned_root_name}`,
     `drive_scope_mode: ${report.drive_scope_mode}`,
@@ -519,6 +590,7 @@ function parseArgs(argv: string[]): AffiliateScreenshotFolderProcessingOptions &
     if (arg === '--apply') parsed.apply = true;
     else if (arg === '--input') parsed.inputPath = argv[++index];
     else if (arg === '--report') parsed.reportPath = resolve(process.cwd(), argv[++index] || AFFILIATE_SCREENSHOT_FOLDER_REPORT_FILE);
+    else if (arg === '--root-folder-id') parsed.rootFolderId = argv[++index];
     else if (arg === '--parent-folder-id') parsed.parentFolderId = argv[++index];
     else if (arg === '--parent-folder-path') parsed.parentFolderPath = argv[++index];
     else if (arg === '--max-depth') parsed.maxDepth = Number(argv[++index]);

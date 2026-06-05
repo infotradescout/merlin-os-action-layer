@@ -186,6 +186,118 @@ test('affiliate screenshot folder processing includes configured root folder in 
   assert.equal(report.screenshots_processed_count, 0);
 });
 
+test('affiliate screenshot folder processing resolves explicit root folder id metadata for attribution', async () => {
+  const report = await processAffiliateScreenshotFolders({
+    apply: false,
+    rootFolderId: 'drive-folder-17',
+    client: {
+      async listSubfoldersInFolder() {
+        return [];
+      },
+      async listFilesInFolder(folderId) {
+        assert.equal(folderId, 'drive-folder-17');
+        return [
+          {
+            drive_file_id: 'explicit-root-meal-1',
+            file_name: 'explicit-root-meal-profile.jpg',
+            mime_type: 'image/jpeg',
+            folder_id: 'drive-folder-17',
+            web_url: '',
+            raw_metadata: {
+              extracted_text: 'Explicit Root Tacos\nEmail: explicit-root-truck@example.com\nPhone: 850-255-8396'
+            }
+          }
+        ];
+      },
+      async getFileMetadata(fileId) {
+        assert.equal(fileId, 'drive-folder-17');
+        return {
+          drive_file_id: 'drive-folder-17',
+          file_name: 'Thehungerbrothers1@gmail.com Screenshots',
+          mime_type: 'application/vnd.google-apps.folder',
+          folder_id: '',
+          web_url: ''
+        };
+      },
+      async downloadFileContent() {
+        return undefined;
+      },
+      async moveFileToFolder() {
+        throw new Error('not used');
+      },
+      async findFolderByName() {
+        return undefined;
+      },
+      async listFoldersByName() {
+        return [];
+      },
+      async createFolderIfMissing() {
+        throw new Error('not used');
+      }
+    }
+  });
+
+  assert.equal(report.requested_root_folder_id, 'drive-folder-17');
+  assert.equal(report.effective_root_folder_id, 'drive-folder-17');
+  assert.equal(report.effective_root_folder_name, 'Thehungerbrothers1@gmail.com Screenshots');
+  assert.equal(report.root_folder_has_affiliate_email_token, true);
+  assert.equal(report.scanned_root_name, 'Thehungerbrothers1@gmail.com Screenshots');
+  assert.equal(report.affiliate_folders_found_count, 1);
+  assert.deepEqual(report.valid_affiliate_folder_names, ['Thehungerbrothers1@gmail.com Screenshots']);
+  assert.equal(report.affiliate_folders[0]?.affiliate_attribution_email, 'thehungerbrothers1@gmail.com');
+  assert.equal(report.screenshots_found_count, 1);
+  assert.equal(report.screenshots_processed_count, 0);
+});
+
+test('affiliate screenshot folder processing reports explicit affiliate root folder when empty', async () => {
+  const report = await processAffiliateScreenshotFolders({
+    apply: true,
+    rootFolderId: 'empty-drive-folder',
+    client: {
+      async listSubfoldersInFolder() {
+        return [];
+      },
+      async listFilesInFolder(folderId) {
+        assert.equal(folderId, 'empty-drive-folder');
+        return [];
+      },
+      async getFileMetadata(fileId) {
+        assert.equal(fileId, 'empty-drive-folder');
+        return {
+          drive_file_id: 'empty-drive-folder',
+          file_name: 'Thehungerbrothers1@gmail.com Screenshots',
+          mime_type: 'application/vnd.google-apps.folder',
+          folder_id: '',
+          web_url: ''
+        };
+      },
+      async downloadFileContent() {
+        return undefined;
+      },
+      async moveFileToFolder() {
+        throw new Error('not used');
+      },
+      async findFolderByName() {
+        return undefined;
+      },
+      async listFoldersByName() {
+        return [];
+      },
+      async createFolderIfMissing() {
+        throw new Error('not used');
+      }
+    }
+  });
+
+  assert.equal(report.reason, 'folder_empty');
+  assert.equal(report.requested_root_folder_id, 'empty-drive-folder');
+  assert.equal(report.root_folder_has_affiliate_email_token, true);
+  assert.equal(report.affiliate_folders_found_count, 1);
+  assert.equal(report.screenshots_found_count, 0);
+  assert.equal(report.screenshots_processed_count, 0);
+  assert.equal(report.affiliate_ledger_rows_written, 0);
+});
+
 test('affiliate screenshot folder processing reports when no valid email token folder is visible', async () => {
   const report = await processAffiliateScreenshotFolders({
     apply: true,
