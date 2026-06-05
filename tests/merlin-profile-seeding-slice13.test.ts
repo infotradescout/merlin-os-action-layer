@@ -135,15 +135,58 @@ test('Slice 13 seeds MealScout and TradeScout separately, records ledger rows, a
   assert.equal(mealProfile?.email_verified, false);
   assert.equal(mealProfile?.insurance_verified, false);
   assert.equal(mealProfile?.claim_status, 'unclaimed');
+  assert.equal(mealProfile?.seeded_from_evidence, true);
+  assert.equal(mealProfile?.profile_origin, 'auto_onboarded');
+  assert.equal(mealProfile?.onboarding_source, 'affiliate_seed');
+  assert.equal(mealProfile?.owner_user_id, null);
+  assert.equal(mealProfile?.source_refs?.includes('seed-meal-1'), true);
 
   const tradeProfiles = await requestJson<{
-    profiles: Array<{ email?: string; email_verified: boolean; insurance_verified: boolean; claim_status: string }>;
+    profiles: Array<{
+      email?: string;
+      email_verified: boolean;
+      insurance_verified: boolean;
+      claim_status: string;
+      seeded_from_evidence: boolean;
+      profile_origin: string;
+      onboarding_source: string;
+      owner_user_id: string | null;
+      source_refs: string[];
+    }>;
   }>('/api/merlin/profile-seeding/tradescout-profiles');
   const tradeProfile = tradeProfiles.body.profiles.find((profile) => profile.email === 'apex@example.com');
   assert.ok(tradeProfile);
   assert.equal(tradeProfile?.email_verified, false);
   assert.equal(tradeProfile?.insurance_verified, false);
   assert.equal(tradeProfile?.claim_status, 'unclaimed');
+  assert.equal(tradeProfile?.seeded_from_evidence, true);
+  assert.equal(tradeProfile?.profile_origin, 'auto_onboarded');
+  assert.equal(tradeProfile?.onboarding_source, 'affiliate_seed');
+  assert.equal(tradeProfile?.owner_user_id, null);
+  assert.equal(tradeProfile?.source_refs.includes('seed-trade-1'), true);
+
+  const autoOnboarded = await requestJson<{
+    label: string;
+    description: string;
+    mealscoutProfiles: Array<{ email?: string; profile_origin?: string }>;
+    tradescoutProfiles: Array<{ email?: string; profile_origin?: string }>;
+  }>('/api/merlin/profile-seeding/auto-onboarded-profiles');
+  assert.equal(autoOnboarded.body.label, 'Auto-Onboarded Profiles');
+  assert.equal(
+    autoOnboarded.body.description,
+    'Auto-onboarded profiles were created from submitted evidence and are waiting for owner claim or verification.'
+  );
+  assert.equal(autoOnboarded.body.mealscoutProfiles.some((profile) => profile.email === 'truck@example.com'), true);
+  assert.equal(autoOnboarded.body.tradescoutProfiles.some((profile) => profile.email === 'apex@example.com'), true);
+
+  const claimedRegistered = await requestJson<{
+    label: string;
+    mealscoutProfiles: Array<{ email?: string }>;
+    tradescoutProfiles: Array<{ email?: string }>;
+  }>('/api/merlin/profile-seeding/claimed-registered-users');
+  assert.equal(claimedRegistered.body.label, 'Claimed / Registered Users');
+  assert.equal(claimedRegistered.body.mealscoutProfiles.some((profile) => profile.email === 'truck@example.com'), false);
+  assert.equal(claimedRegistered.body.tradescoutProfiles.some((profile) => profile.email === 'apex@example.com'), false);
 
   assert.equal(response.body.verificationEmails.some((email) => email.recipient_email === 'truck@example.com' && email.brand_lane === 'MEALSCOUT'), true);
   assert.equal(response.body.verificationEmails.some((email) => email.recipient_email === 'apex@example.com' && email.brand_lane === 'TRADESCOUT'), true);

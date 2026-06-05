@@ -25,7 +25,13 @@ export type TradeScoutSeededProfile = {
   affiliate_attribution_source?: 'folder_email_token' | 'admin_unattributed';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
+  seeded_from_evidence: true;
+  seeded_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  onboarding_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  profile_origin: 'auto_onboarded';
+  owner_user_id: null;
   sourceFileIds: string[];
+  source_refs: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -196,6 +202,17 @@ function sourceAttribution(input: MerlinExistingScreenshotSeedInput): NonNullabl
   return input.sourceFileAttribution;
 }
 
+function resolveOnboardingSource(input: MerlinExistingScreenshotSeedInput): 'screenshot_seed' | 'admin_seed' | 'affiliate_seed' {
+  const attribution = sourceAttribution(input);
+  if (attribution?.affiliate_attribution_source === 'folder_email_token' && attribution.affiliate_attribution_email) {
+    return 'affiliate_seed';
+  }
+  if (attribution?.affiliate_attribution_source === 'admin_unattributed' || attribution?.sourceChannel === 'admin_import') {
+    return 'admin_seed';
+  }
+  return 'screenshot_seed';
+}
+
 function upsertLedgerForSeed(input: {
   seedId: string;
   brand: MerlinProfileSeedBrand | 'UNKNOWN';
@@ -360,6 +377,7 @@ async function seedTradeScout(input: MerlinExistingScreenshotSeedInput): Promise
         email: email || existing.email,
         phone: phone || existing.phone,
         sourceFileIds: Array.from(new Set([...existing.sourceFileIds, input.fileId])),
+        source_refs: Array.from(new Set([...(existing.source_refs || []), input.fileId])),
         updatedAt: now
       }
     : {
@@ -374,7 +392,13 @@ async function seedTradeScout(input: MerlinExistingScreenshotSeedInput): Promise
         affiliate_attribution_source: input.sourceFileAttribution?.affiliate_attribution_source,
         affiliate_attribution_folder: input.sourceFileAttribution?.affiliate_attribution_folder,
         affiliate_attribution_folder_path: input.sourceFileAttribution?.affiliate_attribution_folder_path,
+        seeded_from_evidence: true,
+        seeded_source: resolveOnboardingSource(input),
+        onboarding_source: resolveOnboardingSource(input),
+        profile_origin: 'auto_onboarded',
+        owner_user_id: null,
         sourceFileIds: [input.fileId],
+        source_refs: [input.fileId],
         createdAt: now,
         updatedAt: now
       };
@@ -435,6 +459,14 @@ export async function processExistingScreenshotsIntoSeededProfiles(input: {
 
 export function listTradeScoutSeededProfiles(): TradeScoutSeededProfile[] {
   return Array.from(tradeScoutProfiles.values());
+}
+
+export function listTradeScoutAutoOnboardedProfiles(): TradeScoutSeededProfile[] {
+  return Array.from(tradeScoutProfiles.values()).filter((profile) => profile.profile_origin === 'auto_onboarded');
+}
+
+export function listTradeScoutClaimedRegisteredProfiles(): TradeScoutSeededProfile[] {
+  return Array.from(tradeScoutProfiles.values()).filter((profile) => profile.profile_origin !== 'auto_onboarded');
 }
 
 export function listVerificationEmailRecords(): VerificationEmailRecord[] {

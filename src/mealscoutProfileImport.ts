@@ -215,6 +215,12 @@ export type MealScoutExistingProfile = {
   email_verified?: boolean;
   insurance_verified?: boolean;
   claim_status?: 'unclaimed' | 'claimed';
+  seeded_from_evidence?: boolean;
+  seeded_source?: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  onboarding_source?: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  profile_origin?: 'auto_onboarded' | 'claimed_registered';
+  owner_user_id?: string | null;
+  source_refs?: string[];
 };
 
 export type MealScoutCaptureBatch = {
@@ -1042,6 +1048,14 @@ export function listMealScoutTrucks(): MealScoutExistingProfile[] {
   return Array.from(existingProfiles.values());
 }
 
+export function listMealScoutAutoOnboardedProfiles(): MealScoutExistingProfile[] {
+  return Array.from(existingProfiles.values()).filter((profile) => profile.profile_origin === 'auto_onboarded');
+}
+
+export function listMealScoutClaimedRegisteredProfiles(): MealScoutExistingProfile[] {
+  return Array.from(existingProfiles.values()).filter((profile) => profile.profile_origin !== 'auto_onboarded');
+}
+
 export function getMealScoutTruckById(id: string): MealScoutExistingProfile | undefined {
   return existingProfiles.get(id);
 }
@@ -1055,7 +1069,19 @@ export function seedMealScoutTruck(input: Omit<MealScoutExistingProfile, 'id'>):
   return profile;
 }
 
+function resolveSeededSource(record: MealScoutPublishPlanRecord): 'screenshot_seed' | 'admin_seed' | 'affiliate_seed' {
+  const source = record.sourceAttribution?.affiliate_attribution_source;
+  if (source === 'folder_email_token') return 'affiliate_seed';
+  if (source === 'admin_unattributed') return 'admin_seed';
+  return 'screenshot_seed';
+}
+
+function sourceRefsFromRecord(record: MealScoutPublishPlanRecord): string[] {
+  return Array.from(new Set(record.sourceAttribution?.sourceFileIds || []));
+}
+
 export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPlanRecord): MealScoutExistingProfile {
+  const seededSource = resolveSeededSource(record);
   const profile: MealScoutExistingProfile = {
     id: `ms-profile-${randomUUID()}`,
     truckName: record.profileFields.truckName?.value,
@@ -1074,7 +1100,13 @@ export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPla
     affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings,
     email_verified: false,
     insurance_verified: false,
-    claim_status: 'unclaimed'
+    claim_status: 'unclaimed',
+    seeded_from_evidence: true,
+    seeded_source: seededSource,
+    onboarding_source: seededSource,
+    profile_origin: 'auto_onboarded',
+    owner_user_id: null,
+    source_refs: sourceRefsFromRecord(record)
   };
   existingProfiles.set(profile.id, profile);
   return profile;
@@ -1086,6 +1118,9 @@ export function updateMealScoutProfileFromPlanRecord(
 ): MealScoutExistingProfile | undefined {
   const existing = existingProfiles.get(existingTruckId);
   if (!existing) return undefined;
+  const seededSource = resolveSeededSource(record);
+  const sourceRefs = Array.from(new Set([...(existing.source_refs || []), ...sourceRefsFromRecord(record)]));
+  const isAutoOnboarded = existing.profile_origin === 'auto_onboarded';
   const next: MealScoutExistingProfile = {
     ...existing,
     truckName: record.profileFields.truckName?.value || existing.truckName,
@@ -1104,7 +1139,13 @@ export function updateMealScoutProfileFromPlanRecord(
     affiliate_attribution_warnings: record.sourceAttribution?.affiliate_attribution_warnings || existing.affiliate_attribution_warnings,
     email_verified: existing.email_verified === true ? true : false,
     insurance_verified: existing.insurance_verified === true ? true : false,
-    claim_status: existing.claim_status || 'unclaimed'
+    claim_status: existing.claim_status || 'unclaimed',
+    seeded_from_evidence: isAutoOnboarded ? true : existing.seeded_from_evidence,
+    seeded_source: isAutoOnboarded ? existing.seeded_source || seededSource : existing.seeded_source,
+    onboarding_source: isAutoOnboarded ? existing.onboarding_source || seededSource : existing.onboarding_source,
+    profile_origin: existing.profile_origin,
+    owner_user_id: existing.owner_user_id ?? (isAutoOnboarded ? null : undefined),
+    source_refs: sourceRefs.length > 0 ? sourceRefs : existing.source_refs
   };
   existingProfiles.set(existingTruckId, next);
   return next;

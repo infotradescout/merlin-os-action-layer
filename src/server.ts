@@ -110,6 +110,8 @@ import {
   moveEvidenceToCluster,
   publishMealScoutDraft,
   rejectMealScoutDraft,
+  listMealScoutAutoOnboardedProfiles,
+  listMealScoutClaimedRegisteredProfiles,
   resetMealScoutProfileImportForTest,
   splitDraftByEvidence
 } from './mealscoutProfileImport.js';
@@ -142,6 +144,8 @@ import {
   upsertAffiliateTrackingLedgerRow
 } from './mealscoutAffiliateTrackingLedger.js';
 import {
+  listTradeScoutAutoOnboardedProfiles,
+  listTradeScoutClaimedRegisteredProfiles,
   listTradeScoutSeededProfiles,
   listVerificationEmailRecords,
   processExistingScreenshotsIntoSeededProfiles,
@@ -2213,6 +2217,27 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       status: 'ok',
       mutationAllowed: false,
       profiles: listTradeScoutSeededProfiles()
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/merlin/profile-seeding/auto-onboarded-profiles') {
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      label: 'Auto-Onboarded Profiles',
+      description: 'Auto-onboarded profiles were created from submitted evidence and are waiting for owner claim or verification.',
+      mealscoutProfiles: listMealScoutAutoOnboardedProfiles(),
+      tradescoutProfiles: listTradeScoutAutoOnboardedProfiles()
+    });
+  }
+
+  if (method === 'GET' && pathname === '/api/merlin/profile-seeding/claimed-registered-users') {
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      label: 'Claimed / Registered Users',
+      mealscoutProfiles: listMealScoutClaimedRegisteredProfiles(),
+      tradescoutProfiles: listTradeScoutClaimedRegisteredProfiles()
     });
   }
 
