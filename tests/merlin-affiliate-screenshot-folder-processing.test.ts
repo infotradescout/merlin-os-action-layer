@@ -122,3 +122,88 @@ test('affiliate screenshot folder processing applies through existing seed runti
   assert.equal(mealProfile?.insurance_verified, false);
   assert.equal(mealProfile?.claim_status, 'unclaimed');
 });
+
+test('affiliate screenshot folder processing includes configured root folder in Drive discovery', async () => {
+  const report = await processAffiliateScreenshotFolders({
+    apply: false,
+    parentFolderId: 'root-affiliate',
+    parentFolderPath: 'thehungerbrothers1@gmail.com Screenshots',
+    client: {
+      async listSubfoldersInFolder() {
+        return [];
+      },
+      async listFilesInFolder(folderId) {
+        assert.equal(folderId, 'root-affiliate');
+        return [
+          {
+            drive_file_id: 'root-meal-1',
+            file_name: 'root-meal-profile.jpg',
+            mime_type: 'image/jpeg',
+            folder_id: 'root-affiliate',
+            web_url: '',
+            raw_metadata: {
+              extracted_text: 'Root Tacos Food Truck\nEmail: root-truck@example.com\nPhone: 850-255-8396'
+            }
+          }
+        ];
+      },
+      async getFileMetadata() {
+        throw new Error('not used');
+      },
+      async downloadFileContent() {
+        return undefined;
+      },
+      async moveFileToFolder() {
+        throw new Error('not used');
+      },
+      async findFolderByName() {
+        return undefined;
+      },
+      async listFoldersByName() {
+        return [];
+      },
+      async createFolderIfMissing() {
+        throw new Error('not used');
+      }
+    }
+  });
+
+  assert.equal(report.discovery_mode, 'drive_folder_walk');
+  assert.equal(report.recursive_scan_enabled, true);
+  assert.equal(report.folders_scanned_count, 1);
+  assert.equal(report.folder_paths_scanned_count, 1);
+  assert.equal(report.affiliate_folders_found_count, 1);
+  assert.deepEqual(report.valid_affiliate_folder_names, ['thehungerbrothers1@gmail.com Screenshots']);
+  assert.equal(report.screenshots_found_count, 1);
+  assert.equal(report.screenshots_processed_count, 0);
+});
+
+test('affiliate screenshot folder processing reports when no valid email token folder is visible', async () => {
+  const report = await processAffiliateScreenshotFolders({
+    apply: true,
+    localFolders: [
+      {
+        folderId: 'folder-unattributed',
+        folderName: 'Screenshots',
+        folderPath: 'Merlin OR Storage/Screenshots',
+        files: [
+          {
+            fileId: 'unattributed-1',
+            fileName: 'unattributed.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Unattributed Truck\nEmail: unattributed@example.com\nPhone: 504-111-2222'
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(report.reason, 'no_valid_email_token_folder_visible');
+  assert.equal(report.affiliate_folders_found_count, 0);
+  assert.equal(report.folders_scanned_count, 1);
+  assert.equal(report.folder_paths_scanned_count, 1);
+  assert.equal(report.files_without_attribution_count, 1);
+  assert.equal(report.files_missing_parent_folder_metadata_count, 0);
+  assert.equal(report.screenshots_processed_count, 0);
+  assert.equal(readAffiliateTrackingLedgerRows().length, 0);
+});

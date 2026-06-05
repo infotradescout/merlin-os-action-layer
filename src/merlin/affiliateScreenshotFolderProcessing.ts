@@ -50,6 +50,11 @@ export type AffiliateScreenshotFolderProcessingReport = {
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   drive_scope_used: string;
+  discovery_mode: 'local_input' | 'drive_folder_walk';
+  recursive_scan_enabled: boolean;
+  folders_scanned_count: number;
+  folder_paths_scanned_count: number;
+  valid_affiliate_folder_names: string[];
   affiliate_folders_found_count: number;
   screenshots_found_count: number;
   screenshots_processed_count: number;
@@ -65,6 +70,7 @@ export type AffiliateScreenshotFolderProcessingReport = {
   verification_email_not_available_count: number;
   folders_without_valid_email_count: number;
   files_without_attribution_count: number;
+  files_missing_parent_folder_metadata_count: number;
   safety_confirmations: {
     email_verified_false: true;
     insurance_verified_false: true;
@@ -151,6 +157,8 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   driveScopeUsed: string;
+  discoveryMode: AffiliateScreenshotFolderProcessingReport['discovery_mode'];
+  recursiveScanEnabled: boolean;
   folders: AffiliateScreenshotFolderInput[];
   client?: DriveClient;
 }> {
@@ -158,17 +166,21 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     return {
       status: 'ok',
       driveScopeUsed: 'local_input',
+      discoveryMode: 'local_input',
+      recursiveScanEnabled: false,
       folders: options.localFolders
     };
   }
 
   const authConfig = getDriveAuthConfig();
   const profile = getDriveAuthProfile(authConfig);
-  if (!profile.ready) {
+  if (!options.client && !profile.ready) {
     return {
       status: 'disabled',
       reason: profile.reason || 'Drive is not configured',
       driveScopeUsed: 'drive_unavailable',
+      discoveryMode: 'drive_folder_walk',
+      recursiveScanEnabled: false,
       folders: []
     };
   }
@@ -179,6 +191,8 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
       status: 'error',
       reason: 'Drive client does not support folder discovery',
       driveScopeUsed: 'drive_client_missing_list_subfolders',
+      discoveryMode: 'drive_folder_walk',
+      recursiveScanEnabled: false,
       folders: [],
       client
     };
@@ -192,7 +206,7 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   }
   if (!rootFolderPath) rootFolderPath = rootFolderId;
 
-  const discovered: DiscoveredFolder[] = [];
+  const discovered: DiscoveredFolder[] = [{ folderId: rootFolderId, folderName: rootFolderPath, folderPath: rootFolderPath }];
   await walkDriveFolders({
     client,
     folderId: rootFolderId,
@@ -214,6 +228,8 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   return {
     status: 'ok',
     driveScopeUsed: rootFolderPath,
+    discoveryMode: 'drive_folder_walk',
+    recursiveScanEnabled: true,
     folders,
     client
   };
@@ -229,12 +245,14 @@ async function buildSeedInputs(input: {
   screenshotsFoundCount: number;
   foldersWithoutValidEmailCount: number;
   filesWithoutAttributionCount: number;
+  filesMissingParentFolderMetadataCount: number;
 }> {
   const seedInputs: MerlinExistingScreenshotSeedInput[] = [];
   const affiliateFolders: AffiliateScreenshotFolderProcessingReport['affiliate_folders'] = [];
   let screenshotsFoundCount = 0;
   let foldersWithoutValidEmailCount = 0;
   let filesWithoutAttributionCount = 0;
+  let filesMissingParentFolderMetadataCount = 0;
 
   for (const folder of input.folders) {
     const folderPath = folder.folderPath || folder.folderName;
@@ -242,6 +260,9 @@ async function buildSeedInputs(input: {
     const files = folder.files.filter((file) => isSupportedScreenshot(file.fileName, file.mimeType));
     if (files.length === 0) continue;
     screenshotsFoundCount += files.length;
+    if (!folder.folderPath?.trim() && !folder.folderName?.trim()) {
+      filesMissingParentFolderMetadataCount += files.length;
+    }
 
     if (!attribution.affiliate_attribution_email) {
       foldersWithoutValidEmailCount += 1;
@@ -286,7 +307,8 @@ async function buildSeedInputs(input: {
     affiliateFolders,
     screenshotsFoundCount,
     foldersWithoutValidEmailCount,
-    filesWithoutAttributionCount
+    filesWithoutAttributionCount,
+    filesMissingParentFolderMetadataCount
   };
 }
 
@@ -333,12 +355,23 @@ export async function processAffiliateScreenshotFolders(
   }
   const ledgerAfter = readAffiliateTrackingLedgerRows().length;
   const counts = countResults(results);
+  const validAffiliateFolderNames = built.affiliateFolders.map((folder) => folder.folder_name);
+  const reason =
+    discovery.reason ||
+    (discovery.status === 'ok' && built.affiliateFolders.length === 0
+      ? 'no_valid_email_token_folder_visible'
+      : undefined);
   const report: AffiliateScreenshotFolderProcessingReport = {
     generated_at: generatedAt,
     mode: options.apply ? 'apply' : 'dry_run',
     status: discovery.status,
-    reason: discovery.reason,
+    reason,
     drive_scope_used: discovery.driveScopeUsed,
+    discovery_mode: discovery.discoveryMode,
+    recursive_scan_enabled: discovery.recursiveScanEnabled,
+    folders_scanned_count: discovery.folders.length,
+    folder_paths_scanned_count: discovery.folders.filter((folder) => (folder.folderPath || folder.folderName).trim().length > 0).length,
+    valid_affiliate_folder_names: validAffiliateFolderNames,
     affiliate_folders_found_count: built.affiliateFolders.length,
     screenshots_found_count: built.screenshotsFoundCount,
     screenshots_processed_count: results.length,
@@ -346,6 +379,7 @@ export async function processAffiliateScreenshotFolders(
     affiliate_ledger_rows_written: options.apply ? Math.max(0, ledgerAfter - ledgerBefore) : 0,
     folders_without_valid_email_count: built.foldersWithoutValidEmailCount,
     files_without_attribution_count: built.filesWithoutAttributionCount,
+    files_missing_parent_folder_metadata_count: built.filesMissingParentFolderMetadataCount,
     safety_confirmations: {
       email_verified_false: true,
       insurance_verified_false: true,
@@ -372,6 +406,11 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `status: ${report.status}`,
     `reason: ${report.reason || ''}`,
     `drive_scope_used: ${report.drive_scope_used}`,
+    `discovery_mode: ${report.discovery_mode}`,
+    `recursive_scan_enabled: ${report.recursive_scan_enabled}`,
+    `folders_scanned_count: ${report.folders_scanned_count}`,
+    `folder_paths_scanned_count: ${report.folder_paths_scanned_count}`,
+    `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
     `affiliate_folders_found_count: ${report.affiliate_folders_found_count}`,
     `screenshots_found_count: ${report.screenshots_found_count}`,
     `screenshots_processed_count: ${report.screenshots_processed_count}`,
@@ -387,6 +426,7 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `verification_email_not_available_count: ${report.verification_email_not_available_count}`,
     `folders_without_valid_email_count: ${report.folders_without_valid_email_count}`,
     `files_without_attribution_count: ${report.files_without_attribution_count}`,
+    `files_missing_parent_folder_metadata_count: ${report.files_missing_parent_folder_metadata_count}`,
     '',
     'safety_confirmations:',
     '- email_verified false',
