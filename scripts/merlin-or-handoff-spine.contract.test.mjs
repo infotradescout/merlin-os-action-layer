@@ -1,18 +1,24 @@
-import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 
-const spinePath = new URL('../MERLIN_OR_HANDOFF_SPINE.md', import.meta.url);
+const handoffPath = 'MERLIN_OR_HANDOFF_SPINE.md';
 
-assert.equal(existsSync(spinePath), true, 'MERLIN_OR_HANDOFF_SPINE.md must exist');
+assert.equal(existsSync(handoffPath), true, 'MERLIN_OR_HANDOFF_SPINE.md must exist');
 
-const spine = readFileSync(spinePath, 'utf8');
-
-function requireText(label, pattern) {
-  assert.match(spine, pattern, `${label} must be documented in the handoff spine`);
-}
+const doc = readFileSync(handoffPath, 'utf8');
 
 function section(title) {
-  const lines = spine.split(/\r?\n/);
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^## ${escaped}$`, 'm');
+  assert.match(doc, pattern, `Missing section: ${title}`);
+}
+
+function requireText(label, pattern) {
+  assert.match(doc, pattern, `${label} must be documented in the handoff spine`);
+}
+
+function sectionBody(title) {
+  const lines = doc.split(/\r?\n/);
   const start = lines.findIndex((line) => line === `## ${title}`);
   assert.notEqual(start, -1, `section "${title}" must exist`);
   const body = [];
@@ -23,30 +29,55 @@ function section(title) {
   return body.join('\n').trim();
 }
 
-requireText('app identity', /## App Identity[\s\S]*Merlin OR[\s\S]*Merlin OS Action Layer[\s\S]*infotradescout\/merlin-os-action-layer/);
-requireText('what it is not', /## What This App Is Not[\s\S]*Not a general chatbot[\s\S]*Not a place to add new product features/);
-requireText('core flows', /## Core Operator Flows[\s\S]*Drive safety[\s\S]*MealScout review queue[\s\S]*Merlin intake\/action-card loop/);
-requireText('route and API groups', /## Server Route And API Groups[\s\S]*\/api\/health[\s\S]*\/api\/drive[\s\S]*\/api\/mealscout[\s\S]*\/api\/merlin/);
-requireText('data and storage model', /## Main Data And Storage Model[\s\S]*MERLIN_DB_PATH[\s\S]*drive_manifest_entries[\s\S]*merlin_action_cards[\s\S]*MEALSCOUT_AFFILIATE_TRACKING_LEDGER_PATH/);
-requireText('external integrations', /## External Integrations[\s\S]*Google Drive[\s\S]*Product verification email webhook[\s\S]*Stripe, Gmail, Calendar, Canva/);
-requireText('danger zones', /## Known Danger Zones[\s\S]*Profile seeding[\s\S]*verification email[\s\S]*affiliate ledger[\s\S]*Drive mutation[\s\S]*publish[\s\S]*cleanup\/delete\/archive[\s\S]*payout[\s\S]*live connector execution/);
-requireText('validation commands', /## Validation Commands[\s\S]*node scripts\/merlin-or-handoff-spine\.contract\.test\.mjs[\s\S]*npm run check[\s\S]*npm run build/);
-requireText('developer onboarding checklist', /## Developer Onboarding Checklist[\s\S]*Read `README\.md`[\s\S]*Inspect `src\/server\.ts`/);
+section('App identity');
+section('What this app is');
+section('What this app is not');
+section('Core user and operator flows');
+section('Entry routes and pages');
+section('Server route and API groups');
+section('Main data and storage model');
+section('External integrations');
+section('Deployment and runtime assumptions');
+section('Known danger zones');
+section('Existing workflow docs inspection');
+section('Validation commands');
+section('Developer onboarding checklist');
+section('Next cleanup tickets');
+section('No new product features proposed');
 
-const tickets = section('Next Cleanup Tickets')
-  .split(/\r?\n/)
-  .filter((line) => line.trim().startsWith('- '));
+requireText('app identity', /App name: Merlin OR \/ Merlin OS Action Layer[\s\S]*infotradescout\/merlin-os-action-layer/);
+requireText('what it is not', /It is not a general chatbot prompt collection[\s\S]*It is not a place to add new product features/);
+requireText('core flows', /Merlin intake flow[\s\S]*Drive safety and review flow[\s\S]*MealScout review queue flow/);
+requireText('entry routes and pages', /static client\/router entry points[\s\S]*\/admin\/drive-review-queue[\s\S]*\/admin\/mealscout-review-queue/);
+requireText('route and API groups', /\/api\/health[\s\S]*\/api\/drive[\s\S]*\/api\/mealscout[\s\S]*\/api\/merlin\/action-cards/);
+requireText('data and storage model', /MERLIN_DB_PATH[\s\S]*drive_manifest_entries[\s\S]*merlin_action_cards[\s\S]*MEALSCOUT_AFFILIATE_TRACKING_LEDGER_PATH/);
+requireText('external integrations', /Google Drive[\s\S]*Product verification email webhook[\s\S]*Google\/Gmail\/Calendar\/Stripe\/Canva/);
+requireText('danger zones', /Profile seeding[\s\S]*verification email[\s\S]*affiliate ledger[\s\S]*Drive mutation[\s\S]*publish[\s\S]*cleanup\/delete\/archive[\s\S]*payout[\s\S]*live connector execution/);
+requireText('workflow inspection', /WORKFLOW\.md`: missing[\s\S]*CLEANUP_MAP\.md`: missing[\s\S]*CODEBASE_PATTERNS_OVERVIEW\.md`: missing[\s\S]*Repo doctor script: not found[\s\S]*Deployment config: not found[\s\S]*Client\/router entry: exists/);
+requireText('validation commands', /node scripts\/merlin-or-handoff-spine\.contract\.test\.mjs[\s\S]*npm run check[\s\S]*npm run build/);
+requireText('developer onboarding checklist', /Read `README\.md`[\s\S]*Inspect `src\/server\.ts`[\s\S]*Run `npm run check`/);
 
-assert.ok(tickets.length >= 5 && tickets.length <= 10, 'handoff spine must list 5-10 cleanup tickets');
-for (const ticket of tickets) {
-  assert.match(ticket, /^- Cleanup: /, `cleanup ticket must be labeled as cleanup-only: ${ticket}`);
+const cleanupTickets = [...sectionBody('Next cleanup tickets').matchAll(/^\d+\. .+/gm)].map((match) => match[0]);
+assert.ok(cleanupTickets.length >= 5 && cleanupTickets.length <= 10, 'handoff spine must list 5-10 cleanup tickets');
+
+const cleanupSection = sectionBody('Next cleanup tickets');
+const forbiddenCleanupPhrases = [
+  'add a new product feature',
+  'add new product surface',
+  'enable live connector execution',
+  'add payout logic',
+  'mark email_verified true',
+  'mark insurance_verified true',
+  'create fake users',
+  'fake payment records'
+];
+for (const phrase of forbiddenCleanupPhrases) {
+  assert.equal(cleanupSection.toLowerCase().includes(phrase), false, `cleanup tickets must not propose ${phrase}`);
 }
 
-const proposedFeaturePattern = /^-\s*(Feature|Product|Launch|Build|Add product surface):/im;
-assert.doesNotMatch(
-  section('Next Cleanup Tickets'),
-  proposedFeaturePattern,
-  'cleanup tickets must not propose new product features'
+requireText(
+  'no new product features policy',
+  /does not propose new user-facing features[\s\S]*new product surfaces[\s\S]*payout logic[\s\S]*profile verification shortcuts/
 );
 
-requireText('no new product features policy', /No new product features are proposed by this handoff spine; cleanup tickets are documentation, inventory, validation, or contract-test work only\./);
+console.log('Merlin OR handoff spine contract passed');
