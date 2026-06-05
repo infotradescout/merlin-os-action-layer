@@ -169,11 +169,19 @@ test('affiliate screenshot folder processing includes configured root folder in 
   });
 
   assert.equal(report.discovery_mode, 'drive_folder_walk');
+  assert.equal(report.scanned_root_id, 'root-affiliate');
+  assert.equal(report.scanned_root_name, 'thehungerbrothers1@gmail.com Screenshots');
+  assert.equal(report.auth_mode.length > 0, true);
+  assert.equal(report.drive_scope_mode.length > 0, true);
   assert.equal(report.recursive_scan_enabled, true);
   assert.equal(report.folders_scanned_count, 1);
   assert.equal(report.folder_paths_scanned_count, 1);
+  assert.deepEqual(report.folder_names_scanned_sample, ['thehungerbrothers1@gmail.com Screenshots']);
+  assert.equal(report.folders_with_at_symbol_count, 1);
   assert.equal(report.affiliate_folders_found_count, 1);
   assert.deepEqual(report.valid_affiliate_folder_names, ['thehungerbrothers1@gmail.com Screenshots']);
+  assert.deepEqual(report.files_parent_folder_ids_sample, ['root-affiliate']);
+  assert.deepEqual(report.files_parent_folder_names_sample, ['thehungerbrothers1@gmail.com Screenshots']);
   assert.equal(report.screenshots_found_count, 1);
   assert.equal(report.screenshots_processed_count, 0);
 });
@@ -202,6 +210,8 @@ test('affiliate screenshot folder processing reports when no valid email token f
   assert.equal(report.affiliate_folders_found_count, 0);
   assert.equal(report.folders_scanned_count, 1);
   assert.equal(report.folder_paths_scanned_count, 1);
+  assert.deepEqual(report.folder_names_scanned_sample, ['Screenshots']);
+  assert.equal(report.folders_with_at_symbol_count, 0);
   assert.equal(report.files_without_attribution_count, 1);
   assert.equal(report.files_missing_parent_folder_metadata_count, 0);
   assert.equal(report.screenshots_processed_count, 0);

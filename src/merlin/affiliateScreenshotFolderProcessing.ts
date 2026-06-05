@@ -21,6 +21,8 @@ export type AffiliateScreenshotFolderFile = {
   fileId: string;
   fileName: string;
   mimeType?: string;
+  parentFolderId?: string;
+  parentFolderName?: string;
   modifiedTime?: string;
   webUrl?: string;
   extractedText?: string;
@@ -50,11 +52,19 @@ export type AffiliateScreenshotFolderProcessingReport = {
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   drive_scope_used: string;
+  scanned_root_id: string;
+  scanned_root_name: string;
+  drive_scope_mode: string;
+  auth_mode: string;
   discovery_mode: 'local_input' | 'drive_folder_walk';
   recursive_scan_enabled: boolean;
   folders_scanned_count: number;
   folder_paths_scanned_count: number;
+  folder_names_scanned_sample: string[];
+  folders_with_at_symbol_count: number;
   valid_affiliate_folder_names: string[];
+  files_parent_folder_ids_sample: string[];
+  files_parent_folder_names_sample: string[];
   affiliate_folders_found_count: number;
   screenshots_found_count: number;
   screenshots_processed_count: number;
@@ -108,6 +118,7 @@ function toLocalFile(file: DriveFileInfo): AffiliateScreenshotFolderFile {
     fileId: file.drive_file_id,
     fileName: file.file_name,
     mimeType: file.mime_type,
+    parentFolderId: file.folder_id,
     modifiedTime: file.modified_time,
     webUrl: file.web_url,
     extractedText: typeof metadata.extracted_text === 'string' ? metadata.extracted_text : undefined,
@@ -157,6 +168,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
   status: 'ok' | 'disabled' | 'error';
   reason?: string;
   driveScopeUsed: string;
+  scannedRootId: string;
+  scannedRootName: string;
+  driveScopeMode: string;
+  authMode: string;
   discoveryMode: AffiliateScreenshotFolderProcessingReport['discovery_mode'];
   recursiveScanEnabled: boolean;
   folders: AffiliateScreenshotFolderInput[];
@@ -166,6 +181,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     return {
       status: 'ok',
       driveScopeUsed: 'local_input',
+      scannedRootId: 'local_input',
+      scannedRootName: 'local_input',
+      driveScopeMode: 'local_input',
+      authMode: 'local_input',
       discoveryMode: 'local_input',
       recursiveScanEnabled: false,
       folders: options.localFolders
@@ -179,6 +198,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
       status: 'disabled',
       reason: profile.reason || 'Drive is not configured',
       driveScopeUsed: 'drive_unavailable',
+      scannedRootId: '',
+      scannedRootName: '',
+      driveScopeMode: authConfig.rootMode,
+      authMode: authConfig.mode,
       discoveryMode: 'drive_folder_walk',
       recursiveScanEnabled: false,
       folders: []
@@ -191,6 +214,10 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
       status: 'error',
       reason: 'Drive client does not support folder discovery',
       driveScopeUsed: 'drive_client_missing_list_subfolders',
+      scannedRootId: '',
+      scannedRootName: '',
+      driveScopeMode: authConfig.rootMode,
+      authMode: authConfig.mode,
       discoveryMode: 'drive_folder_walk',
       recursiveScanEnabled: false,
       folders: [],
@@ -205,6 +232,7 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     rootFolderPath = rootFolderPath || 'root';
   }
   if (!rootFolderPath) rootFolderPath = rootFolderId;
+  const scannedRootName = rootFolderPath.split(/[\\/]+/).filter(Boolean).pop() || rootFolderPath;
 
   const discovered: DiscoveredFolder[] = [{ folderId: rootFolderId, folderName: rootFolderPath, folderPath: rootFolderPath }];
   await walkDriveFolders({
@@ -221,13 +249,20 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     const files = await client.listFilesInFolder(folder.folderId);
     folders.push({
       ...folder,
-      files: files.map(toLocalFile)
+      files: files.map((file) => ({
+        ...toLocalFile(file),
+        parentFolderName: folder.folderName
+      }))
     });
   }
 
   return {
     status: 'ok',
     driveScopeUsed: rootFolderPath,
+    scannedRootId: rootFolderId,
+    scannedRootName,
+    driveScopeMode: authConfig.rootMode,
+    authMode: authConfig.mode,
     discoveryMode: 'drive_folder_walk',
     recursiveScanEnabled: true,
     folders,
@@ -356,6 +391,13 @@ export async function processAffiliateScreenshotFolders(
   const ledgerAfter = readAffiliateTrackingLedgerRows().length;
   const counts = countResults(results);
   const validAffiliateFolderNames = built.affiliateFolders.map((folder) => folder.folder_name);
+  const folderNamesScanned = discovery.folders.map((folder) => folder.folderName).filter((name) => name.trim().length > 0);
+  const fileParentFolderIds = discovery.folders
+    .flatMap((folder) => folder.files.map((file) => file.parentFolderId || folder.folderId))
+    .filter((value) => value.trim().length > 0);
+  const fileParentFolderNames = discovery.folders
+    .flatMap((folder) => folder.files.map((file) => file.parentFolderName || folder.folderName))
+    .filter((value) => value.trim().length > 0);
   const reason =
     discovery.reason ||
     (discovery.status === 'ok' && built.affiliateFolders.length === 0
@@ -367,11 +409,19 @@ export async function processAffiliateScreenshotFolders(
     status: discovery.status,
     reason,
     drive_scope_used: discovery.driveScopeUsed,
+    scanned_root_id: discovery.scannedRootId,
+    scanned_root_name: discovery.scannedRootName,
+    drive_scope_mode: discovery.driveScopeMode,
+    auth_mode: discovery.authMode,
     discovery_mode: discovery.discoveryMode,
     recursive_scan_enabled: discovery.recursiveScanEnabled,
     folders_scanned_count: discovery.folders.length,
     folder_paths_scanned_count: discovery.folders.filter((folder) => (folder.folderPath || folder.folderName).trim().length > 0).length,
+    folder_names_scanned_sample: folderNamesScanned.slice(0, 20),
+    folders_with_at_symbol_count: folderNamesScanned.filter((name) => name.includes('@')).length,
     valid_affiliate_folder_names: validAffiliateFolderNames,
+    files_parent_folder_ids_sample: Array.from(new Set(fileParentFolderIds)).slice(0, 20),
+    files_parent_folder_names_sample: Array.from(new Set(fileParentFolderNames)).slice(0, 20),
     affiliate_folders_found_count: built.affiliateFolders.length,
     screenshots_found_count: built.screenshotsFoundCount,
     screenshots_processed_count: results.length,
@@ -406,11 +456,19 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `status: ${report.status}`,
     `reason: ${report.reason || ''}`,
     `drive_scope_used: ${report.drive_scope_used}`,
+    `scanned_root_id: ${report.scanned_root_id}`,
+    `scanned_root_name: ${report.scanned_root_name}`,
+    `drive_scope_mode: ${report.drive_scope_mode}`,
+    `auth_mode: ${report.auth_mode}`,
     `discovery_mode: ${report.discovery_mode}`,
     `recursive_scan_enabled: ${report.recursive_scan_enabled}`,
     `folders_scanned_count: ${report.folders_scanned_count}`,
     `folder_paths_scanned_count: ${report.folder_paths_scanned_count}`,
+    `folder_names_scanned_sample: ${report.folder_names_scanned_sample.join(', ')}`,
+    `folders_with_at_symbol_count: ${report.folders_with_at_symbol_count}`,
     `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
+    `files_parent_folder_ids_sample: ${report.files_parent_folder_ids_sample.join(', ')}`,
+    `files_parent_folder_names_sample: ${report.files_parent_folder_names_sample.join(', ')}`,
     `affiliate_folders_found_count: ${report.affiliate_folders_found_count}`,
     `screenshots_found_count: ${report.screenshots_found_count}`,
     `screenshots_processed_count: ${report.screenshots_processed_count}`,
