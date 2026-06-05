@@ -6,7 +6,7 @@ import { beforeEach, test } from 'node:test';
 process.env.MERLIN_RUNTIME = 'test';
 process.env.MEALSCOUT_AFFILIATE_TRACKING_LEDGER_PATH = join(tmpdir(), 'merlin-affiliate-screenshot-folder-processing-ledger-test.csv');
 
-const { processAffiliateScreenshotFolders } = await import('../src/merlin/affiliateScreenshotFolderProcessing.ts');
+const { preflightAffiliateScreenshotFolders, processAffiliateScreenshotFolders } = await import('../src/merlin/affiliateScreenshotFolderProcessing.ts');
 const { readAffiliateTrackingLedgerRows, resetAffiliateTrackingLedgerForTest } = await import('../src/mealscoutAffiliateTrackingLedger.ts');
 const { resetMerlinProfileSeedRuntimeForTest, listVerificationEmailRecords } = await import('../src/merlin/profileSeedRuntime.ts');
 const { resetMealScoutProfileImportForTest, listMealScoutTrucks } = await import('../src/mealscoutProfileImport.ts');
@@ -296,6 +296,94 @@ test('affiliate screenshot folder processing reports explicit affiliate root fol
   assert.equal(report.screenshots_found_count, 0);
   assert.equal(report.screenshots_processed_count, 0);
   assert.equal(report.affiliate_ledger_rows_written, 0);
+});
+
+test('affiliate screenshot folder preflight is read-only and reports valid affiliate folders', async () => {
+  const report = await preflightAffiliateScreenshotFolders({
+    apply: true,
+    rootFolderId: 'shared-parent-folder',
+    client: {
+      async listSubfoldersInFolder(folderId) {
+        if (folderId === 'shared-parent-folder') {
+          return [
+            { id: 'affiliate-child-folder', name: 'Thehungerbrothers1@gmail.com Screenshots' },
+            { id: 'plain-child-folder', name: 'Screenshots' }
+          ];
+        }
+        return [];
+      },
+      async listFilesInFolder(folderId) {
+        if (folderId === 'affiliate-child-folder') {
+          return [
+            {
+              drive_file_id: 'affiliate-screenshot-1',
+              file_name: 'affiliate-screenshot.jpg',
+              mime_type: 'image/jpeg',
+              folder_id: 'affiliate-child-folder',
+              web_url: ''
+            }
+          ];
+        }
+        if (folderId === 'shared-parent-folder') {
+          return [
+            {
+              drive_file_id: 'loose-screenshot-1',
+              file_name: 'loose-screenshot.png',
+              mime_type: 'image/png',
+              folder_id: 'shared-parent-folder',
+              web_url: ''
+            }
+          ];
+        }
+        return [];
+      },
+      async getFileMetadata(fileId) {
+        assert.equal(fileId, 'shared-parent-folder');
+        return {
+          drive_file_id: 'shared-parent-folder',
+          file_name: 'MealScout screenshot',
+          mime_type: 'application/vnd.google-apps.folder',
+          folder_id: '',
+          web_url: ''
+        };
+      },
+      async downloadFileContent() {
+        throw new Error('preflight must not download file content');
+      },
+      async moveFileToFolder() {
+        throw new Error('preflight must not move Drive files');
+      },
+      async trashFile() {
+        throw new Error('preflight must not trash Drive files');
+      },
+      async findFolderByName() {
+        return undefined;
+      },
+      async listFoldersByName() {
+        return [];
+      },
+      async createFolderIfMissing() {
+        throw new Error('preflight must not create Drive folders');
+      }
+    }
+  });
+
+  assert.equal(report.status, 'ok');
+  assert.equal(report.requested_root_folder_id, 'shared-parent-folder');
+  assert.equal(report.effective_root_folder_name, 'MealScout screenshot');
+  assert.equal(report.folder_metadata_accessible, true);
+  assert.equal(report.folders_scanned_count, 3);
+  assert.equal(report.child_folder_count, 2);
+  assert.deepEqual(report.child_folder_names_sample, ['Thehungerbrothers1@gmail.com Screenshots', 'Screenshots']);
+  assert.equal(report.folders_with_at_symbol_count, 1);
+  assert.deepEqual(report.valid_affiliate_folder_names, ['Thehungerbrothers1@gmail.com Screenshots']);
+  assert.equal(report.screenshots_found_count, 2);
+  assert.equal(report.screenshots_inside_affiliate_folders_count, 1);
+  assert.equal(report.loose_unattributed_screenshots_count, 1);
+  assert.deepEqual(report.mutation_methods_invoked, []);
+  assert.equal(readAffiliateTrackingLedgerRows().length, 0);
+  assert.equal(listMealScoutTrucks().length, 0);
+  assert.deepEqual(listVerificationEmailRecords(), []);
 });
 
 test('affiliate screenshot folder processing reports when no valid email token folder is visible', async () => {

@@ -38,6 +38,7 @@ export type AffiliateScreenshotFolderInput = {
 
 export type AffiliateScreenshotFolderProcessingOptions = {
   apply: boolean;
+  preflightOnly?: boolean;
   reportPath?: string;
   rootFolderId?: string;
   parentFolderId?: string;
@@ -101,6 +102,35 @@ export type AffiliateScreenshotFolderProcessingReport = {
     screenshot_count: number;
   }>;
   processed_results: MerlinProfileSeedResult[];
+};
+
+export type AffiliateScreenshotFolderPreflightReport = {
+  generated_at: string;
+  status: 'ok' | 'blocked' | 'error';
+  reason?: string;
+  requested_root_folder_id: string;
+  effective_root_folder_id: string;
+  effective_root_folder_name: string;
+  auth_mode: string;
+  drive_scope_mode: string;
+  folder_metadata_accessible: boolean;
+  recursive_scan_enabled: boolean;
+  folders_scanned_count: number;
+  child_folder_count: number;
+  child_folder_names_sample: string[];
+  folders_with_at_symbol_count: number;
+  valid_affiliate_folder_names: string[];
+  screenshots_found_count: number;
+  screenshots_inside_affiliate_folders_count: number;
+  loose_unattributed_screenshots_count: number;
+  mutation_methods_invoked: string[];
+  safety_confirmation: {
+    no_drive_move: true;
+    no_drive_trash: true;
+    no_drive_delete: true;
+    no_drive_archive: true;
+    no_drive_suppress: true;
+  };
 };
 
 type DiscoveredFolder = {
@@ -326,6 +356,138 @@ async function discoverFolders(options: AffiliateScreenshotFolderProcessingOptio
     folders,
     client
   };
+}
+
+function createMutationAuditClient(client: DriveClient, mutationMethodsInvoked: string[]): DriveClient {
+  return {
+    listFilesInFolder(folderId: string) {
+      return client.listFilesInFolder(folderId);
+    },
+    listSubfoldersInFolder: client.listSubfoldersInFolder
+      ? (folderId: string) => client.listSubfoldersInFolder!(folderId)
+      : undefined,
+    getFileMetadata(fileId: string) {
+      return client.getFileMetadata(fileId);
+    },
+    downloadFileContent(fileId: string) {
+      return client.downloadFileContent(fileId);
+    },
+    downloadFileBinary: client.downloadFileBinary ? (fileId: string) => client.downloadFileBinary!(fileId) : undefined,
+    findFolderByName(name: string, parentFolderId: string) {
+      return client.findFolderByName(name, parentFolderId);
+    },
+    listFoldersByName(name: string, parentFolderId: string) {
+      return client.listFoldersByName(name, parentFolderId);
+    },
+    async moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean> {
+      mutationMethodsInvoked.push('moveFileToFolder');
+      return client.moveFileToFolder(fileId, targetFolderId);
+    },
+    async trashFile(fileId: string): Promise<boolean> {
+      mutationMethodsInvoked.push('trashFile');
+      if (typeof client.trashFile !== 'function') return false;
+      return client.trashFile(fileId);
+    },
+    async createFolderIfMissing(name: string, parentFolderId: string) {
+      mutationMethodsInvoked.push('createFolderIfMissing');
+      return client.createFolderIfMissing(name, parentFolderId);
+    }
+  };
+}
+
+function summarizePreflight(input: {
+  generatedAt: string;
+  discovery: Awaited<ReturnType<typeof discoverFolders>>;
+  mutationMethodsInvoked: string[];
+}): AffiliateScreenshotFolderPreflightReport {
+  const folderNames = input.discovery.folders.map((folder) => folder.folderName).filter((name) => name.trim().length > 0);
+  const childFolders = input.discovery.folders.slice(1);
+  const validAffiliateFolders = input.discovery.folders.filter((folder) =>
+    Boolean(resolveAffiliateFolderAttributionFromPath({ folderPath: folder.folderPath || folder.folderName }).affiliate_attribution_email)
+  );
+  const validAffiliateFolderIds = new Set(validAffiliateFolders.map((folder) => folder.folderId));
+  let screenshotsFoundCount = 0;
+  let screenshotsInsideAffiliateFoldersCount = 0;
+  let looseUnattributedScreenshotsCount = 0;
+
+  for (const folder of input.discovery.folders) {
+    const files = folder.files.filter((file) => isSupportedScreenshot(file.fileName, file.mimeType));
+    screenshotsFoundCount += files.length;
+    if (validAffiliateFolderIds.has(folder.folderId)) {
+      screenshotsInsideAffiliateFoldersCount += files.length;
+    } else {
+      looseUnattributedScreenshotsCount += files.length;
+    }
+  }
+
+  const folderMetadataAccessible =
+    input.discovery.status === 'ok' &&
+    input.discovery.effectiveRootFolderId.trim().length > 0 &&
+    input.discovery.effectiveRootFolderName.trim().length > 0;
+  const hasValidAffiliateFolder = validAffiliateFolders.length > 0;
+  const status: AffiliateScreenshotFolderPreflightReport['status'] =
+    input.discovery.status === 'error'
+      ? 'error'
+      : input.discovery.status === 'disabled' || !folderMetadataAccessible || !hasValidAffiliateFolder
+        ? 'blocked'
+        : 'ok';
+  const reason =
+    input.discovery.reason ||
+    (!folderMetadataAccessible
+      ? 'folder_metadata_unavailable'
+      : !hasValidAffiliateFolder
+        ? 'no_valid_email_token_folder_visible'
+        : undefined);
+
+  return {
+    generated_at: input.generatedAt,
+    status,
+    reason,
+    requested_root_folder_id: input.discovery.requestedRootFolderId,
+    effective_root_folder_id: input.discovery.effectiveRootFolderId,
+    effective_root_folder_name: input.discovery.effectiveRootFolderName,
+    auth_mode: input.discovery.authMode,
+    drive_scope_mode: input.discovery.driveScopeMode,
+    folder_metadata_accessible: folderMetadataAccessible,
+    recursive_scan_enabled: input.discovery.recursiveScanEnabled,
+    folders_scanned_count: input.discovery.folders.length,
+    child_folder_count: childFolders.length,
+    child_folder_names_sample: childFolders.map((folder) => folder.folderName).slice(0, 20),
+    folders_with_at_symbol_count: folderNames.filter((name) => name.includes('@')).length,
+    valid_affiliate_folder_names: validAffiliateFolders.map((folder) => folder.folderName),
+    screenshots_found_count: screenshotsFoundCount,
+    screenshots_inside_affiliate_folders_count: screenshotsInsideAffiliateFoldersCount,
+    loose_unattributed_screenshots_count: looseUnattributedScreenshotsCount,
+    mutation_methods_invoked: input.mutationMethodsInvoked,
+    safety_confirmation: {
+      no_drive_move: true,
+      no_drive_trash: true,
+      no_drive_delete: true,
+      no_drive_archive: true,
+      no_drive_suppress: true
+    }
+  };
+}
+
+export async function preflightAffiliateScreenshotFolders(
+  options: AffiliateScreenshotFolderProcessingOptions
+): Promise<AffiliateScreenshotFolderPreflightReport> {
+  const generatedAt = new Date().toISOString();
+  const mutationMethodsInvoked: string[] = [];
+  const discovery = await discoverFolders({
+    ...options,
+    apply: false,
+    client: options.client ? createMutationAuditClient(options.client, mutationMethodsInvoked) : undefined
+  });
+  const report = summarizePreflight({
+    generatedAt,
+    discovery,
+    mutationMethodsInvoked
+  });
+  if (options.reportPath) {
+    writeFileSync(options.reportPath, renderAffiliateScreenshotFolderPreflightReport(report), 'utf8');
+  }
+  return report;
 }
 
 async function buildSeedInputs(input: {
@@ -580,6 +742,41 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
   return `${lines.join('\n')}\n`;
 }
 
+export function renderAffiliateScreenshotFolderPreflightReport(report: AffiliateScreenshotFolderPreflightReport): string {
+  const lines = [
+    'Merlin affiliate screenshot folder preflight report',
+    '',
+    `generated_at: ${report.generated_at}`,
+    `status: ${report.status}`,
+    `reason: ${report.reason || ''}`,
+    `requested_root_folder_id: ${report.requested_root_folder_id}`,
+    `effective_root_folder_id: ${report.effective_root_folder_id}`,
+    `effective_root_folder_name: ${report.effective_root_folder_name}`,
+    `auth_mode: ${report.auth_mode}`,
+    `drive_scope_mode: ${report.drive_scope_mode}`,
+    `folder_metadata_accessible: ${report.folder_metadata_accessible}`,
+    `recursive_scan_enabled: ${report.recursive_scan_enabled}`,
+    `folders_scanned_count: ${report.folders_scanned_count}`,
+    `child_folder_count: ${report.child_folder_count}`,
+    `child_folder_names_sample: ${report.child_folder_names_sample.join(', ')}`,
+    `folders_with_at_symbol_count: ${report.folders_with_at_symbol_count}`,
+    `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
+    `screenshots_found_count: ${report.screenshots_found_count}`,
+    `screenshots_inside_affiliate_folders_count: ${report.screenshots_inside_affiliate_folders_count}`,
+    `loose_unattributed_screenshots_count: ${report.loose_unattributed_screenshots_count}`,
+    `mutation_methods_invoked: ${report.mutation_methods_invoked.join(', ')}`,
+    '',
+    'safety_confirmation:',
+    '- no_drive_move',
+    '- no_drive_trash',
+    '- no_drive_delete',
+    '- no_drive_archive',
+    '- no_drive_suppress',
+    ''
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
 function parseArgs(argv: string[]): AffiliateScreenshotFolderProcessingOptions & { inputPath?: string } {
   const parsed: AffiliateScreenshotFolderProcessingOptions & { inputPath?: string } = {
     apply: false,
@@ -588,6 +785,7 @@ function parseArgs(argv: string[]): AffiliateScreenshotFolderProcessingOptions &
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--apply') parsed.apply = true;
+    else if (arg === '--preflight-only') parsed.preflightOnly = true;
     else if (arg === '--input') parsed.inputPath = argv[++index];
     else if (arg === '--report') parsed.reportPath = resolve(process.cwd(), argv[++index] || AFFILIATE_SCREENSHOT_FOLDER_REPORT_FILE);
     else if (arg === '--root-folder-id') parsed.rootFolderId = argv[++index];
@@ -610,6 +808,14 @@ function readLocalFolders(inputPath: string | undefined): AffiliateScreenshotFol
 async function main(): Promise<void> {
   loadEnvFromDotFile();
   const args = parseArgs(process.argv.slice(2));
+  if (args.preflightOnly) {
+    const report = await preflightAffiliateScreenshotFolders({
+      ...args,
+      localFolders: readLocalFolders(args.inputPath)
+    });
+    process.stdout.write(renderAffiliateScreenshotFolderPreflightReport(report));
+    return;
+  }
   const report = await processAffiliateScreenshotFolders({
     ...args,
     localFolders: readLocalFolders(args.inputPath)
