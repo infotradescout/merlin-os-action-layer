@@ -430,3 +430,47 @@ test('affiliate screenshot folder processing treats loose screenshots as admin f
   const recipients = listVerificationEmailRecords().map((row) => row.recipient_email);
   assert.deepEqual(recipients, ['admin-flow@example.com']);
 });
+
+test('affiliate screenshot folder processing max-files caps selected eligible screenshots', async () => {
+  const report = await processAffiliateScreenshotFolders({
+    apply: true,
+    maxFiles: 2,
+    localFolders: [
+      {
+        folderId: 'admin-folder',
+        folderName: 'Screenshots',
+        folderPath: 'MealScout screenshot/Screenshots',
+        files: [
+          {
+            fileId: 'admin-1',
+            fileName: 'admin-1.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Admin One Food Truck\nEmail: admin-one@example.com\nPhone: 504-111-2222\nMenu: Gumbo $8'
+          },
+          {
+            fileId: 'admin-2',
+            fileName: 'admin-2.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Admin Two Food Truck\nEmail: admin-two@example.com\nPhone: 504-222-3333\nMenu: Tacos $4'
+          },
+          {
+            fileId: 'admin-3',
+            fileName: 'admin-3.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Admin Three Food Truck\nEmail: admin-three@example.com\nPhone: 504-333-4444\nMenu: BBQ $10'
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(report.max_files_requested, 2);
+  assert.equal(report.screenshots_eligible_count, 3);
+  assert.equal(report.screenshots_selected_count, 2);
+  assert.equal(report.screenshots_skipped_due_to_cap, 1);
+  assert.equal(report.screenshots_processed_count, 2);
+  assert.equal(report.admin_flow_profiles_created_count, 2);
+  assert.equal(report.affiliate_ledger_rows_written, 0);
+  const recipients = listVerificationEmailRecords().map((row) => row.recipient_email).sort();
+  assert.deepEqual(recipients, ['admin-one@example.com', 'admin-two@example.com']);
+});

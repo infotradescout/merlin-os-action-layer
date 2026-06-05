@@ -44,6 +44,7 @@ export type AffiliateScreenshotFolderProcessingOptions = {
   parentFolderId?: string;
   parentFolderPath?: string;
   maxDepth?: number;
+  maxFiles?: number;
   localFolders?: AffiliateScreenshotFolderInput[];
   client?: DriveClient;
 };
@@ -71,6 +72,10 @@ export type AffiliateScreenshotFolderProcessingReport = {
   valid_affiliate_folder_names: string[];
   files_parent_folder_ids_sample: string[];
   files_parent_folder_names_sample: string[];
+  max_files_requested?: number;
+  screenshots_eligible_count: number;
+  screenshots_selected_count: number;
+  screenshots_skipped_due_to_cap: number;
   affiliate_attributed_screenshots_count: number;
   admin_flow_screenshots_count: number;
   loose_unattributed_screenshots_count: number;
@@ -640,8 +645,10 @@ export async function processAffiliateScreenshotFolders(
   });
   const ledgerBefore = readAffiliateTrackingLedgerRows().length;
   let results: MerlinProfileSeedResult[] = [];
-  if (options.apply && discovery.status === 'ok' && built.seedInputs.length > 0) {
-    const processed = await processExistingScreenshotsIntoSeededProfiles({ screenshots: built.seedInputs });
+  const maxFiles = Number.isFinite(options.maxFiles) && options.maxFiles !== undefined ? Math.max(0, Math.floor(options.maxFiles)) : undefined;
+  const selectedSeedInputs = maxFiles === undefined ? built.seedInputs : built.seedInputs.slice(0, maxFiles);
+  if (options.apply && discovery.status === 'ok' && selectedSeedInputs.length > 0) {
+    const processed = await processExistingScreenshotsIntoSeededProfiles({ screenshots: selectedSeedInputs });
     results = processed.results;
   }
   const ledgerAfter = readAffiliateTrackingLedgerRows().length;
@@ -683,6 +690,10 @@ export async function processAffiliateScreenshotFolders(
     valid_affiliate_folder_names: validAffiliateFolderNames,
     files_parent_folder_ids_sample: Array.from(new Set(fileParentFolderIds)).slice(0, 20),
     files_parent_folder_names_sample: Array.from(new Set(fileParentFolderNames)).slice(0, 20),
+    max_files_requested: maxFiles,
+    screenshots_eligible_count: built.seedInputs.length,
+    screenshots_selected_count: selectedSeedInputs.length,
+    screenshots_skipped_due_to_cap: Math.max(0, built.seedInputs.length - selectedSeedInputs.length),
     affiliate_attributed_screenshots_count: built.affiliateAttributedScreenshotsCount,
     admin_flow_screenshots_count: built.adminFlowScreenshotsCount,
     loose_unattributed_screenshots_count: built.adminFlowScreenshotsCount,
@@ -737,6 +748,10 @@ export function renderAffiliateScreenshotFolderProcessingReport(report: Affiliat
     `valid_affiliate_folder_names: ${report.valid_affiliate_folder_names.join(', ')}`,
     `files_parent_folder_ids_sample: ${report.files_parent_folder_ids_sample.join(', ')}`,
     `files_parent_folder_names_sample: ${report.files_parent_folder_names_sample.join(', ')}`,
+    `max_files_requested: ${report.max_files_requested ?? ''}`,
+    `screenshots_eligible_count: ${report.screenshots_eligible_count}`,
+    `screenshots_selected_count: ${report.screenshots_selected_count}`,
+    `screenshots_skipped_due_to_cap: ${report.screenshots_skipped_due_to_cap}`,
     `affiliate_attributed_screenshots_count: ${report.affiliate_attributed_screenshots_count}`,
     `admin_flow_screenshots_count: ${report.admin_flow_screenshots_count}`,
     `loose_unattributed_screenshots_count: ${report.loose_unattributed_screenshots_count}`,
@@ -834,6 +849,7 @@ function parseArgs(argv: string[]): AffiliateScreenshotFolderProcessingOptions &
     else if (arg === '--parent-folder-id') parsed.parentFolderId = argv[++index];
     else if (arg === '--parent-folder-path') parsed.parentFolderPath = argv[++index];
     else if (arg === '--max-depth') parsed.maxDepth = Number(argv[++index]);
+    else if (arg === '--max-files') parsed.maxFiles = Number(argv[++index]);
   }
   return parsed;
 }
