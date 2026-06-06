@@ -1,6 +1,90 @@
 {
   "status": "ok",
-  "mutationAllowed": false,
-  "results": [],
+  "mutationAllowed": true,
+  "results": [
+    {
+      "seedId": "profile-seed-580f8b1d-9cb2-4096-b4fd-3c1cc5679218",
+      "brand_lane": "MEALSCOUT",
+      "sourceFileId": "1vA5BWhlpx6Lkc_cd1cAZNCefNPLbEPxr",
+      "sourceFileName": "IMG_5982.PNG",
+      "sourceFilePath": "MealScout_Merlin_Evidence_Seeds/IMG_5982.PNG",
+      "source_refs": [
+        "1vA5BWhlpx6Lkc_cd1cAZNCefNPLbEPxr"
+      ],
+      "seed_status": "seeded",
+      "profile_action": "create",
+      "target_profile_id": "ms-profile-a6b2d941-b1de-4ef8-8d1d-e216ae63867b",
+      "target_profile_type": "food_truck",
+      "profile_name": "Rolling In The Dough Handmade",
+      "phone": "601-916-9151",
+      "socials": {},
+      "extracted_fields": {
+        "truckName": "Rolling In The Dough Handmade",
+        "phone": "601-916-9151"
+      },
+      "seeded_from_evidence": true,
+      "profile_origin": "auto_onboarded",
+      "onboarding_source": "admin_seed",
+      "claim_status": "unclaimed",
+      "email_verified": false,
+      "insurance_verified": false,
+      "owner_user_id": null,
+      "attribution_method": "admin_unattributed",
+      "submission_flow": "admin",
+      "safety_notes": [
+        "handoff export only; does not prove live MealScout persistence",
+        "email_verified remains false",
+        "insurance_verified remains false",
+        "claim_status remains unclaimed",
+        "owner_user_id remains null",
+        "no payout logic",
+        "no Drive cleanup/delete/archive/suppress"
+      ],
+      "verification_email_status": "not_available",
+      "mutationAllowed": true
+    },
+    {
+      "seedId": "profile-seed-c3df234a-68e3-40d2-be82-2fa25496d99a",
+      "brand_lane": "MEALSCOUT",
+      "sourceFileId": "1stWm5_OZnoqUzbjGKotjd3vnUCH4vFez",
+      "sourceFileName": "IMG_5980.PNG",
+      "sourceFilePath": "MealScout_Merlin_Evidence_Seeds/IMG_5980.PNG",
+      "source_refs": [
+        "1stWm5_OZnoqUzbjGKotjd3vnUCH4vFez"
+      ],
+      "seed_status": "seeded",
+      "profile_action": "create",
+      "target_profile_id": "ms-profile-08ee465f-5168-48d7-b2bd-3b3d5d9f3249",
+      "target_profile_type": "food_truck",
+      "profile_name": "Crav'N Da Flava Food Truck",
+      "phone": "251-234-4421",
+      "socials": {},
+      "extracted_fields": {
+        "truckName": "Crav'N Da Flava Food Truck",
+        "phone": "251-234-4421",
+        "cityArea": "Mobile, AL"
+      },
+      "seeded_from_evidence": true,
+      "profile_origin": "auto_onboarded",
+      "onboarding_source": "admin_seed",
+      "claim_status": "unclaimed",
+      "email_verified": false,
+      "insurance_verified": false,
+      "owner_user_id": null,
+      "attribution_method": "admin_unattributed",
+      "submission_flow": "admin",
+      "safety_notes": [
+        "handoff export only; does not prove live MealScout persistence",
+        "email_verified remains false",
+        "insurance_verified remains false",
+        "claim_status remains unclaimed",
+        "owner_user_id remains null",
+        "no payout logic",
+        "no Drive cleanup/delete/archive/suppress"
+      ],
+      "verification_email_status": "not_available",
+      "mutationAllowed": true
+    }
+  ],
   "verificationEmails": []
 }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('scripts/screenshots-manifest-move-and-seed.ts', 'utf8');
 
-assert.match(source, /type ExecutionMode = 'execute' \| 'diagnose'/, 'executor must define execute and diagnose modes');
+assert.match(source, /type ExecutionMode = 'execute' \| 'diagnose' \| 'copy'/, 'executor must define copy mode');
 
 assert.match(source, /function isDiagnoseEligible\(row: MoveManifestRow\): boolean/, 'executor must include diagnose eligibility');
 
@@ -51,6 +51,22 @@ assert.match(
 
 assert.match(
   source,
+  /if \(mode === 'copy'\) \{\s*return runCopyMode\(/,
+  'executor must branch into copy mode'
+);
+
+assert.match(source, /function isCopyEligible\(row: MoveManifestRow\): boolean/, 'copy mode must include eligibility rules');
+
+assert.match(source, /copyFileToFolder\?\./, 'copy mode must use Drive copy API and avoid parent replacement');
+
+assert.match(
+  source,
+  /row\.batch_id === 'BATCH-001-MEALSCOUT-MERLIN-SEED' && row\.copy_status === 'copied'/,
+  'copy mode seed gate must only include copied BATCH-001 rows'
+);
+
+assert.match(
+  source,
   /writeFileSync\(path, `\$\{JSON\.stringify\(payload, null, 2\)\}\\n`, 'utf8'\);/,
   'diagnose mode must write JSON diagnostic output'
 );
@@ -65,5 +81,11 @@ assert.equal(
   false,
   'diagnose mode must never seed'
 );
+
+const copyStart = source.indexOf('async function runCopyMode');
+assert.ok(copyStart >= 0 && executeStart > copyStart, 'copy mode implementation must exist');
+const copyBlock = source.slice(copyStart, executeStart);
+assert.equal(copyBlock.includes('moveFileToFolder('), false, 'copy mode must never move files');
+assert.equal(copyBlock.includes('trashFile('), false, 'copy mode must never delete/archive source files');
 
 console.log('Screenshots manifest move and seed contract passed');

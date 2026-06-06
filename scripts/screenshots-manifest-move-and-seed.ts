@@ -25,7 +25,7 @@ type MoveManifestRow = {
   notes: string;
 };
 
-type ExecutionMode = 'execute' | 'diagnose';
+type ExecutionMode = 'execute' | 'diagnose' | 'copy';
 
 type DiagnosticClassification =
   | 'parent_visible'
@@ -52,10 +52,45 @@ type ExecuteManifestOptions = {
   manifestPath?: string;
   auditPath?: string;
   diagnosticPath?: string;
+  copyExecutionPath?: string;
+  copyAuditPath?: string;
   seedReportPath?: string;
   seedExportPath?: string;
   movedBy?: string;
   client?: DriveClient;
+};
+
+type CopyExecutionRow = {
+  batch_id: string;
+  source_file_id: string;
+  source_file_name: string;
+  destination_project: string;
+  destination_folder_name: string;
+  destination_folder_id: string;
+  seed_action: string;
+  safety_gate: string;
+  confidence: string;
+  copy_status: 'copied' | 'blocked_copy_failed' | 'skipped_ineligible';
+  copied_file_id: string;
+  copied_at: string;
+  executor: string;
+  notes: string;
+};
+
+type CopyAuditRow = {
+  batch_id: string;
+  source_file_id: string;
+  source_file_name: string;
+  copied_file_id: string;
+  destination_project: string;
+  destination_folder_name: string;
+  destination_folder_id: string;
+  seed_action: string;
+  safety_gate: string;
+  copy_status: 'copied' | 'blocked_copy_failed' | 'skipped_ineligible';
+  copied_at: string;
+  executor: string;
+  notes: string;
 };
 
 type DiagnosticRow = {
@@ -222,6 +257,16 @@ function isDiagnoseEligible(row: MoveManifestRow): boolean {
   );
 }
 
+function isCopyEligible(row: MoveManifestRow): boolean {
+  const operationAllowed = row.operation === 'move_when_available' || row.operation === 'copy_when_available';
+  const statusAllowed =
+    row.move_status === 'pending' ||
+    row.move_status === 'failed' ||
+    row.move_status === 'blocked_missing_current_parent' ||
+    row.move_status === 'blocked_drive_permission_or_parent_semantics';
+  return operationAllowed && statusAllowed;
+}
+
 function isPermissionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /insufficient|permission|forbidden|403/i.test(message);
@@ -360,18 +405,267 @@ function writeDiagnostic(path: string, payload: { mode: ExecutionMode; generated
   writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
+function writeCopyExecutionManifest(path: string, rows: CopyExecutionRow[]): void {
+  const header = [
+    'batch_id',
+    'source_file_id',
+    'source_file_name',
+    'destination_project',
+    'destination_folder_name',
+    'destination_folder_id',
+    'seed_action',
+    'safety_gate',
+    'confidence',
+    'copy_status',
+    'copied_file_id',
+    'copied_at',
+    'executor',
+    'notes'
+  ];
+  const body = rows.map((row) => [
+    row.batch_id,
+    row.source_file_id,
+    row.source_file_name,
+    row.destination_project,
+    row.destination_folder_name,
+    row.destination_folder_id,
+    row.seed_action,
+    row.safety_gate,
+    row.confidence,
+    row.copy_status,
+    row.copied_file_id,
+    row.copied_at,
+    row.executor,
+    row.notes
+  ]);
+  writeFileSync(path, toCsv([header, ...body]), 'utf8');
+}
+
+function writeCopyAuditManifest(path: string, rows: CopyAuditRow[]): void {
+  const header = [
+    'batch_id',
+    'source_file_id',
+    'source_file_name',
+    'copied_file_id',
+    'destination_project',
+    'destination_folder_name',
+    'destination_folder_id',
+    'seed_action',
+    'safety_gate',
+    'copy_status',
+    'copied_at',
+    'executor',
+    'notes'
+  ];
+  const body = rows.map((row) => [
+    row.batch_id,
+    row.source_file_id,
+    row.source_file_name,
+    row.copied_file_id,
+    row.destination_project,
+    row.destination_folder_name,
+    row.destination_folder_id,
+    row.seed_action,
+    row.safety_gate,
+    row.copy_status,
+    row.copied_at,
+    row.executor,
+    row.notes
+  ]);
+  writeFileSync(path, toCsv([header, ...body]), 'utf8');
+}
+
 function readModeFromArgv(argv: string[]): ExecutionMode {
   const modeEq = argv.find((arg) => arg.startsWith('--mode='));
   if (modeEq) {
     const value = modeEq.split('=')[1]?.trim().toLowerCase();
+    if (value === 'copy') return 'copy';
     return value === 'diagnose' ? 'diagnose' : 'execute';
   }
   const modeIndex = argv.findIndex((arg) => arg === '--mode');
   if (modeIndex >= 0) {
     const value = (argv[modeIndex + 1] || '').trim().toLowerCase();
+    if (value === 'copy') return 'copy';
     return value === 'diagnose' ? 'diagnose' : 'execute';
   }
   return 'execute';
+}
+
+async function runCopyMode(
+  rows: MoveManifestRow[],
+  options: {
+    movedBy: string;
+    copyExecutionPath: string;
+    copyAuditPath: string;
+    seedReportPath: string;
+    seedExportPath: string;
+    client: DriveClient;
+  }
+): Promise<{
+  moved_total: number;
+  failed_total: number;
+  batch001_seed_inputs: number;
+  batch001_seeded_results: number;
+  audit_manifest: string;
+  seed_report: string;
+  seed_export: string;
+}> {
+  const folderCache = new Map<string, string>();
+  const copyExecutionRows: CopyExecutionRow[] = [];
+  const copyAuditRows: CopyAuditRow[] = [];
+
+  for (const row of rows) {
+    const copiedAt = new Date().toISOString();
+    if (!isCopyEligible(row)) {
+      copyExecutionRows.push({
+        batch_id: row.batch_id,
+        source_file_id: row.source_file_id,
+        source_file_name: row.source_file_name,
+        destination_project: row.destination_project,
+        destination_folder_name: row.destination_folder_name,
+        destination_folder_id: row.destination_folder_id,
+        seed_action: row.seed_action,
+        safety_gate: row.safety_gate,
+        confidence: row.confidence,
+        copy_status: 'skipped_ineligible',
+        copied_file_id: '',
+        copied_at: copiedAt,
+        executor: options.movedBy,
+        notes: `${row.notes} | copy_skipped_ineligible`
+      });
+      continue;
+    }
+
+    try {
+      const destinationFolderId = await ensureDestinationFolderId(row, folderCache, options.client);
+      const copied = await options.client.copyFileToFolder?.(row.source_file_id, destinationFolderId);
+      if (!copied?.drive_file_id) {
+        throw new Error('copy_api_unavailable_or_missing_copied_file_id');
+      }
+
+      row.destination_folder_id = destinationFolderId;
+
+      const copyRow: CopyExecutionRow = {
+        batch_id: row.batch_id,
+        source_file_id: row.source_file_id,
+        source_file_name: row.source_file_name,
+        destination_project: row.destination_project,
+        destination_folder_name: row.destination_folder_name,
+        destination_folder_id: destinationFolderId,
+        seed_action: row.seed_action,
+        safety_gate: row.safety_gate,
+        confidence: row.confidence,
+        copy_status: 'copied',
+        copied_file_id: copied.drive_file_id,
+        copied_at: copiedAt,
+        executor: options.movedBy,
+        notes: row.notes
+      };
+      copyExecutionRows.push(copyRow);
+      copyAuditRows.push({
+        batch_id: copyRow.batch_id,
+        source_file_id: copyRow.source_file_id,
+        source_file_name: copyRow.source_file_name,
+        copied_file_id: copyRow.copied_file_id,
+        destination_project: copyRow.destination_project,
+        destination_folder_name: copyRow.destination_folder_name,
+        destination_folder_id: copyRow.destination_folder_id,
+        seed_action: copyRow.seed_action,
+        safety_gate: copyRow.safety_gate,
+        copy_status: copyRow.copy_status,
+        copied_at: copyRow.copied_at,
+        executor: copyRow.executor,
+        notes: copyRow.notes
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const copyRow: CopyExecutionRow = {
+        batch_id: row.batch_id,
+        source_file_id: row.source_file_id,
+        source_file_name: row.source_file_name,
+        destination_project: row.destination_project,
+        destination_folder_name: row.destination_folder_name,
+        destination_folder_id: row.destination_folder_id,
+        seed_action: row.seed_action,
+        safety_gate: row.safety_gate,
+        confidence: row.confidence,
+        copy_status: 'blocked_copy_failed',
+        copied_file_id: '',
+        copied_at: copiedAt,
+        executor: options.movedBy,
+        notes: `${row.notes} | copy_error=${message}`
+      };
+      copyExecutionRows.push(copyRow);
+      copyAuditRows.push({
+        batch_id: copyRow.batch_id,
+        source_file_id: copyRow.source_file_id,
+        source_file_name: copyRow.source_file_name,
+        copied_file_id: '',
+        destination_project: copyRow.destination_project,
+        destination_folder_name: copyRow.destination_folder_name,
+        destination_folder_id: copyRow.destination_folder_id,
+        seed_action: copyRow.seed_action,
+        safety_gate: copyRow.safety_gate,
+        copy_status: copyRow.copy_status,
+        copied_at: copyRow.copied_at,
+        executor: copyRow.executor,
+        notes: copyRow.notes
+      });
+    }
+  }
+
+  writeCopyExecutionManifest(options.copyExecutionPath, copyExecutionRows);
+  writeCopyAuditManifest(options.copyAuditPath, copyAuditRows);
+
+  const batch001Copies = copyExecutionRows.filter(
+    (row) => row.batch_id === 'BATCH-001-MEALSCOUT-MERLIN-SEED' && row.copy_status === 'copied'
+  );
+  const batch001Screenshots: MerlinExistingScreenshotSeedInput[] = [];
+
+  for (const row of batch001Copies) {
+    const metadata = await options.client.getFileMetadata(row.copied_file_id);
+    const extractedText = await options.client.downloadFileContent(row.copied_file_id);
+    batch001Screenshots.push({
+      fileId: row.copied_file_id,
+      fileName: row.source_file_name,
+      sourceFolder: row.destination_folder_name,
+      sourceFolderId: row.destination_folder_id,
+      drivePath: `${row.destination_folder_name}/${row.source_file_name}`,
+      mimeType: metadata.mime_type,
+      modifiedTime: metadata.modified_time,
+      extractedText,
+      sourceFileAttribution: {
+        attributionSource: 'request_context',
+        attributionStatus: 'unmatched',
+        sourceChannel: 'admin_import',
+        affiliate_attribution_source: 'admin_unattributed'
+      }
+    });
+  }
+
+  const seedResult = await processExistingScreenshotsIntoSeededProfiles({ screenshots: batch001Screenshots });
+  writeFileSync(options.seedReportPath, `${JSON.stringify(seedResult, null, 2)}\n`, 'utf8');
+
+  const exportRows = buildMerlinProfileSeedExportBundle(seedResult.results);
+  writeFileSync(options.seedExportPath, `${JSON.stringify(exportRows, null, 2)}\n`, 'utf8');
+
+  const summary = {
+    moved_total: copyExecutionRows.filter((row) => row.copy_status === 'copied').length,
+    failed_total: copyExecutionRows.filter((row) => row.copy_status === 'blocked_copy_failed').length,
+    batch001_seed_inputs: batch001Screenshots.length,
+    batch001_seeded_results: seedResult.results.length,
+    audit_manifest: options.copyAuditPath,
+    seed_report: options.seedReportPath,
+    seed_export: options.seedExportPath
+  };
+  if (summary.batch001_seed_inputs > 0) {
+    process.stdout.write(`[SEED GATE OPENED] ${summary.batch001_seed_inputs} copied BATCH-001 files ready. Proceeding with Merlin seeding...\n`);
+  } else {
+    process.stdout.write('[SEED GATE CLOSED] No copied BATCH-001 files are available. Raw Screenshots-folder seeding remains prohibited.\n');
+  }
+  process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+
+  return summary;
 }
 
 async function runDiagnoseMode(
@@ -538,6 +832,8 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
   const manifestPath = options.manifestPath || resolve(process.cwd(), 'screenshots-bulk-move-execution-manifest.csv');
   const auditPath = options.auditPath || resolve(process.cwd(), 'screenshots-post-move-audit-manifest.csv');
   const diagnosticPath = options.diagnosticPath || resolve(process.cwd(), 'screenshots-drive-parent-permission-diagnostic.json');
+  const copyExecutionPath = options.copyExecutionPath || resolve(process.cwd(), 'screenshots-copy-execution-manifest.csv');
+  const copyAuditPath = options.copyAuditPath || resolve(process.cwd(), 'screenshots-copy-audit-manifest.csv');
   const seedReportPath = options.seedReportPath || resolve(process.cwd(), 'screenshots-batch001-seed-report.json');
   const seedExportPath = options.seedExportPath || resolve(process.cwd(), 'screenshots-batch001-merlin-profile-seed-export.json');
   const movedBy = options.movedBy || process.env.USERNAME || process.env.USER || 'copilot-executor';
@@ -549,6 +845,17 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
 
   if (mode === 'diagnose') {
     return runDiagnoseMode(rows, { movedBy, manifestPath, diagnosticPath, client });
+  }
+
+  if (mode === 'copy') {
+    return runCopyMode(rows, {
+      movedBy,
+      copyExecutionPath,
+      copyAuditPath,
+      seedReportPath,
+      seedExportPath,
+      client
+    });
   }
 
   const folderCache = new Map<string, string>();

@@ -18,6 +18,7 @@
     "lint": "npm run check",
     "screenshots:move": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=execute",
     "screenshots:diagnose": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=diagnose",
+    "screenshots:copy": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=copy",
     "test:browser": "playwright test",
     "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },

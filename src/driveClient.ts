@@ -29,6 +29,7 @@ export interface DriveClient {
   getFileMetadata(fileId: string): Promise<DriveFileInfo>;
   downloadFileContent(fileId: string): Promise<string | undefined>;
   downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
+  copyFileToFolder?(fileId: string, targetFolderId: string): Promise<DriveFileInfo>;
   moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean>;
   trashFile?(fileId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
@@ -146,6 +147,19 @@ class GoogleDriveClient implements DriveClient {
     );
     const payload = response.data;
     return this.coerceMediaPayloadToBuffer(payload);
+  }
+
+  async copyFileToFolder(fileId: string, targetFolderId: string): Promise<DriveFileInfo> {
+    const response = await this.drive.files.copy({
+      fileId,
+      requestBody: {
+        parents: [targetFolderId]
+      },
+      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents',
+      supportsAllDrives: true
+    });
+    const file = response.data as drive_v3.Schema$File;
+    return mapDriveFileInfo(file);
   }
 
   async moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean> {
