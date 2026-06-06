@@ -550,12 +550,15 @@ test('affiliate screenshot folder processing exports seeded profile handoff bund
   assert.deepEqual(first.source_refs, ['admin-export-1']);
   assert.equal(typeof first.extracted_fields, 'object');
   assert.equal(first.seeded_from_evidence, true);
-  assert.equal(first.profile_origin, 'auto_onboarded');
+  assert.equal(first.profile_origin, 'evidence_seed');
   assert.equal(first.onboarding_source, 'admin_seed');
   assert.equal(first.claim_status, 'unclaimed');
   assert.equal(first.email_verified, false);
   assert.equal(first.insurance_verified, false);
   assert.equal(first.owner_user_id, null);
+  assert.equal(first.affiliate_attribution, null);
+  assert.equal(first.affiliate_email, null);
+  assert.equal(first.affiliate_source_folder, null);
   assert.equal(first.attribution_method, 'admin_unattributed');
   assert.equal(first.submission_flow, 'admin');
   assert.equal('affiliate_attribution_email' in first, false);

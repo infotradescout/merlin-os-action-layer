@@ -134,12 +134,15 @@ export type MerlinProfileSeedExportObject = {
   source_refs: string[];
   extracted_fields: Record<string, unknown>;
   seeded_from_evidence: true;
-  profile_origin: 'auto_onboarded';
+  profile_origin: 'evidence_seed';
   onboarding_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
   claim_status: 'unclaimed';
   email_verified: false;
   insurance_verified: false;
   owner_user_id: null;
+  affiliate_attribution: 'folder_email_token' | null;
+  affiliate_email: string | null;
+  affiliate_source_folder: string | null;
   attribution_method: string | null;
   affiliate_attribution_email?: string;
   submission_flow: 'admin' | 'affiliate';
@@ -817,12 +820,15 @@ export function buildMerlinProfileSeedExportBundle(results: MerlinProfileSeedRes
         source_refs: result.source_refs || [result.sourceFileId],
         extracted_fields: result.extracted_fields || {},
         seeded_from_evidence: true,
-        profile_origin: 'auto_onboarded',
+        profile_origin: 'evidence_seed',
         onboarding_source: result.onboarding_source || 'screenshot_seed',
         claim_status: 'unclaimed',
         email_verified: false,
         insurance_verified: false,
         owner_user_id: null,
+        affiliate_attribution: result.attribution_method === 'folder_email_token' ? 'folder_email_token' : null,
+        affiliate_email: result.attribution_method === 'folder_email_token' ? nullable(result.affiliate_attribution_email) : null,
+        affiliate_source_folder: null,
         attribution_method: nullable(result.attribution_method),
         submission_flow: result.submission_flow || 'admin',
         verification_email_status: result.verification_email_status,
