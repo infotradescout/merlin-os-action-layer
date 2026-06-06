@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadEnvFromDotFile } from '../src/env.js';
-import { getDriveClient } from '../src/driveClient.js';
+import { getDriveClient, type DriveClient } from '../src/driveClient.js';
 import { processExistingScreenshotsIntoSeededProfiles, type MerlinExistingScreenshotSeedInput } from '../src/merlin/profileSeedRuntime.js';
 import { buildMerlinProfileSeedExportBundle } from '../src/merlin/affiliateScreenshotFolderProcessing.js';
 
@@ -33,6 +34,15 @@ type AuditRow = {
   moved_at: string;
   moved_by_executor: string;
   notes: string;
+};
+
+type ExecuteManifestOptions = {
+  manifestPath?: string;
+  auditPath?: string;
+  seedReportPath?: string;
+  seedExportPath?: string;
+  movedBy?: string;
+  client?: DriveClient;
 };
 
 function parseCsv(content: string): string[][] {
@@ -163,13 +173,16 @@ function assertManifestSafety(rows: MoveManifestRow[]): void {
   }
 }
 
-async function ensureDestinationFolderId(row: MoveManifestRow, cache: Map<string, string>): Promise<string> {
+function isMoveEligible(row: MoveManifestRow): boolean {
+  return row.operation === 'move_when_available' && (row.move_status === 'pending' || row.move_status === 'failed');
+}
+
+async function ensureDestinationFolderId(row: MoveManifestRow, cache: Map<string, string>, client: DriveClient): Promise<string> {
   if (row.destination_folder_id?.trim()) return row.destination_folder_id.trim();
   const cacheKey = `${row.source_folder_id}::${row.destination_folder_name}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const client = getDriveClient();
   const sourceFolder = await client.getFileMetadata(row.source_folder_id);
   let parentFolderId = sourceFolder.folder_id;
   if (!parentFolderId) {
@@ -264,27 +277,64 @@ function writeAuditManifest(path: string, rows: AuditRow[]): void {
   writeFileSync(path, toCsv([header, ...body]), 'utf8');
 }
 
-async function main(): Promise<void> {
-  loadEnvFromDotFile();
-
-  const manifestPath = resolve(process.cwd(), 'screenshots-bulk-move-execution-manifest.csv');
-  const auditPath = resolve(process.cwd(), 'screenshots-post-move-audit-manifest.csv');
-  const seedReportPath = resolve(process.cwd(), 'screenshots-batch001-seed-report.json');
-  const seedExportPath = resolve(process.cwd(), 'screenshots-batch001-merlin-profile-seed-export.json');
-  const movedBy = process.env.USERNAME || process.env.USER || 'copilot-executor';
+export async function executeManifestMoves(options: ExecuteManifestOptions = {}): Promise<{
+  moved_total: number;
+  failed_total: number;
+  batch001_seed_inputs: number;
+  batch001_seeded_results: number;
+  audit_manifest: string;
+  seed_report: string;
+  seed_export: string;
+}> {
+  const manifestPath = options.manifestPath || resolve(process.cwd(), 'screenshots-bulk-move-execution-manifest.csv');
+  const auditPath = options.auditPath || resolve(process.cwd(), 'screenshots-post-move-audit-manifest.csv');
+  const seedReportPath = options.seedReportPath || resolve(process.cwd(), 'screenshots-batch001-seed-report.json');
+  const seedExportPath = options.seedExportPath || resolve(process.cwd(), 'screenshots-batch001-merlin-profile-seed-export.json');
+  const movedBy = options.movedBy || process.env.USERNAME || process.env.USER || 'copilot-executor';
 
   const rows = readMoveManifest(manifestPath);
   assertManifestSafety(rows);
 
-  const client = getDriveClient();
+  const client = options.client || getDriveClient();
   const folderCache = new Map<string, string>();
   const auditRows: AuditRow[] = [];
 
   for (const row of rows) {
     const movedAt = new Date().toISOString();
+    if (!isMoveEligible(row)) {
+      row.move_status = 'skipped_ineligible';
+      auditRows.push({
+        source_file_id: row.source_file_id,
+        source_file_name: row.source_file_name,
+        intended_destination_folder: row.destination_folder_name,
+        final_folder_id: row.destination_folder_id || '',
+        move_status: 'skipped_ineligible',
+        moved_at: movedAt,
+        moved_by_executor: movedBy,
+        notes: row.notes
+      });
+      continue;
+    }
+
     try {
-      const destinationFolderId = await ensureDestinationFolderId(row, folderCache);
-      await client.moveFileToFolder(row.source_file_id, destinationFolderId);
+      const destinationFolderId = await ensureDestinationFolderId(row, folderCache, client);
+      const currentParentId = (await client.getFileMetadata(row.source_file_id)).folder_id?.trim();
+      if (!currentParentId) {
+        row.move_status = 'blocked_missing_current_parent';
+        auditRows.push({
+          source_file_id: row.source_file_id,
+          source_file_name: row.source_file_name,
+          intended_destination_folder: row.destination_folder_name,
+          final_folder_id: row.destination_folder_id || '',
+          move_status: 'blocked_missing_current_parent',
+          moved_at: movedAt,
+          moved_by_executor: movedBy,
+          notes: row.notes
+        });
+        continue;
+      }
+
+      await client.moveFileToFolder(row.source_file_id, destinationFolderId, currentParentId);
       row.destination_folder_id = destinationFolderId;
       row.move_status = 'moved';
       auditRows.push({
@@ -298,14 +348,14 @@ async function main(): Promise<void> {
         notes: row.notes
       });
     } catch (error) {
-      row.move_status = 'failed';
+      row.move_status = 'blocked_drive_permission_or_parent_semantics';
       const message = error instanceof Error ? error.message : String(error);
       auditRows.push({
         source_file_id: row.source_file_id,
         source_file_name: row.source_file_name,
         intended_destination_folder: row.destination_folder_name,
         final_folder_id: row.destination_folder_id || '',
-        move_status: 'failed',
+        move_status: 'blocked_drive_permission_or_parent_semantics',
         moved_at: movedAt,
         moved_by_executor: movedBy,
         notes: `${row.notes} | move_error=${message}`
@@ -348,18 +398,34 @@ async function main(): Promise<void> {
 
   const summary = {
     moved_total: auditRows.filter((row) => row.move_status === 'moved').length,
-    failed_total: auditRows.filter((row) => row.move_status === 'failed').length,
+    failed_total: auditRows.filter((row) => row.move_status !== 'moved' && row.move_status !== 'skipped_ineligible').length,
     batch001_seed_inputs: batch001Screenshots.length,
     batch001_seeded_results: seedResult.results.length,
-    audit_manifest: 'screenshots-post-move-audit-manifest.csv',
-    seed_report: 'screenshots-batch001-seed-report.json',
-    seed_export: 'screenshots-batch001-merlin-profile-seed-export.json'
+    audit_manifest: auditPath,
+    seed_report: seedReportPath,
+    seed_export: seedExportPath
   };
+  if (summary.batch001_seed_inputs > 0) {
+    process.stdout.write(`[SEED GATE OPENED] ${summary.batch001_seed_inputs} BATCH-001 files moved successfully. Proceeding with Merlin seeding...\n`);
+  } else {
+    process.stdout.write('[SEED GATE CLOSED] No BATCH-001 files were successfully moved. Raw Screenshots-folder seeding remains prohibited.\n');
+  }
   process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+  return summary;
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.stack || error.message : String(error);
-  process.stderr.write(`${message}\n`);
-  process.exitCode = 1;
-});
+async function main(): Promise<void> {
+  loadEnvFromDotFile();
+  await executeManifestMoves();
+}
+
+const invokedPath = resolve(process.argv[1] || '');
+const modulePath = resolve(fileURLToPath(import.meta.url));
+
+if (invokedPath === modulePath || invokedPath.endsWith('screenshots-manifest-move-and-seed.ts')) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.stack || error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
+  });
+}

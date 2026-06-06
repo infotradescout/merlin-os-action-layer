@@ -29,7 +29,7 @@ export interface DriveClient {
   getFileMetadata(fileId: string): Promise<DriveFileInfo>;
   downloadFileContent(fileId: string): Promise<string | undefined>;
   downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
-  moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean>;
+  moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean>;
   trashFile?(fileId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
   listFoldersByName(name: string, parentFolderId: string): Promise<DriveFolderInfo[]>;
@@ -148,18 +148,19 @@ class GoogleDriveClient implements DriveClient {
     return this.coerceMediaPayloadToBuffer(payload);
   }
 
-  async moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean> {
-    const file = await this.drive.files.get({
-      fileId,
-      fields: 'parents,id',
-      supportsAllDrives: true
-    });
-    const parentList = (file.data.parents ?? []).filter((parent: string | null | undefined): parent is string => parent !== undefined && parent !== null);
-    const removeParents = parentList.filter((parent: string) => parent !== targetFolderId).join(',');
+  async moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean> {
+    const resolvedCurrentParent = (currentParentId || '').trim();
+    if (!resolvedCurrentParent) {
+      throw new Error('blocked_missing_current_parent');
+    }
+    if (resolvedCurrentParent === targetFolderId) {
+      return true;
+    }
+
     await this.drive.files.update({
       fileId,
       addParents: targetFolderId,
-      removeParents: removeParents || undefined,
+      removeParents: resolvedCurrentParent,
       fields: 'id, parents',
       supportsAllDrives: true,
       enforceSingleParent: true
