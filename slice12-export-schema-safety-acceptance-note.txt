@@ -1,0 +1,10 @@
+Slice 12 export-schema safety accepted at e24a243.
+
+Accepted because:
+- profile_origin is evidence_seed, not auto_onboarded
+- seeded profiles remain unclaimed, unverified, and ownerless
+- admin_unattributed rows carry explicit null affiliate fields
+- export contract enforces these guarantees row-by-row
+- test:contracts and lint passed
+
+No acceptance is implied for downstream MealScout import behavior beyond the exported Merlin payload contract.
