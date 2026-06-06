@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { beforeEach, test } from 'node:test';
@@ -473,4 +474,77 @@ test('affiliate screenshot folder processing max-files caps selected eligible sc
   assert.equal(report.affiliate_ledger_rows_written, 0);
   const recipients = listVerificationEmailRecords().map((row) => row.recipient_email).sort();
   assert.deepEqual(recipients, ['admin-one@example.com', 'admin-two@example.com']);
+});
+
+test('affiliate screenshot folder processing exports seeded profile handoff bundle when requested', async () => {
+  const exportPath = join(tmpdir(), `merlin-profile-seed-export-${Date.now()}.json`);
+  const report = await processAffiliateScreenshotFolders({
+    apply: true,
+    maxFiles: 3,
+    exportProfileSeedsPath: exportPath,
+    localFolders: [
+      {
+        folderId: 'admin-folder',
+        folderName: 'Screenshots',
+        folderPath: 'MealScout screenshot/Screenshots',
+        files: [
+          {
+            fileId: 'admin-export-1',
+            fileName: 'admin-export-1.jpg',
+            mimeType: 'image/jpeg',
+            extractedText:
+              'Export One Food Truck\nEmail: export-one@example.com\nPhone: 504-555-2222\nWebsite: www.export-one.example\nInstagram: @exportone\nMenu: Gumbo $8'
+          },
+          {
+            fileId: 'admin-export-2',
+            fileName: 'admin-export-2.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Export Two Food Truck\nPhone: 504-222-3333\nMenu: Tacos $4'
+          },
+          {
+            fileId: 'admin-export-blocked',
+            fileName: 'admin-export-blocked.jpg',
+            mimeType: 'image/jpeg',
+            extractedText: 'Random image without enough business identity'
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(report.screenshots_processed_count, 3);
+  assert.equal(report.mealscout_created_count, 2);
+  assert.equal(report.blocked_ambiguous_count, 1);
+  assert.equal(existsSync(exportPath), true);
+
+  const exported = JSON.parse(readFileSync(exportPath, 'utf8')) as Array<Record<string, unknown>>;
+  assert.equal(exported.length, 2);
+  const first = exported.find((row) => row.source_file_id === 'admin-export-1');
+  assert.ok(first);
+  assert.equal(first.export_schema_version, 'merlin_profile_seed_export_v1');
+  assert.equal(first.brand_lane, 'MEALSCOUT');
+  assert.equal(first.target_profile_type, 'food_truck');
+  assert.equal(first.profile_action, 'create');
+  assert.equal(first.profile_name, 'Export One Food Truck');
+  assert.equal(first.profile_email, 'export-one@example.com');
+  assert.equal(first.phone, '504-555-2222');
+  assert.equal(first.website, 'www.export-one.example');
+  assert.equal((first.socials as { instagram?: string }).instagram, '@exportone');
+  assert.equal(first.source_file_id, 'admin-export-1');
+  assert.equal(first.source_file_name, 'admin-export-1.jpg');
+  assert.equal(first.source_file_path, 'MealScout screenshot/Screenshots/admin-export-1.jpg');
+  assert.deepEqual(first.source_refs, ['admin-export-1']);
+  assert.equal(typeof first.extracted_fields, 'object');
+  assert.equal(first.seeded_from_evidence, true);
+  assert.equal(first.profile_origin, 'auto_onboarded');
+  assert.equal(first.onboarding_source, 'admin_seed');
+  assert.equal(first.claim_status, 'unclaimed');
+  assert.equal(first.email_verified, false);
+  assert.equal(first.insurance_verified, false);
+  assert.equal(first.owner_user_id, null);
+  assert.equal(first.attribution_method, 'admin_unattributed');
+  assert.equal(first.submission_flow, 'admin');
+  assert.equal('affiliate_attribution_email' in first, false);
+  assert.equal(first.verification_email_status, 'sent');
+  assert.equal(Array.isArray(first.safety_notes), true);
 });

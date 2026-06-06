@@ -56,12 +56,32 @@ export type MerlinProfileSeedResult = {
   brand_lane?: MerlinProfileSeedBrand;
   sourceFileId: string;
   sourceFileName: string;
+  sourceFilePath?: string;
+  source_refs?: string[];
   seed_status: MerlinSeedStatus;
   profile_action?: 'create' | 'update';
   target_profile_id?: string;
   target_profile_type?: 'food_truck' | 'contractor_business';
   profile_name?: string;
   profile_email?: string;
+  phone?: string;
+  website?: string;
+  socials?: {
+    facebook?: string;
+    instagram?: string;
+  };
+  extracted_fields?: Record<string, unknown>;
+  seeded_from_evidence?: true;
+  profile_origin?: 'auto_onboarded';
+  onboarding_source?: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  claim_status?: 'unclaimed';
+  email_verified?: false;
+  insurance_verified?: false;
+  owner_user_id?: null;
+  attribution_method?: 'folder_email_token' | 'admin_unattributed';
+  affiliate_attribution_email?: string;
+  submission_flow?: 'admin' | 'affiliate';
+  safety_notes?: string[];
   verification_email_status: 'sent' | 'failed' | 'not_available' | 'blocked';
   blockedReason?: string;
   mutationAllowed: boolean;
@@ -213,6 +233,22 @@ function resolveOnboardingSource(input: MerlinExistingScreenshotSeedInput): 'scr
   return 'screenshot_seed';
 }
 
+function resolveSubmissionFlow(input: MerlinExistingScreenshotSeedInput): 'admin' | 'affiliate' {
+  return input.sourceFileAttribution?.affiliate_attribution_email ? 'affiliate' : 'admin';
+}
+
+function safetyNotes(): string[] {
+  return [
+    'handoff export only; does not prove live MealScout persistence',
+    'email_verified remains false',
+    'insurance_verified remains false',
+    'claim_status remains unclaimed',
+    'owner_user_id remains null',
+    'no payout logic',
+    'no Drive cleanup/delete/archive/suppress'
+  ];
+}
+
 function upsertLedgerForSeed(input: {
   seedId: string;
   brand: MerlinProfileSeedBrand | 'UNKNOWN';
@@ -348,12 +384,39 @@ async function seedMealScout(input: MerlinExistingScreenshotSeedInput): Promise<
     brand_lane: 'MEALSCOUT',
     sourceFileId: input.fileId,
     sourceFileName: input.fileName,
+    sourceFilePath: input.drivePath,
+    source_refs: [input.fileId],
     seed_status: 'seeded',
     profile_action: existing ? 'update' : 'create',
     target_profile_id: profile.id,
     target_profile_type: 'food_truck',
     profile_name: profile.truckName,
     profile_email: profile.email,
+    phone: profile.phone,
+    website: profile.website,
+    socials: profile.socials,
+    extracted_fields: {
+      truckName: signals.truckName,
+      phone: signals.phone,
+      email: signals.email,
+      website: signals.website,
+      facebook: signals.facebook,
+      instagram: signals.instagram,
+      cityArea: signals.cityArea,
+      cuisine: signals.cuisine,
+      menuItems: signals.menuItems
+    },
+    seeded_from_evidence: true,
+    profile_origin: 'auto_onboarded',
+    onboarding_source: resolveOnboardingSource(input),
+    claim_status: 'unclaimed',
+    email_verified: false,
+    insurance_verified: false,
+    owner_user_id: null,
+    attribution_method: input.sourceFileAttribution?.affiliate_attribution_source,
+    affiliate_attribution_email: input.sourceFileAttribution?.affiliate_attribution_email,
+    submission_flow: resolveSubmissionFlow(input),
+    safety_notes: safetyNotes(),
     verification_email_status: verificationStatus,
     mutationAllowed: true
   };
@@ -428,12 +491,31 @@ async function seedTradeScout(input: MerlinExistingScreenshotSeedInput): Promise
     brand_lane: 'TRADESCOUT',
     sourceFileId: input.fileId,
     sourceFileName: input.fileName,
+    sourceFilePath: input.drivePath,
+    source_refs: [input.fileId],
     seed_status: 'seeded',
     profile_action: existing ? 'update' : 'create',
     target_profile_id: profile.id,
     target_profile_type: 'contractor_business',
     profile_name: profile.businessName,
     profile_email: profile.email,
+    phone: profile.phone,
+    extracted_fields: {
+      businessName,
+      phone,
+      email
+    },
+    seeded_from_evidence: true,
+    profile_origin: 'auto_onboarded',
+    onboarding_source: resolveOnboardingSource(input),
+    claim_status: 'unclaimed',
+    email_verified: false,
+    insurance_verified: false,
+    owner_user_id: null,
+    attribution_method: input.sourceFileAttribution?.affiliate_attribution_source,
+    affiliate_attribution_email: input.sourceFileAttribution?.affiliate_attribution_email,
+    submission_flow: resolveSubmissionFlow(input),
+    safety_notes: safetyNotes(),
     verification_email_status: verificationStatus,
     mutationAllowed: true
   };

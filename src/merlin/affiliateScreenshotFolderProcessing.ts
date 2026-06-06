@@ -40,6 +40,7 @@ export type AffiliateScreenshotFolderProcessingOptions = {
   apply: boolean;
   preflightOnly?: boolean;
   reportPath?: string;
+  exportProfileSeedsPath?: string;
   rootFolderId?: string;
   parentFolderId?: string;
   parentFolderPath?: string;
@@ -112,6 +113,38 @@ export type AffiliateScreenshotFolderProcessingReport = {
     screenshot_count: number;
   }>;
   processed_results: MerlinProfileSeedResult[];
+};
+
+export type MerlinProfileSeedExportObject = {
+  export_schema_version: 'merlin_profile_seed_export_v1';
+  brand_lane: string;
+  target_profile_type: string;
+  profile_action: string;
+  profile_name: string | null;
+  profile_email: string | null;
+  phone: string | null;
+  website: string | null;
+  socials: {
+    facebook: string | null;
+    instagram: string | null;
+  };
+  source_file_id: string;
+  source_file_name: string;
+  source_file_path: string | null;
+  source_refs: string[];
+  extracted_fields: Record<string, unknown>;
+  seeded_from_evidence: true;
+  profile_origin: 'auto_onboarded';
+  onboarding_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
+  claim_status: 'unclaimed';
+  email_verified: false;
+  insurance_verified: false;
+  owner_user_id: null;
+  attribution_method: string | null;
+  affiliate_attribution_email?: string;
+  submission_flow: 'admin' | 'affiliate';
+  verification_email_status: string;
+  safety_notes: string[];
 };
 
 export type AffiliateScreenshotFolderPreflightReport = {
@@ -633,6 +666,58 @@ function countResults(results: MerlinProfileSeedResult[], adminFlowSourceFileIds
   };
 }
 
+function nullable(value: string | undefined): string | null {
+  const safe = (value || '').trim();
+  return safe ? safe : null;
+}
+
+export function buildMerlinProfileSeedExportBundle(results: MerlinProfileSeedResult[]): MerlinProfileSeedExportObject[] {
+  return results
+    .filter((result) => result.seed_status === 'seeded' && Boolean(result.brand_lane) && Boolean(result.profile_action))
+    .map((result) => {
+      const row: MerlinProfileSeedExportObject = {
+        export_schema_version: 'merlin_profile_seed_export_v1',
+        brand_lane: result.brand_lane || '',
+        target_profile_type: result.target_profile_type || '',
+        profile_action: result.profile_action || '',
+        profile_name: nullable(result.profile_name),
+        profile_email: nullable(result.profile_email),
+        phone: nullable(result.phone),
+        website: nullable(result.website),
+        socials: {
+          facebook: nullable(result.socials?.facebook),
+          instagram: nullable(result.socials?.instagram)
+        },
+        source_file_id: result.sourceFileId,
+        source_file_name: result.sourceFileName,
+        source_file_path: nullable(result.sourceFilePath),
+        source_refs: result.source_refs || [result.sourceFileId],
+        extracted_fields: result.extracted_fields || {},
+        seeded_from_evidence: true,
+        profile_origin: 'auto_onboarded',
+        onboarding_source: result.onboarding_source || 'screenshot_seed',
+        claim_status: 'unclaimed',
+        email_verified: false,
+        insurance_verified: false,
+        owner_user_id: null,
+        attribution_method: nullable(result.attribution_method),
+        submission_flow: result.submission_flow || 'admin',
+        verification_email_status: result.verification_email_status,
+        safety_notes: result.safety_notes || [
+          'handoff export only; does not prove live MealScout persistence',
+          'email_verified remains false',
+          'insurance_verified remains false',
+          'claim_status remains unclaimed',
+          'owner_user_id remains null'
+        ]
+      };
+      if (result.affiliate_attribution_email && result.attribution_method === 'folder_email_token') {
+        row.affiliate_attribution_email = result.affiliate_attribution_email;
+      }
+      return row;
+    });
+}
+
 export async function processAffiliateScreenshotFolders(
   options: AffiliateScreenshotFolderProcessingOptions
 ): Promise<AffiliateScreenshotFolderProcessingReport> {
@@ -718,6 +803,13 @@ export async function processAffiliateScreenshotFolders(
   };
   if (options.reportPath) {
     writeFileSync(options.reportPath, renderAffiliateScreenshotFolderProcessingReport(report), 'utf8');
+  }
+  if (options.exportProfileSeedsPath) {
+    writeFileSync(
+      options.exportProfileSeedsPath,
+      `${JSON.stringify(buildMerlinProfileSeedExportBundle(results), null, 2)}\n`,
+      'utf8'
+    );
   }
   return report;
 }
@@ -846,6 +938,7 @@ function parseArgs(argv: string[]): AffiliateScreenshotFolderProcessingOptions &
     else if (arg === '--input') parsed.inputPath = argv[++index];
     else if (arg === '--report') parsed.reportPath = resolve(process.cwd(), argv[++index] || AFFILIATE_SCREENSHOT_FOLDER_REPORT_FILE);
     else if (arg === '--root-folder-id') parsed.rootFolderId = argv[++index];
+    else if (arg === '--export-profile-seeds') parsed.exportProfileSeedsPath = resolve(process.cwd(), argv[++index] || 'merlin-profile-seed-export.json');
     else if (arg === '--parent-folder-id') parsed.parentFolderId = argv[++index];
     else if (arg === '--parent-folder-path') parsed.parentFolderPath = argv[++index];
     else if (arg === '--max-depth') parsed.maxDepth = Number(argv[++index]);

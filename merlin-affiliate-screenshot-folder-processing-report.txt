@@ -1,0 +1,68 @@
+Merlin affiliate screenshot folder processing report
+
+generated_at: 2026-06-05T23:56:12.461Z
+mode: apply
+status: ok
+reason: 
+drive_scope_used: MealScout screenshot 
+requested_root_folder_id: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+effective_root_folder_id: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+effective_root_folder_name: MealScout screenshot 
+root_folder_has_affiliate_email_token: false
+scanned_root_id: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+scanned_root_name: MealScout screenshot 
+drive_scope_mode: dedicated_drive
+auth_mode: oauth
+discovery_mode: drive_folder_walk
+recursive_scan_enabled: true
+folders_scanned_count: 4
+folder_paths_scanned_count: 4
+folder_names_scanned_sample: MealScout screenshot , Screenshots, Repositories- DO NOT SHARE, Thehungerbrothers1@gmail.com Screenshots
+folders_with_at_symbol_count: 1
+valid_affiliate_folder_names: Thehungerbrothers1@gmail.com Screenshots
+files_parent_folder_ids_sample: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF, 17lDCv0iWiG7x03P44sWuRnAURpQs4O6Q, 1qQOpo6gkLgClZCIspzMGX62fp_vy0WYB
+files_parent_folder_names_sample: MealScout screenshot , Screenshots, Repositories- DO NOT SHARE
+max_files_requested: 5
+screenshots_eligible_count: 400
+screenshots_selected_count: 5
+screenshots_skipped_due_to_cap: 395
+affiliate_attributed_screenshots_count: 0
+admin_flow_screenshots_count: 400
+loose_unattributed_screenshots_count: 400
+affiliate_folders_found_count: 1
+screenshots_found_count: 400
+screenshots_processed_count: 5
+mealscout_created_count: 4
+mealscout_updated_count: 0
+tradescout_created_count: 0
+tradescout_updated_count: 0
+blocked_ambiguous_count: 0
+blocked_missing_identity_count: 1
+affiliate_ledger_rows_written: 0
+admin_flow_profiles_created_count: 4
+admin_flow_profiles_updated_count: 0
+verification_email_sent_count: 0
+verification_email_failed_count: 2
+verification_email_not_available_count: 2
+folders_without_valid_email_count: 2
+files_without_attribution_count: 400
+files_missing_parent_folder_metadata_count: 0
+
+safety_confirmations:
+- email_verified false
+- insurance_verified false
+- claim_status unclaimed
+- affiliate folder email not used as business email
+- no cleanup/delete/archive/suppress
+- no payout logic
+
+affiliate_folders:
+- Thehungerbrothers1@gmail.com Screenshots | thehungerbrothers1@gmail.com | screenshots=0
+
+processed_results:
+- 1B0dXVM2qslvPpND4LVztg84-N3GnbwoF | IMG_5982.PNG | MEALSCOUT | seeded | create |  | not_available | 
+- 1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1 | IMG_5981.PNG | MEALSCOUT | seeded | create | www.theflaminpepper@yahoo.com | failed | 
+- 1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm | IMG_5983.PNG | MEALSCOUT | blocked |  |  | blocked | missing_required_identity
+- 1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB | IMG_5980.PNG | MEALSCOUT | seeded | create |  | not_available | 
+- 1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ | IMG_5979.PNG | MEALSCOUT | seeded | create | Mannkettlecorn@gmail.com | failed | 
+
