@@ -25,6 +25,17 @@ type MoveManifestRow = {
   notes: string;
 };
 
+type ExecutionMode = 'execute' | 'diagnose';
+
+type DiagnosticClassification =
+  | 'parent_visible'
+  | 'parent_missing'
+  | 'file_not_found'
+  | 'permission_insufficient'
+  | 'destination_missing'
+  | 'destination_not_writable'
+  | 'unknown_drive_metadata_blocker';
+
 type AuditRow = {
   source_file_id: string;
   source_file_name: string;
@@ -37,12 +48,39 @@ type AuditRow = {
 };
 
 type ExecuteManifestOptions = {
+  mode?: ExecutionMode;
   manifestPath?: string;
   auditPath?: string;
+  diagnosticPath?: string;
   seedReportPath?: string;
   seedExportPath?: string;
   movedBy?: string;
   client?: DriveClient;
+};
+
+type DiagnosticRow = {
+  source_file_id: string;
+  source_file_name: string;
+  batch_id: string;
+  input_move_status: string;
+  classification: DiagnosticClassification;
+  source_metadata: {
+    file_id?: string;
+    name?: string;
+    mimeType?: string;
+    parents?: string[];
+    owners?: unknown;
+    permissions?: unknown;
+    capabilities?: unknown;
+  };
+  destination_check: {
+    destination_folder_name: string;
+    destination_folder_id?: string;
+    visible: boolean;
+    writable: boolean;
+  };
+  controlled_retry_state_applied: boolean;
+  notes: string;
 };
 
 function parseCsv(content: string): string[][] {
@@ -160,9 +198,6 @@ function assertManifestSafety(rows: MoveManifestRow[]): void {
     if (!row.source_file_id || !row.source_file_name || !row.destination_project || !row.destination_folder_name || !row.seed_action || !row.safety_gate || !row.confidence) {
       throw new Error(`Manifest row missing required values: ${row.source_file_id || row.source_file_name}`);
     }
-    if (row.move_status !== 'pending' && row.move_status !== 'failed') {
-      throw new Error(`Manifest row must be pending or failed: ${row.source_file_id} -> ${row.move_status}`);
-    }
     if (row.operation !== 'move_when_available') {
       throw new Error(`Unsupported operation for row ${row.source_file_id}: ${row.operation}`);
     }
@@ -175,6 +210,26 @@ function assertManifestSafety(rows: MoveManifestRow[]): void {
 
 function isMoveEligible(row: MoveManifestRow): boolean {
   return row.operation === 'move_when_available' && (row.move_status === 'pending' || row.move_status === 'failed');
+}
+
+function isDiagnoseEligible(row: MoveManifestRow): boolean {
+  return (
+    row.operation === 'move_when_available' &&
+    (row.move_status === 'pending' ||
+      row.move_status === 'failed' ||
+      row.move_status === 'blocked_missing_current_parent' ||
+      row.move_status === 'blocked_drive_permission_or_parent_semantics')
+  );
+}
+
+function isPermissionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /insufficient|permission|forbidden|403/i.test(message);
+}
+
+function isNotFoundError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /not found|404/i.test(message);
 }
 
 async function ensureDestinationFolderId(row: MoveManifestRow, cache: Map<string, string>, client: DriveClient): Promise<string> {
@@ -205,6 +260,30 @@ async function ensureDestinationFolderId(row: MoveManifestRow, cache: Map<string
     }
     const created = await client.createFolderIfMissing(part, currentParent);
     currentParent = created.id;
+  }
+
+  cache.set(cacheKey, currentParent);
+  return currentParent;
+}
+
+async function resolveDestinationFolderIdForDiagnose(
+  row: MoveManifestRow,
+  cache: Map<string, string>,
+  client: DriveClient
+): Promise<string | undefined> {
+  if (row.destination_folder_id?.trim()) return row.destination_folder_id.trim();
+  const cacheKey = `${row.source_folder_id}::${row.destination_folder_name}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  const parts = row.destination_folder_name.split('/').map((value) => value.trim()).filter(Boolean);
+  if (parts.length === 0) return undefined;
+
+  let currentParent = row.source_folder_id;
+  for (const part of parts) {
+    const existing = await client.findFolderByName(part, currentParent);
+    if (!existing) return undefined;
+    currentParent = existing.id;
   }
 
   cache.set(cacheKey, currentParent);
@@ -277,6 +356,175 @@ function writeAuditManifest(path: string, rows: AuditRow[]): void {
   writeFileSync(path, toCsv([header, ...body]), 'utf8');
 }
 
+function writeDiagnostic(path: string, payload: { mode: ExecutionMode; generated_at: string; rows: DiagnosticRow[] }): void {
+  writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+function readModeFromArgv(argv: string[]): ExecutionMode {
+  const modeEq = argv.find((arg) => arg.startsWith('--mode='));
+  if (modeEq) {
+    const value = modeEq.split('=')[1]?.trim().toLowerCase();
+    return value === 'diagnose' ? 'diagnose' : 'execute';
+  }
+  const modeIndex = argv.findIndex((arg) => arg === '--mode');
+  if (modeIndex >= 0) {
+    const value = (argv[modeIndex + 1] || '').trim().toLowerCase();
+    return value === 'diagnose' ? 'diagnose' : 'execute';
+  }
+  return 'execute';
+}
+
+async function runDiagnoseMode(
+  rows: MoveManifestRow[],
+  options: {
+    movedBy: string;
+    manifestPath: string;
+    diagnosticPath: string;
+    client: DriveClient;
+  }
+): Promise<{
+  moved_total: number;
+  failed_total: number;
+  batch001_seed_inputs: number;
+  batch001_seeded_results: number;
+  audit_manifest: string;
+  seed_report: string;
+  seed_export: string;
+}> {
+  const diagnostics: DiagnosticRow[] = [];
+  const destinationCache = new Map<string, string>();
+
+  for (const row of rows) {
+    if (!isDiagnoseEligible(row)) continue;
+
+    let classification: DiagnosticClassification = 'unknown_drive_metadata_blocker';
+    let sourceMetadata: DiagnosticRow['source_metadata'] = {};
+    let destinationVisible = false;
+    let destinationWritable = false;
+    let destinationFolderId = row.destination_folder_id?.trim() || undefined;
+    let controlledRetry = false;
+    let notes = row.notes;
+
+    try {
+      const source = await options.client.getFileMetadata(row.source_file_id);
+      sourceMetadata = {
+        file_id: source.drive_file_id,
+        name: source.file_name,
+        mimeType: source.mime_type,
+        parents: source.folder_id ? [source.folder_id] : []
+      };
+
+      if (!source.folder_id?.trim()) {
+        classification = 'parent_missing';
+      } else {
+        classification = 'parent_visible';
+      }
+
+      try {
+        destinationFolderId = await resolveDestinationFolderIdForDiagnose(row, destinationCache, options.client);
+        if (!destinationFolderId) {
+          classification = classification === 'parent_visible' ? 'destination_missing' : classification;
+        } else {
+          const destination = await options.client.getFileMetadata(destinationFolderId);
+          destinationVisible = true;
+          destinationWritable = true;
+
+          sourceMetadata.owners = destination.raw_metadata?.owners;
+          sourceMetadata.permissions = destination.raw_metadata?.permissions;
+          sourceMetadata.capabilities = destination.raw_metadata?.capabilities;
+
+          const canAddChildren = destination.raw_metadata?.capabilities && typeof (destination.raw_metadata.capabilities as { canAddChildren?: unknown }).canAddChildren === 'boolean'
+            ? Boolean((destination.raw_metadata.capabilities as { canAddChildren?: boolean }).canAddChildren)
+            : true;
+          destinationWritable = canAddChildren;
+
+          if (!destinationWritable) {
+            classification = 'destination_not_writable';
+          }
+        }
+      } catch (destinationError) {
+        if (isPermissionError(destinationError)) {
+          classification = 'permission_insufficient';
+        } else {
+          classification = 'unknown_drive_metadata_blocker';
+        }
+      }
+    } catch (sourceError) {
+      if (isNotFoundError(sourceError)) {
+        classification = 'file_not_found';
+      } else if (isPermissionError(sourceError)) {
+        classification = 'permission_insufficient';
+      } else {
+        classification = 'unknown_drive_metadata_blocker';
+      }
+      notes = `${notes} | diagnostic_error=${sourceError instanceof Error ? sourceError.message : String(sourceError)}`;
+    }
+
+    if (
+      (row.move_status === 'blocked_missing_current_parent' || row.move_status === 'blocked_drive_permission_or_parent_semantics') &&
+      classification === 'parent_visible' &&
+      destinationVisible &&
+      destinationWritable
+    ) {
+      row.move_status = 'failed';
+      controlledRetry = true;
+      row.notes = `${row.notes} | retry_state=failed_via_diagnose`;
+      notes = row.notes;
+    }
+
+    diagnostics.push({
+      source_file_id: row.source_file_id,
+      source_file_name: row.source_file_name,
+      batch_id: row.batch_id,
+      input_move_status: row.move_status,
+      classification,
+      source_metadata: sourceMetadata,
+      destination_check: {
+        destination_folder_name: row.destination_folder_name,
+        destination_folder_id: destinationFolderId,
+        visible: destinationVisible,
+        writable: destinationWritable
+      },
+      controlled_retry_state_applied: controlledRetry,
+      notes
+    });
+  }
+
+  writeMoveManifest(options.manifestPath, rows);
+  writeDiagnostic(options.diagnosticPath, {
+    mode: 'diagnose',
+    generated_at: new Date().toISOString(),
+    rows: diagnostics
+  });
+
+  process.stdout.write('[SEED GATE CLOSED] Diagnose mode never seeds and never moves files.\n');
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        mode: 'diagnose',
+        diagnostic_manifest: options.diagnosticPath,
+        processed_rows: diagnostics.length,
+        moved_total: 0,
+        failed_total: diagnostics.filter((row) => row.classification !== 'parent_visible').length,
+        batch001_seed_inputs: 0,
+        batch001_seeded_results: 0
+      },
+      null,
+      2
+    )}\n`
+  );
+
+  return {
+    moved_total: 0,
+    failed_total: diagnostics.filter((row) => row.classification !== 'parent_visible').length,
+    batch001_seed_inputs: 0,
+    batch001_seeded_results: 0,
+    audit_manifest: options.diagnosticPath,
+    seed_report: 'diagnose_mode_no_seed',
+    seed_export: 'diagnose_mode_no_seed'
+  };
+}
+
 export async function executeManifestMoves(options: ExecuteManifestOptions = {}): Promise<{
   moved_total: number;
   failed_total: number;
@@ -286,8 +534,10 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
   seed_report: string;
   seed_export: string;
 }> {
+  const mode = options.mode || 'execute';
   const manifestPath = options.manifestPath || resolve(process.cwd(), 'screenshots-bulk-move-execution-manifest.csv');
   const auditPath = options.auditPath || resolve(process.cwd(), 'screenshots-post-move-audit-manifest.csv');
+  const diagnosticPath = options.diagnosticPath || resolve(process.cwd(), 'screenshots-drive-parent-permission-diagnostic.json');
   const seedReportPath = options.seedReportPath || resolve(process.cwd(), 'screenshots-batch001-seed-report.json');
   const seedExportPath = options.seedExportPath || resolve(process.cwd(), 'screenshots-batch001-merlin-profile-seed-export.json');
   const movedBy = options.movedBy || process.env.USERNAME || process.env.USER || 'copilot-executor';
@@ -296,22 +546,26 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
   assertManifestSafety(rows);
 
   const client = options.client || getDriveClient();
+
+  if (mode === 'diagnose') {
+    return runDiagnoseMode(rows, { movedBy, manifestPath, diagnosticPath, client });
+  }
+
   const folderCache = new Map<string, string>();
   const auditRows: AuditRow[] = [];
 
   for (const row of rows) {
     const movedAt = new Date().toISOString();
     if (!isMoveEligible(row)) {
-      row.move_status = 'skipped_ineligible';
       auditRows.push({
         source_file_id: row.source_file_id,
         source_file_name: row.source_file_name,
         intended_destination_folder: row.destination_folder_name,
         final_folder_id: row.destination_folder_id || '',
-        move_status: 'skipped_ineligible',
+        move_status: row.move_status,
         moved_at: movedAt,
         moved_by_executor: movedBy,
-        notes: row.notes
+        notes: `${row.notes} | execute_skipped_ineligible`
       });
       continue;
     }
@@ -398,7 +652,7 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
 
   const summary = {
     moved_total: auditRows.filter((row) => row.move_status === 'moved').length,
-    failed_total: auditRows.filter((row) => row.move_status !== 'moved' && row.move_status !== 'skipped_ineligible').length,
+    failed_total: auditRows.filter((row) => row.move_status !== 'moved').length,
     batch001_seed_inputs: batch001Screenshots.length,
     batch001_seeded_results: seedResult.results.length,
     audit_manifest: auditPath,
@@ -416,7 +670,8 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
 
 async function main(): Promise<void> {
   loadEnvFromDotFile();
-  await executeManifestMoves();
+  const mode = readModeFromArgv(process.argv.slice(2));
+  await executeManifestMoves({ mode });
 }
 
 const invokedPath = resolve(process.argv[1] || '');

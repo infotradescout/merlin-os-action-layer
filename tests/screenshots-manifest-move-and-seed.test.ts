@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -76,7 +76,7 @@ test('uses explicit current parent in move call', async () => {
       }
     });
 
-    await executeManifestMoves({ manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
+    await executeManifestMoves({ mode: 'execute', manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
 
     assert.equal(capturedParent, 'old-parent-789');
     const audit = readFileSync(auditPath, 'utf8');
@@ -112,7 +112,7 @@ test('keeps seed gate closed when BATCH-001 move fails', async () => {
       return true;
     }) as typeof process.stdout.write;
 
-    await executeManifestMoves({ manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
+    await executeManifestMoves({ mode: 'execute', manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
 
     const audit = readFileSync(auditPath, 'utf8');
     assert.match(audit, /blocked_drive_permission_or_parent_semantics/);
@@ -144,11 +144,91 @@ test('marks blocked_missing_current_parent and avoids move call', async () => {
       }
     });
 
-    await executeManifestMoves({ manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
+    await executeManifestMoves({ mode: 'execute', manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
 
     const audit = readFileSync(auditPath, 'utf8');
     assert.equal(moveCalled, false);
     assert.match(audit, /blocked_missing_current_parent/);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('diagnose mode processes blocked_missing_current_parent rows without moving or seeding', async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'manifest-move-test-'));
+  try {
+    const manifestPath = join(tempDir, 'manifest.csv');
+    const diagnosticPath = join(tempDir, 'diagnostic.json');
+    const seedReportPath = join(tempDir, 'seed-report.json');
+    const seedExportPath = join(tempDir, 'seed-export.json');
+
+    writeManifest(manifestPath, [
+      'BATCH-001-MEALSCOUT-MERLIN-SEED,move_when_available,file-001,file-001.jpg,source-folder,Screenshots,Food Truck,food_truck,Merlin / MealScout,MealScout_Merlin_Evidence_Seeds,dest-folder,seed_to_merlin_evidence,merlin_export_contract_required,high,blocked_missing_current_parent,note'
+    ]);
+
+    let moveCalled = false;
+    const client = makeClient({
+      getFileMetadata: async (fileId: string) =>
+        makeDriveFileInfo({
+          drive_file_id: fileId,
+          file_name: fileId === 'dest-folder' ? 'MealScout_Merlin_Evidence_Seeds' : 'file-001.jpg',
+          folder_id: fileId === 'dest-folder' ? 'source-folder' : 'source-parent'
+        }),
+      moveFileToFolder: async () => {
+        moveCalled = true;
+        return true;
+      }
+    });
+
+    await executeManifestMoves({
+      mode: 'diagnose',
+      manifestPath,
+      diagnosticPath,
+      seedReportPath,
+      seedExportPath,
+      movedBy: 'test',
+      client
+    });
+
+    const diagnostic = readFileSync(diagnosticPath, 'utf8');
+    assert.equal(moveCalled, false);
+    assert.match(diagnostic, /"classification": "parent_visible"/);
+    assert.match(diagnostic, /"controlled_retry_state_applied": true/);
+    assert.equal(existsSync(seedReportPath), false);
+    assert.equal(existsSync(seedExportPath), false);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('execute mode does not move blocked rows', async () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'manifest-move-test-'));
+  try {
+    const manifestPath = join(tempDir, 'manifest.csv');
+    const auditPath = join(tempDir, 'audit.csv');
+    const seedReportPath = join(tempDir, 'seed-report.json');
+    const seedExportPath = join(tempDir, 'seed-export.json');
+
+    writeManifest(manifestPath, [
+      'BATCH-001-MEALSCOUT-MERLIN-SEED,move_when_available,file-001,file-001.jpg,source-folder,Screenshots,Food Truck,food_truck,Merlin / MealScout,MealScout_Merlin_Evidence_Seeds,dest-folder,seed_to_merlin_evidence,merlin_export_contract_required,high,blocked_missing_current_parent,note'
+    ]);
+
+    let moveCalled = false;
+    const client = makeClient({
+      getFileMetadata: async (fileId: string) => makeDriveFileInfo({ drive_file_id: fileId, folder_id: 'source-parent' }),
+      moveFileToFolder: async () => {
+        moveCalled = true;
+        return true;
+      }
+    });
+
+    await executeManifestMoves({ mode: 'execute', manifestPath, auditPath, seedReportPath, seedExportPath, movedBy: 'test', client });
+
+    const manifestAfter = readFileSync(manifestPath, 'utf8');
+    assert.equal(moveCalled, false);
+    assert.match(manifestAfter, /blocked_missing_current_parent/);
+    const seedReport = readFileSync(seedReportPath, 'utf8');
+    assert.match(seedReport, /"results": \[\]/);
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
