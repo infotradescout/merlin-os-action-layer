@@ -151,15 +151,18 @@ class GoogleDriveClient implements DriveClient {
   async moveFileToFolder(fileId: string, targetFolderId: string): Promise<boolean> {
     const file = await this.drive.files.get({
       fileId,
-      fields: 'parents,id'
+      fields: 'parents,id',
+      supportsAllDrives: true
     });
     const parentList = (file.data.parents ?? []).filter((parent: string | null | undefined): parent is string => parent !== undefined && parent !== null);
     const removeParents = parentList.filter((parent: string) => parent !== targetFolderId).join(',');
     await this.drive.files.update({
       fileId,
       addParents: targetFolderId,
-      removeParents,
-      fields: 'id, parents'
+      removeParents: removeParents || undefined,
+      fields: 'id, parents',
+      supportsAllDrives: true,
+      enforceSingleParent: true
     });
     return true;
   }
