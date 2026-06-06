@@ -480,7 +480,7 @@ test('affiliate screenshot folder processing exports seeded profile handoff bund
   const exportPath = join(tmpdir(), `merlin-profile-seed-export-${Date.now()}.json`);
   const report = await processAffiliateScreenshotFolders({
     apply: true,
-    maxFiles: 3,
+    maxFiles: 5,
     exportProfileSeedsPath: exportPath,
     localFolders: [
       {
@@ -506,19 +506,33 @@ test('affiliate screenshot folder processing exports seeded profile handoff bund
             fileName: 'admin-export-blocked.jpg',
             mimeType: 'image/jpeg',
             extractedText: 'Random image without enough business identity'
+          },
+          {
+            fileId: 'admin-export-invalid-extraction',
+            fileName: 'admin-export-invalid-extraction.jpg',
+            mimeType: 'image/jpeg',
+            extractedText:
+              'eee\nEmail: www.theflaminpepper@yahoo.com\nPhone: 228-372-4071\nWebsite: www.theflaminpepper@yahoo.com\nInstagram: @yahoo.com\nMenu: Loaded fries $8'
+          },
+          {
+            fileId: 'admin-export-review-needed',
+            fileName: 'admin-export-review-needed.jpg',
+            mimeType: 'image/jpeg',
+            extractedText:
+              'MANN Kettle Corn 2\nEmail: Mannkettlecorn@gmail.com\nPhone: 228-623-9469\nInstagram: @gmail.com\nCity: Moss Point, MS\nMenu: Kettle corn bag $6'
           }
         ]
       }
     ]
   });
 
-  assert.equal(report.screenshots_processed_count, 3);
-  assert.equal(report.mealscout_created_count, 2);
+  assert.equal(report.screenshots_processed_count, 5);
+  assert.equal(report.mealscout_created_count, 4);
   assert.equal(report.blocked_ambiguous_count, 1);
   assert.equal(existsSync(exportPath), true);
 
   const exported = JSON.parse(readFileSync(exportPath, 'utf8')) as Array<Record<string, unknown>>;
-  assert.equal(exported.length, 2);
+  assert.equal(exported.length, 4);
   const first = exported.find((row) => row.source_file_id === 'admin-export-1');
   assert.ok(first);
   assert.equal(first.export_schema_version, 'merlin_profile_seed_export_v1');
@@ -547,4 +561,29 @@ test('affiliate screenshot folder processing exports seeded profile handoff bund
   assert.equal('affiliate_attribution_email' in first, false);
   assert.equal(first.verification_email_status, 'sent');
   assert.equal(Array.isArray(first.safety_notes), true);
+  assert.equal(first.import_decision, 'importable');
+
+  const invalid = exported.find((row) => row.source_file_id === 'admin-export-invalid-extraction');
+  assert.ok(invalid);
+  assert.equal(invalid.import_decision, 'blocked');
+  assert.equal(invalid.blocked_reason, 'invalid_extraction_identity');
+  assert.equal(invalid.profile_name, 'eee');
+  assert.equal(invalid.website, null);
+  assert.equal((invalid.socials as { instagram?: string | null }).instagram, null);
+  assert.deepEqual(
+    invalid.normalized_fields,
+    ['website_dropped_email_like', 'instagram_dropped_email_domain_like']
+  );
+
+  const review = exported.find((row) => row.source_file_id === 'admin-export-review-needed');
+  assert.ok(review);
+  assert.equal(review.import_decision, 'review_required');
+  assert.equal(review.profile_name, 'MANN Kettle Corn');
+  assert.equal(review.profile_email, 'mannkettlecorn@gmail.com');
+  assert.equal((review.socials as { instagram?: string | null }).instagram, null);
+  assert.deepEqual(
+    review.normalized_fields,
+    ['profile_name', 'instagram_dropped_email_domain_like']
+  );
+  assert.deepEqual(review.review_reasons, ['profile_name_trailing_numeric_suffix']);
 });

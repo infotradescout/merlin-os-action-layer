@@ -32,6 +32,7 @@
     "attribution_method": "admin_unattributed",
     "submission_flow": "admin",
     "verification_email_status": "not_available",
+    "import_decision": "importable",
     "safety_notes": [
       "handoff export only; does not prove live MealScout persistence",
       "email_verified remains false",
@@ -50,10 +51,10 @@
     "profile_name": "eee",
     "profile_email": "www.theflaminpepper@yahoo.com",
     "phone": "228-372-4071",
-    "website": "www.theflaminpepper@yahoo.com",
+    "website": null,
     "socials": {
       "facebook": null,
-      "instagram": "@yahoo.com"
+      "instagram": null
     },
     "source_file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
     "source_file_name": "IMG_5981.PNG",
@@ -80,6 +81,16 @@
     "attribution_method": "admin_unattributed",
     "submission_flow": "admin",
     "verification_email_status": "failed",
+    "import_decision": "blocked",
+    "blocked_reason": "invalid_extraction_identity",
+    "review_reasons": [
+      "invalid_profile_name",
+      "invalid_email"
+    ],
+    "normalized_fields": [
+      "website_dropped_email_like",
+      "instagram_dropped_email_domain_like"
+    ],
     "safety_notes": [
       "handoff export only; does not prove live MealScout persistence",
       "email_verified remains false",
@@ -124,6 +135,7 @@
     "attribution_method": "admin_unattributed",
     "submission_flow": "admin",
     "verification_email_status": "not_available",
+    "import_decision": "importable",
     "safety_notes": [
       "handoff export only; does not prove live MealScout persistence",
       "email_verified remains false",
@@ -139,13 +151,13 @@
     "brand_lane": "MEALSCOUT",
     "target_profile_type": "food_truck",
     "profile_action": "create",
-    "profile_name": "MANN Kettle Corn 2",
-    "profile_email": "Mannkettlecorn@gmail.com",
+    "profile_name": "MANN Kettle Corn",
+    "profile_email": "mannkettlecorn@gmail.com",
     "phone": "228-623-9469",
     "website": null,
     "socials": {
       "facebook": null,
-      "instagram": "@gmail.com"
+      "instagram": null
     },
     "source_file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
     "source_file_name": "IMG_5979.PNG",
@@ -170,6 +182,14 @@
     "attribution_method": "admin_unattributed",
     "submission_flow": "admin",
     "verification_email_status": "failed",
+    "import_decision": "review_required",
+    "review_reasons": [
+      "profile_name_trailing_numeric_suffix"
+    ],
+    "normalized_fields": [
+      "profile_name",
+      "instagram_dropped_email_domain_like"
+    ],
     "safety_notes": [
       "handoff export only; does not prove live MealScout persistence",
       "email_verified remains false",

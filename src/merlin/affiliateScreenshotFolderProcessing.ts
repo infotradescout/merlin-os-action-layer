@@ -145,6 +145,10 @@ export type MerlinProfileSeedExportObject = {
   submission_flow: 'admin' | 'affiliate';
   verification_email_status: string;
   safety_notes: string[];
+  import_decision?: 'importable' | 'review_required' | 'blocked';
+  blocked_reason?: 'invalid_extraction_identity' | 'invalid_export_constraints';
+  review_reasons?: string[];
+  normalized_fields?: string[];
 };
 
 export type AffiliateScreenshotFolderPreflightReport = {
@@ -671,6 +675,125 @@ function nullable(value: string | undefined): string | null {
   return safe ? safe : null;
 }
 
+function looksLikeEmail(value: string | null): boolean {
+  if (!value) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(value.trim());
+}
+
+function looksLikeInvalidSocialEmailDomain(value: string | null): boolean {
+  if (!value) return false;
+  const trimmed = value.trim().toLowerCase();
+  return /^@[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmed) && !trimmed.includes('/');
+}
+
+function normalizePhone(value: string | null): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D+/g, '');
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return value.trim() || null;
+}
+
+function normalizeEmail(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+  return trimmed;
+}
+
+function hasUsefulIdentity(value: string | null): boolean {
+  return Boolean(value && value.trim().length > 0);
+}
+
+function hasLikelyJunkName(value: string | null): boolean {
+  if (!value) return true;
+  const trimmed = value.trim();
+  if (trimmed.length < 4) return true;
+  if (/^([a-zA-Z])\1{2,}$/.test(trimmed)) return true;
+  return false;
+}
+
+function normalizeProfileName(value: string | null): { value: string | null; changed: boolean; reviewNeeded: boolean } {
+  if (!value) return { value: null, changed: false, reviewNeeded: false };
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  const collapsed = trimmed.replace(/\s+\d+$/, '');
+  const changed = collapsed !== value;
+  const reviewNeeded = /\s+\d+$/.test(trimmed);
+  return { value: collapsed, changed, reviewNeeded };
+}
+
+function applyExportSafetyGate(row: MerlinProfileSeedExportObject): MerlinProfileSeedExportObject {
+  const normalizedFields: string[] = [];
+  const reviewReasons: string[] = [];
+  const blockedReasons: string[] = [];
+
+  row.profile_name = row.profile_name?.trim() || null;
+  row.profile_email = normalizeEmail(row.profile_email);
+  row.phone = normalizePhone(row.phone);
+  row.website = row.website?.trim() || null;
+  row.socials.facebook = row.socials.facebook?.trim() || null;
+  row.socials.instagram = row.socials.instagram?.trim() || null;
+
+  const normalizedName = normalizeProfileName(row.profile_name);
+  if (normalizedName.changed) {
+    row.profile_name = normalizedName.value;
+    normalizedFields.push('profile_name');
+  }
+  if (normalizedName.reviewNeeded) {
+    reviewReasons.push('profile_name_trailing_numeric_suffix');
+  }
+
+  if (row.website && looksLikeEmail(row.website)) {
+    row.website = null;
+    normalizedFields.push('website_dropped_email_like');
+  }
+
+  if (row.socials.instagram && looksLikeInvalidSocialEmailDomain(row.socials.instagram)) {
+    row.socials.instagram = null;
+    normalizedFields.push('instagram_dropped_email_domain_like');
+  }
+
+  if (!row.profile_name || hasLikelyJunkName(row.profile_name)) {
+    blockedReasons.push('invalid_profile_name');
+  }
+
+  if (row.profile_email && !looksLikeEmail(row.profile_email)) {
+    blockedReasons.push('invalid_email');
+  }
+
+  const hasAnyIdentity =
+    hasUsefulIdentity(row.phone) ||
+    hasUsefulIdentity(row.profile_email) ||
+    hasUsefulIdentity(row.website) ||
+    hasUsefulIdentity(row.socials.facebook) ||
+    hasUsefulIdentity(row.socials.instagram);
+  if (!hasAnyIdentity) {
+    blockedReasons.push('missing_identity_signals');
+  }
+
+  if (row.brand_lane !== 'MEALSCOUT' || row.target_profile_type !== 'food_truck') {
+    blockedReasons.push('target_mismatch');
+  }
+
+  if (blockedReasons.length > 0) {
+    row.import_decision = 'blocked';
+    row.blocked_reason = 'invalid_extraction_identity';
+    row.review_reasons = blockedReasons;
+  } else if (reviewReasons.length > 0) {
+    row.import_decision = 'review_required';
+    row.review_reasons = reviewReasons;
+  } else {
+    row.import_decision = 'importable';
+  }
+
+  if (normalizedFields.length > 0) {
+    row.normalized_fields = normalizedFields;
+  }
+
+  return row;
+}
+
 export function buildMerlinProfileSeedExportBundle(results: MerlinProfileSeedResult[]): MerlinProfileSeedExportObject[] {
   return results
     .filter((result) => result.seed_status === 'seeded' && Boolean(result.brand_lane) && Boolean(result.profile_action))
@@ -714,7 +837,7 @@ export function buildMerlinProfileSeedExportBundle(results: MerlinProfileSeedRes
       if (result.affiliate_attribution_email && result.attribution_method === 'folder_email_token') {
         row.affiliate_attribution_email = result.affiliate_attribution_email;
       }
-      return row;
+      return applyExportSafetyGate(row);
     });
 }
 
