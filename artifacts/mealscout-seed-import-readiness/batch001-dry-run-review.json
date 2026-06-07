@@ -1,9 +1,13 @@
 {
   "batchId": "BATCH-001-MEALSCOUT-MERLIN-SEED",
-  "generatedAt": "2026-06-07T02:57:09.824Z",
+  "generatedAt": "2026-06-07T16:52:21.217Z",
   "status": "ok",
   "mode": "dry_run",
   "mutationAllowed": false,
+  "seedExportChecksum": {
+    "algorithm": "sha256",
+    "value": "b69bbc0dc150dc33667bb05eb5f8349dc3961f023919d20c62ac9a261067d2b3"
+  },
   "eligibleRowCount": 2,
   "blockedRowCount": 0,
   "plannedImports": [

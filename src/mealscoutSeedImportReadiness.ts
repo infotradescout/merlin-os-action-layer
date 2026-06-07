@@ -1,4 +1,5 @@
 import type { MealScoutExistingProfile } from './mealscoutProfileImport.js';
+import { createHash } from 'node:crypto';
 
 export type MealScoutSeedExportRow = {
   export_schema_version?: string;
@@ -96,12 +97,18 @@ export type MealScoutSeedImportReadinessPlan = {
   safetyRules: string[];
 };
 
+export type MealScoutSeedExportChecksum = {
+  algorithm: 'sha256';
+  value: string;
+};
+
 export type MealScoutSeedImportDryRunReviewArtifact = {
   batchId: 'BATCH-001-MEALSCOUT-MERLIN-SEED';
   generatedAt: string;
   status: 'ok';
   mode: 'dry_run';
   mutationAllowed: false;
+  seedExportChecksum: MealScoutSeedExportChecksum;
   eligibleRowCount: number;
   blockedRowCount: number;
   plannedImports: Array<{
@@ -127,6 +134,29 @@ export type MealScoutSeedImportDryRunReviewArtifact = {
     review_artifact_only: true;
     mutationAllowed: false;
   };
+  safetyRules: string[];
+};
+
+export type MealScoutSeedApplyAuthorizationBlockedReason =
+  | 'allow_live_apply_required'
+  | 'dry_run_review_artifact_required'
+  | 'dry_run_review_artifact_batch_mismatch'
+  | 'dry_run_review_artifact_not_dry_run'
+  | 'dry_run_review_artifact_checksum_missing'
+  | 'seed_export_checksum_mismatch'
+  | 'post_apply_report_path_required'
+  | 'readiness_plan_has_blocked_rows';
+
+export type MealScoutSeedApplyAuthorizationPlan = {
+  status: 'authorized' | 'blocked';
+  mode: 'dry_run' | 'live_apply_authorized';
+  mutationAllowed: boolean;
+  blockedReasons: MealScoutSeedApplyAuthorizationBlockedReason[];
+  seedExportChecksum: MealScoutSeedExportChecksum;
+  dryRunArtifactChecksum?: MealScoutSeedExportChecksum;
+  postApplyReportPath?: string;
+  readinessPlan: MealScoutSeedImportReadinessPlan;
+  applyPlan: MealScoutSeedImportPlanRow[];
   safetyRules: string[];
 };
 
@@ -225,6 +255,13 @@ function validateExportRow(row: MealScoutSeedExportRow, copiedRows: Map<string, 
   return undefined;
 }
 
+export function computeMealScoutSeedExportChecksum(seedExportContent: string): MealScoutSeedExportChecksum {
+  return {
+    algorithm: 'sha256',
+    value: createHash('sha256').update(seedExportContent, 'utf8').digest('hex')
+  };
+}
+
 export function planMealScoutSeedImportReadiness(input: {
   seedExportRows: MealScoutSeedExportRow[];
   copyAuditRows: MealScoutSeedCopyAuditRow[];
@@ -297,7 +334,8 @@ export function planMealScoutSeedImportReadiness(input: {
 
 export function buildMealScoutSeedImportDryRunReviewArtifact(
   plan: MealScoutSeedImportReadinessPlan,
-  generatedAt: string = new Date().toISOString()
+  generatedAt: string = new Date().toISOString(),
+  seedExportChecksum: MealScoutSeedExportChecksum = computeMealScoutSeedExportChecksum(JSON.stringify(plan.plannedImports))
 ): MealScoutSeedImportDryRunReviewArtifact {
   return {
     batchId: SEED_BATCH_ID,
@@ -305,6 +343,7 @@ export function buildMealScoutSeedImportDryRunReviewArtifact(
     status: plan.status,
     mode: 'dry_run',
     mutationAllowed: false,
+    seedExportChecksum,
     eligibleRowCount: plan.eligibleRowCount,
     blockedRowCount: plan.blockedRowCount,
     plannedImports: plan.plannedImports.map((row) => ({
@@ -336,6 +375,66 @@ export function buildMealScoutSeedImportDryRunReviewArtifact(
   };
 }
 
+export function authorizeMealScoutSeedApply(input: {
+  seedExportRows: MealScoutSeedExportRow[];
+  copyAuditRows: MealScoutSeedCopyAuditRow[];
+  seedExportChecksum: MealScoutSeedExportChecksum;
+  dryRunReviewArtifact?: MealScoutSeedImportDryRunReviewArtifact;
+  existingProfiles?: MealScoutExistingProfile[];
+  allowLiveApply?: boolean;
+  postApplyReportPath?: string;
+}): MealScoutSeedApplyAuthorizationPlan {
+  const readinessPlan = planMealScoutSeedImportReadiness({
+    seedExportRows: input.seedExportRows,
+    copyAuditRows: input.copyAuditRows,
+    existingProfiles: input.existingProfiles
+  });
+  const blockedReasons: MealScoutSeedApplyAuthorizationBlockedReason[] = [];
+  const artifact = input.dryRunReviewArtifact;
+
+  if (input.allowLiveApply !== true) blockedReasons.push('allow_live_apply_required');
+  if (!artifact) {
+    blockedReasons.push('dry_run_review_artifact_required');
+  } else {
+    if (artifact.batchId !== SEED_BATCH_ID) blockedReasons.push('dry_run_review_artifact_batch_mismatch');
+    if (artifact.mode !== 'dry_run' || artifact.mutationAllowed !== false) blockedReasons.push('dry_run_review_artifact_not_dry_run');
+    if (!artifact.seedExportChecksum?.value) blockedReasons.push('dry_run_review_artifact_checksum_missing');
+    else if (
+      artifact.seedExportChecksum.algorithm !== input.seedExportChecksum.algorithm ||
+      artifact.seedExportChecksum.value !== input.seedExportChecksum.value
+    ) {
+      blockedReasons.push('seed_export_checksum_mismatch');
+    }
+  }
+  if (!cleanString(input.postApplyReportPath)) blockedReasons.push('post_apply_report_path_required');
+  if (readinessPlan.blockedRowCount > 0) blockedReasons.push('readiness_plan_has_blocked_rows');
+
+  const authorized = blockedReasons.length === 0;
+  return {
+    status: authorized ? 'authorized' : 'blocked',
+    mode: authorized ? 'live_apply_authorized' : 'dry_run',
+    mutationAllowed: authorized,
+    blockedReasons,
+    seedExportChecksum: input.seedExportChecksum,
+    dryRunArtifactChecksum: artifact?.seedExportChecksum,
+    postApplyReportPath: cleanString(input.postApplyReportPath),
+    readinessPlan,
+    applyPlan: authorized ? readinessPlan.plannedImports : [],
+    safetyRules: [
+      'default behavior is dry-run only',
+      'live apply requires allowLiveApply=true',
+      'live apply requires an existing dry-run review artifact',
+      'seed export checksum must match the dry-run artifact checksum',
+      'only BATCH-001-MEALSCOUT-MERLIN-SEED rows are eligible',
+      'copied evidence file id remains the import evidence identity',
+      'original source file id remains audit-only provenance',
+      'blank and null export values cannot overwrite populated profile fields',
+      'post-apply report path is required before apply success',
+      'no live mutation is executed by the authorization planner'
+    ]
+  };
+}
+
 function formatFieldWrites(writes: MealScoutSeedImportFieldWrites): string {
   const entries = Object.entries(writes);
   if (entries.length === 0) return '- none';
@@ -358,6 +457,7 @@ export function renderMealScoutSeedImportDryRunReviewMarkdown(
     `- Batch ID: ${artifact.batchId}`,
     `- Run mode: ${artifact.mode}`,
     `- Mutation allowed: ${artifact.mutationAllowed}`,
+    `- Seed export checksum: ${artifact.seedExportChecksum.algorithm}:${artifact.seedExportChecksum.value}`,
     `- Eligible row count: ${artifact.eligibleRowCount}`,
     `- Blocked row count: ${artifact.blockedRowCount}`,
     `- No live apply path ran: ${artifact.safetyStatus.no_live_apply_path_ran}`,

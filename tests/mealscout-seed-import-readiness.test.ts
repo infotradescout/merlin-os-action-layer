@@ -6,7 +6,9 @@ import { test } from 'node:test';
 import { tmpdir } from 'node:os';
 
 import {
+  authorizeMealScoutSeedApply,
   buildMealScoutSeedImportDryRunReviewArtifact,
+  computeMealScoutSeedExportChecksum,
   planMealScoutSeedImportReadiness,
   renderMealScoutSeedImportDryRunReviewMarkdown,
   type MealScoutSeedCopyAuditRow,
@@ -28,6 +30,10 @@ function parseCsv(content: string): MealScoutSeedCopyAuditRow[] {
 
 function readGeneratedExport(): MealScoutSeedExportRow[] {
   return JSON.parse(readFileSync('screenshots-batch001-merlin-profile-seed-export.json', 'utf8')) as MealScoutSeedExportRow[];
+}
+
+function readGeneratedExportContent(): string {
+  return readFileSync('screenshots-batch001-merlin-profile-seed-export.json', 'utf8');
 }
 
 function readGeneratedCopyAudit(): MealScoutSeedCopyAuditRow[] {
@@ -196,10 +202,13 @@ test('MealScout seed import readiness writes stable dry-run review artifacts', (
     assert.equal(artifact.batchId, 'BATCH-001-MEALSCOUT-MERLIN-SEED');
     assert.equal(artifact.mode, 'dry_run');
     assert.equal(artifact.mutationAllowed, false);
+    assert.equal(summary.seedExportChecksum.value, artifact.seedExportChecksum.value);
+    assert.equal(artifact.seedExportChecksum.value, computeMealScoutSeedExportChecksum(readGeneratedExportContent()).value);
     assert.equal(artifact.plannedImports.length, 2);
     assert.equal(artifact.safetyStatus.no_live_apply_path_ran, true);
     assert.equal(markdown.includes('# MealScout Seed Dry-Run Review'), true);
     assert.equal(markdown.includes('Mutation allowed: false'), true);
+    assert.equal(markdown.includes('Seed export checksum: sha256:'), true);
     assert.equal(markdown.includes('No live import or apply path was executed.'), true);
   } finally {
     rmSync(artifactDir, { recursive: true, force: true });
@@ -278,4 +287,137 @@ test('MealScout seed import dry-run artifact reports omitted blanks without addi
   assert.equal(markdown.includes('email: blank_or_null'), true);
   assert.equal(markdown.includes('Copied evidence file ID: copied-evidence-1'), true);
   assert.equal(markdown.includes('Original source file ID: original-source-1'), true);
+});
+
+test('MealScout seed apply authorization defaults to dry-run and cannot mutate', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-post-apply-report.json'
+  });
+
+  assert.equal(authorization.status, 'blocked');
+  assert.equal(authorization.mode, 'dry_run');
+  assert.equal(authorization.mutationAllowed, false);
+  assert.deepEqual(authorization.blockedReasons, ['allow_live_apply_required']);
+  assert.equal(authorization.applyPlan.length, 0);
+});
+
+test('MealScout seed apply authorization requires allowLiveApply=true', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    allowLiveApply: false,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-post-apply-report.json'
+  });
+
+  assert.equal(authorization.status, 'blocked');
+  assert.equal(authorization.blockedReasons.includes('allow_live_apply_required'), true);
+  assert.equal(authorization.mutationAllowed, false);
+});
+
+test('MealScout seed apply authorization blocks missing review artifact', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows: JSON.parse(seedExportContent) as MealScoutSeedExportRow[],
+    copyAuditRows: readGeneratedCopyAudit(),
+    seedExportChecksum: computeMealScoutSeedExportChecksum(seedExportContent),
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-post-apply-report.json'
+  });
+
+  assert.equal(authorization.status, 'blocked');
+  assert.equal(authorization.blockedReasons.includes('dry_run_review_artifact_required'), true);
+  assert.equal(authorization.mutationAllowed, false);
+});
+
+test('MealScout seed apply authorization blocks stale or mismatched review artifacts', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const staleArtifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', {
+    algorithm: 'sha256',
+    value: '0'.repeat(64)
+  });
+
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: staleArtifact,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-post-apply-report.json'
+  });
+
+  assert.equal(authorization.status, 'blocked');
+  assert.equal(authorization.blockedReasons.includes('seed_export_checksum_mismatch'), true);
+  assert.equal(authorization.mutationAllowed, false);
+});
+
+test('MealScout seed apply authorization reaches apply planning only with matching artifact and allow flag', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-post-apply-report.json'
+  });
+
+  assert.equal(authorization.status, 'authorized');
+  assert.equal(authorization.mode, 'live_apply_authorized');
+  assert.equal(authorization.mutationAllowed, true);
+  assert.deepEqual(authorization.blockedReasons, []);
+  assert.equal(authorization.applyPlan.length, 2);
+  assert.equal(authorization.applyPlan.every((row) => row.provenance.source_batch_id === 'BATCH-001-MEALSCOUT-MERLIN-SEED'), true);
+  assert.equal(authorization.applyPlan.every((row) => row.evidence_file_id === row.provenance.copied_evidence_file_id), true);
+});
+
+test('MealScout seed apply authorization requires post-apply report path before success', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    allowLiveApply: true
+  });
+
+  assert.equal(authorization.status, 'blocked');
+  assert.equal(authorization.blockedReasons.includes('post_apply_report_path_required'), true);
+  assert.equal(authorization.mutationAllowed, false);
+  assert.equal(authorization.applyPlan.length, 0);
 });

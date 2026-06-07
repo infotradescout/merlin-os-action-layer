@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   buildMealScoutSeedImportDryRunReviewArtifact,
+  computeMealScoutSeedExportChecksum,
   planMealScoutSeedImportReadiness,
   renderMealScoutSeedImportDryRunReviewMarkdown,
   type MealScoutSeedCopyAuditRow,
@@ -41,13 +42,15 @@ function parseCsv(content: string): MealScoutSeedCopyAuditRow[] {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const seedExportRows = JSON.parse(readFileSync(args.seedExportPath, 'utf8')) as MealScoutSeedExportRow[];
+const seedExportContent = readFileSync(args.seedExportPath, 'utf8');
+const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
 const copyAuditRows = parseCsv(readFileSync(args.copyAuditPath, 'utf8'));
+const seedExportChecksum = computeMealScoutSeedExportChecksum(seedExportContent);
 const plan = planMealScoutSeedImportReadiness({
   seedExportRows,
   copyAuditRows
 });
-const artifact = buildMealScoutSeedImportDryRunReviewArtifact(plan);
+const artifact = buildMealScoutSeedImportDryRunReviewArtifact(plan, new Date().toISOString(), seedExportChecksum);
 const markdown = renderMealScoutSeedImportDryRunReviewMarkdown(artifact);
 const jsonArtifactPath = resolve(args.artifactDir, 'batch001-dry-run-review.json');
 const markdownArtifactPath = resolve(args.artifactDir, 'batch001-dry-run-review.md');
@@ -60,6 +63,7 @@ console.log(JSON.stringify({
   status: plan.status,
   mode: plan.mode,
   mutationAllowed: plan.mutationAllowed,
+  seedExportChecksum,
   eligibleRowCount: plan.eligibleRowCount,
   blockedRowCount: plan.blockedRowCount,
   artifacts: {

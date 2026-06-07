@@ -5,6 +5,7 @@
 - Batch ID: BATCH-001-MEALSCOUT-MERLIN-SEED
 - Run mode: dry_run
 - Mutation allowed: false
+- Seed export checksum: sha256:b69bbc0dc150dc33667bb05eb5f8349dc3961f023919d20c62ac9a261067d2b3
 - Eligible row count: 2
 - Blocked row count: 0
 - No live apply path ran: true
