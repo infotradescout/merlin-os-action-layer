@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
+import { tmpdir } from 'node:os';
 
 import {
+  buildMealScoutSeedImportDryRunReviewArtifact,
   planMealScoutSeedImportReadiness,
+  renderMealScoutSeedImportDryRunReviewMarkdown,
   type MealScoutSeedCopyAuditRow,
   type MealScoutSeedExportRow
 } from '../src/mealscoutSeedImportReadiness.ts';
@@ -159,4 +164,118 @@ test('MealScout seed import readiness requires an explicit allow flag before mut
   assert.equal(dryRun.mutationAllowed, false);
   assert.equal(allowed.mode, 'live_apply_allowed');
   assert.equal(allowed.mutationAllowed, true);
+});
+
+test('MealScout seed import readiness writes stable dry-run review artifacts', () => {
+  const artifactDir = mkdtempSync(join(tmpdir(), 'mealscout-seed-review-'));
+  try {
+    const output = execFileSync(
+      process.execPath,
+      ['node_modules/tsx/dist/cli.mjs', 'scripts/mealscout-seed-import-readiness.ts', '--artifact-dir', artifactDir],
+      { encoding: 'utf8' }
+    );
+    const summary = JSON.parse(output) as {
+      mutationAllowed: boolean;
+      eligibleRowCount: number;
+      blockedRowCount: number;
+      artifacts: { json: string; markdown: string };
+    };
+    const jsonPath = join(artifactDir, 'batch001-dry-run-review.json');
+    const markdownPath = join(artifactDir, 'batch001-dry-run-review.md');
+
+    assert.equal(summary.mutationAllowed, false);
+    assert.equal(summary.eligibleRowCount, 2);
+    assert.equal(summary.blockedRowCount, 0);
+    assert.equal(summary.artifacts.json, jsonPath);
+    assert.equal(summary.artifacts.markdown, markdownPath);
+    assert.equal(existsSync(jsonPath), true);
+    assert.equal(existsSync(markdownPath), true);
+
+    const artifact = JSON.parse(readFileSync(jsonPath, 'utf8')) as ReturnType<typeof buildMealScoutSeedImportDryRunReviewArtifact>;
+    const markdown = readFileSync(markdownPath, 'utf8');
+    assert.equal(artifact.batchId, 'BATCH-001-MEALSCOUT-MERLIN-SEED');
+    assert.equal(artifact.mode, 'dry_run');
+    assert.equal(artifact.mutationAllowed, false);
+    assert.equal(artifact.plannedImports.length, 2);
+    assert.equal(artifact.safetyStatus.no_live_apply_path_ran, true);
+    assert.equal(markdown.includes('# MealScout Seed Dry-Run Review'), true);
+    assert.equal(markdown.includes('Mutation allowed: false'), true);
+    assert.equal(markdown.includes('No live import or apply path was executed.'), true);
+  } finally {
+    rmSync(artifactDir, { recursive: true, force: true });
+  }
+});
+
+test('MealScout seed import dry-run artifact reports omitted blanks without adding them to writes', () => {
+  const plan = planMealScoutSeedImportReadiness({
+    seedExportRows: [
+      {
+        export_schema_version: 'merlin_profile_seed_export_v1',
+        brand_lane: 'MEALSCOUT',
+        target_profile_type: 'food_truck',
+        profile_name: 'Existing Taco Truck',
+        profile_email: null,
+        phone: '504-111-2222',
+        website: null,
+        socials: { facebook: null, instagram: '' },
+        source_file_id: 'copied-evidence-1',
+        source_file_name: 'copied.png',
+        source_refs: ['copied-evidence-1'],
+        extracted_fields: {
+          truckName: 'Existing Taco Truck',
+          phone: '504-111-2222',
+          cityArea: ''
+        },
+        seeded_from_evidence: true,
+        profile_origin: 'evidence_seed',
+        onboarding_source: 'admin_seed',
+        claim_status: 'unclaimed',
+        email_verified: false,
+        insurance_verified: false,
+        owner_user_id: null,
+        import_decision: 'importable'
+      }
+    ],
+    copyAuditRows: [
+      {
+        batch_id: 'BATCH-001-MEALSCOUT-MERLIN-SEED',
+        source_file_id: 'original-source-1',
+        source_file_name: 'original.png',
+        copied_file_id: 'copied-evidence-1',
+        seed_action: 'seed_to_merlin_evidence',
+        safety_gate: 'merlin_export_contract_required',
+        copy_status: 'copied'
+      }
+    ],
+    existingProfiles: [
+      {
+        id: 'existing-profile-1',
+        truckName: 'Existing Taco Truck',
+        phone: '5041112222'
+      }
+    ]
+  });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(plan, '2026-06-07T00:00:00.000Z');
+  const markdown = renderMealScoutSeedImportDryRunReviewMarkdown(artifact);
+  const row = artifact.plannedImports[0];
+
+  assert.equal(artifact.mutationAllowed, false);
+  assert.equal(row.proposed_action, 'update');
+  assert.equal(row.matched_existing_profile?.id, 'existing-profile-1');
+  assert.equal(row.matched_existing_profile?.name, 'Existing Taco Truck');
+  assert.equal(row.field_writes.truckName, 'Existing Taco Truck');
+  assert.equal(row.field_writes.phone, '504-111-2222');
+  assert.equal(Object.prototype.hasOwnProperty.call(row.field_writes, 'email'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(row.field_writes, 'website'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(row.field_writes, 'cityArea'), false);
+  assert.equal(row.omitted_fields.some((field) => field.field === 'email' && field.reason === 'blank_or_null'), true);
+  assert.equal(row.omitted_fields.some((field) => field.field === 'website' && field.reason === 'blank_or_null'), true);
+  assert.equal(row.omitted_fields.some((field) => field.field === 'cityArea' && field.reason === 'blank_or_null'), true);
+  assert.equal(row.evidence.copied_evidence_file_id, 'copied-evidence-1');
+  assert.equal(row.provenance.original_source_file_id, 'original-source-1');
+  assert.notEqual(row.evidence.copied_evidence_file_id, row.provenance.original_source_file_id);
+  assert.equal(markdown.includes('Matched existing profile: existing-profile-1 (Existing Taco Truck)'), true);
+  assert.equal(markdown.includes('email: blank_or_null'), true);
+  assert.equal(markdown.includes('Copied evidence file ID: copied-evidence-1'), true);
+  assert.equal(markdown.includes('Original source file ID: original-source-1'), true);
 });

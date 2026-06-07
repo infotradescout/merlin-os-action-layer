@@ -53,6 +53,11 @@ export type MealScoutSeedImportFieldWrites = Partial<{
   instagram: string;
 }>;
 
+export type MealScoutSeedImportOmittedField = {
+  field: keyof MealScoutSeedImportFieldWrites;
+  reason: 'blank_or_null';
+};
+
 export type MealScoutSeedImportPlanRow = {
   source_file_id: string;
   evidence_file_id: string;
@@ -60,8 +65,10 @@ export type MealScoutSeedImportPlanRow = {
   source_file_name?: string;
   planned_action: 'create' | 'update';
   existing_profile_id?: string;
+  existing_profile_name?: string;
   profile_name?: string;
   field_writes: MealScoutSeedImportFieldWrites;
+  omitted_fields: MealScoutSeedImportOmittedField[];
   source_refs: string[];
   provenance: {
     copied_evidence_file_id: string;
@@ -89,7 +96,42 @@ export type MealScoutSeedImportReadinessPlan = {
   safetyRules: string[];
 };
 
+export type MealScoutSeedImportDryRunReviewArtifact = {
+  batchId: 'BATCH-001-MEALSCOUT-MERLIN-SEED';
+  generatedAt: string;
+  status: 'ok';
+  mode: 'dry_run';
+  mutationAllowed: false;
+  eligibleRowCount: number;
+  blockedRowCount: number;
+  plannedImports: Array<{
+    source_file_name?: string;
+    proposed_action: 'create' | 'update';
+    matched_existing_profile?: {
+      id: string;
+      name?: string;
+    };
+    field_writes: MealScoutSeedImportFieldWrites;
+    omitted_fields: MealScoutSeedImportOmittedField[];
+    evidence: {
+      copied_evidence_file_id: string;
+    };
+    provenance: {
+      original_source_file_id?: string;
+      original_source_is_audit_only: true;
+    };
+  }>;
+  blockedRows: MealScoutSeedImportBlockedRow[];
+  safetyStatus: {
+    no_live_apply_path_ran: true;
+    review_artifact_only: true;
+    mutationAllowed: false;
+  };
+  safetyRules: string[];
+};
+
 const SEED_BATCH_ID = 'BATCH-001-MEALSCOUT-MERLIN-SEED';
+const IMPORT_FIELDS = ['truckName', 'phone', 'email', 'website', 'cityArea', 'facebook', 'instagram'] as const;
 
 function cleanString(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -143,6 +185,14 @@ function fieldWritesFromRow(row: MealScoutSeedExportRow): MealScoutSeedImportFie
   if (facebook) writes.facebook = facebook;
   if (instagram) writes.instagram = instagram;
   return writes;
+}
+
+function omittedFieldsFromRow(row: MealScoutSeedExportRow): MealScoutSeedImportOmittedField[] {
+  const writes = fieldWritesFromRow(row);
+  return IMPORT_FIELDS.filter((field) => writes[field] === undefined).map((field) => ({
+    field,
+    reason: 'blank_or_null'
+  }));
 }
 
 function findExistingProfile(
@@ -205,8 +255,10 @@ export function planMealScoutSeedImportReadiness(input: {
       source_file_name: row.source_file_name,
       planned_action: existing ? 'update' : 'create',
       existing_profile_id: existing?.id,
+      existing_profile_name: existing?.truckName,
       profile_name: writes.truckName,
       field_writes: writes,
+      omitted_fields: omittedFieldsFromRow(row),
       source_refs: Array.from(new Set(row.source_refs || [evidenceFileId])),
       provenance: {
         copied_evidence_file_id: evidenceFileId,
@@ -241,4 +293,120 @@ export function planMealScoutSeedImportReadiness(input: {
       'live apply requires allowLiveApply=true'
     ]
   };
+}
+
+export function buildMealScoutSeedImportDryRunReviewArtifact(
+  plan: MealScoutSeedImportReadinessPlan,
+  generatedAt: string = new Date().toISOString()
+): MealScoutSeedImportDryRunReviewArtifact {
+  return {
+    batchId: SEED_BATCH_ID,
+    generatedAt,
+    status: plan.status,
+    mode: 'dry_run',
+    mutationAllowed: false,
+    eligibleRowCount: plan.eligibleRowCount,
+    blockedRowCount: plan.blockedRowCount,
+    plannedImports: plan.plannedImports.map((row) => ({
+      source_file_name: row.source_file_name,
+      proposed_action: row.planned_action,
+      matched_existing_profile: row.existing_profile_id
+        ? {
+            id: row.existing_profile_id,
+            name: row.existing_profile_name
+          }
+        : undefined,
+      field_writes: row.field_writes,
+      omitted_fields: row.omitted_fields,
+      evidence: {
+        copied_evidence_file_id: row.evidence_file_id
+      },
+      provenance: {
+        original_source_file_id: row.original_source_file_id,
+        original_source_is_audit_only: true
+      }
+    })),
+    blockedRows: plan.blockedRows,
+    safetyStatus: {
+      no_live_apply_path_ran: true,
+      review_artifact_only: true,
+      mutationAllowed: false
+    },
+    safetyRules: plan.safetyRules
+  };
+}
+
+function formatFieldWrites(writes: MealScoutSeedImportFieldWrites): string {
+  const entries = Object.entries(writes);
+  if (entries.length === 0) return '- none';
+  return entries.map(([field, value]) => `- ${field}: ${value}`).join('\n');
+}
+
+function formatOmittedFields(fields: MealScoutSeedImportOmittedField[]): string {
+  if (fields.length === 0) return '- none';
+  return fields.map((field) => `- ${field.field}: ${field.reason}`).join('\n');
+}
+
+export function renderMealScoutSeedImportDryRunReviewMarkdown(
+  artifact: MealScoutSeedImportDryRunReviewArtifact
+): string {
+  const lines: string[] = [
+    '# MealScout Seed Dry-Run Review',
+    '',
+    '## Summary',
+    '',
+    `- Batch ID: ${artifact.batchId}`,
+    `- Run mode: ${artifact.mode}`,
+    `- Mutation allowed: ${artifact.mutationAllowed}`,
+    `- Eligible row count: ${artifact.eligibleRowCount}`,
+    `- Blocked row count: ${artifact.blockedRowCount}`,
+    `- No live apply path ran: ${artifact.safetyStatus.no_live_apply_path_ran}`,
+    '',
+    '## Planned Imports'
+  ];
+
+  artifact.plannedImports.forEach((row, index) => {
+    lines.push(
+      '',
+      `### Row ${index + 1}: ${row.source_file_name || row.evidence.copied_evidence_file_id}`,
+      '',
+      `- Proposed action: ${row.proposed_action}`,
+      `- Matched existing profile: ${
+        row.matched_existing_profile
+          ? `${row.matched_existing_profile.id}${row.matched_existing_profile.name ? ` (${row.matched_existing_profile.name})` : ''}`
+          : 'none'
+      }`,
+      `- Copied evidence file ID: ${row.evidence.copied_evidence_file_id}`,
+      `- Original source file ID: ${row.provenance.original_source_file_id || 'unknown'}`,
+      `- Original source is audit-only provenance: ${row.provenance.original_source_is_audit_only}`,
+      '',
+      'Field writes:',
+      '',
+      formatFieldWrites(row.field_writes),
+      '',
+      'Omitted blank/null fields:',
+      '',
+      formatOmittedFields(row.omitted_fields)
+    );
+  });
+
+  lines.push('', '## Blocked Rows');
+  if (artifact.blockedRows.length === 0) {
+    lines.push('', '- none');
+  } else {
+    for (const row of artifact.blockedRows) {
+      lines.push('', `- ${row.source_file_name || row.source_file_id || 'unknown'}: ${row.reason}`);
+    }
+  }
+
+  lines.push(
+    '',
+    '## Safety Status',
+    '',
+    '- Report generated from dry-run readiness plan only.',
+    '- No live import or apply path was executed.',
+    '- mutationAllowed: false'
+  );
+
+  return `${lines.join('\n')}\n`;
 }
