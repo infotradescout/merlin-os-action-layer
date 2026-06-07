@@ -290,6 +290,11 @@ test('copy mode does not require current parent metadata and writes copied_file_
     assert.match(copyExecution, /,copied,/);
     assert.match(copyExecution, /copy-file-001/);
     const seedReport = readFileSync(seedReportPath, 'utf8');
+    assert.match(seedReport, /"profile_origin": "evidence_seed"/);
+    assert.equal(seedReport.includes('auto_onboarded'), false);
+    assert.match(seedReport, /"original_source_file_id": "file-001"/);
+    assert.match(seedReport, /"copied_file_id": "copy-file-001"/);
+    assert.match(seedReport, /"evidence_file_id": "copy-file-001"/);
     assert.match(seedReport, /copy-file-001/);
     assert.equal(copiedId, 'copy-file-001');
   } finally {

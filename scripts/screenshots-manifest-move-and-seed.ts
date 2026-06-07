@@ -93,6 +93,40 @@ type CopyAuditRow = {
   notes: string;
 };
 
+type Batch001SeedReportRow = {
+  seedId?: string;
+  brand_lane?: string;
+  sourceFileId: string;
+  sourceFileName: string;
+  sourceFilePath?: string;
+  source_refs?: string[];
+  seed_status?: string;
+  profile_action?: string;
+  target_profile_id?: string;
+  target_profile_type?: string;
+  profile_name?: string;
+  profile_email?: string;
+  phone?: string;
+  website?: string;
+  socials?: Record<string, unknown>;
+  extracted_fields?: Record<string, unknown>;
+  seeded_from_evidence: true;
+  profile_origin: 'evidence_seed';
+  claim_status: 'unclaimed';
+  email_verified: false;
+  insurance_verified: false;
+  owner_user_id: null;
+  original_source_file_id: string;
+  copied_file_id: string;
+  evidence_file_id: string;
+  source_file_id: string;
+  attribution_method?: string;
+  submission_flow?: string;
+  safety_notes?: string[];
+  verification_email_status?: string;
+  mutationAllowed?: boolean;
+};
+
 type DiagnosticRow = {
   source_file_id: string;
   source_file_name: string;
@@ -620,6 +654,7 @@ async function runCopyMode(
   const batch001Copies = copyExecutionRows.filter(
     (row) => row.batch_id === 'BATCH-001-MEALSCOUT-MERLIN-SEED' && row.copy_status === 'copied'
   );
+  const copyByCopiedFileId = new Map(batch001Copies.map((row) => [row.copied_file_id, row]));
   const batch001Screenshots: MerlinExistingScreenshotSeedInput[] = [];
 
   for (const row of batch001Copies) {
@@ -644,7 +679,29 @@ async function runCopyMode(
   }
 
   const seedResult = await processExistingScreenshotsIntoSeededProfiles({ screenshots: batch001Screenshots });
-  writeFileSync(options.seedReportPath, `${JSON.stringify(seedResult, null, 2)}\n`, 'utf8');
+  const normalizedSeedRows: Batch001SeedReportRow[] = seedResult.results.map((row) => {
+    const copyMeta = copyByCopiedFileId.get(row.sourceFileId);
+    const originalSourceId = copyMeta?.source_file_id || row.sourceFileId;
+    const copiedId = copyMeta?.copied_file_id || row.sourceFileId;
+    return {
+      ...row,
+      seeded_from_evidence: true,
+      profile_origin: 'evidence_seed',
+      claim_status: 'unclaimed',
+      email_verified: false,
+      insurance_verified: false,
+      owner_user_id: null,
+      original_source_file_id: originalSourceId,
+      copied_file_id: copiedId,
+      evidence_file_id: copiedId,
+      source_file_id: originalSourceId
+    };
+  });
+  const normalizedSeedReport = {
+    ...seedResult,
+    results: normalizedSeedRows
+  };
+  writeFileSync(options.seedReportPath, `${JSON.stringify(normalizedSeedReport, null, 2)}\n`, 'utf8');
 
   const exportRows = buildMerlinProfileSeedExportBundle(seedResult.results);
   writeFileSync(options.seedExportPath, `${JSON.stringify(exportRows, null, 2)}\n`, 'utf8');
