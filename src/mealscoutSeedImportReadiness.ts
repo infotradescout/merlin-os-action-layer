@@ -160,6 +160,49 @@ export type MealScoutSeedApplyAuthorizationPlan = {
   safetyRules: string[];
 };
 
+export type MealScoutSeedApplySimulationReport = {
+  batchId: 'BATCH-001-MEALSCOUT-MERLIN-SEED';
+  generatedAt: string;
+  status: 'simulated';
+  mode: 'simulation';
+  mutationExecuted: false;
+  eligibleRowCount: number;
+  blockedRowCount: number;
+  seedExportChecksum: MealScoutSeedExportChecksum;
+  authorization: {
+    status: 'authorized';
+    allowLiveApply: true;
+    dryRunArtifactFresh: true;
+    postApplyReportPath: string;
+  };
+  rows: Array<{
+    source_file_name?: string;
+    simulated_action: 'create' | 'update';
+    matched_existing_profile?: {
+      id: string;
+      name?: string;
+    };
+    field_writes: MealScoutSeedImportFieldWrites;
+    omitted_fields: MealScoutSeedImportOmittedField[];
+    evidence: {
+      copied_evidence_file_id: string;
+    };
+    provenance: {
+      original_source_file_id?: string;
+      original_source_is_audit_only: true;
+    };
+    post_apply_status: 'simulated_noop';
+  }>;
+  blockedRows: MealScoutSeedImportBlockedRow[];
+  safetyStatus: {
+    no_live_mutation_executor_called: true;
+    mutationExecuted: false;
+    copied_evidence_identity_preserved: true;
+    original_source_audit_only: true;
+    blank_null_fields_omitted: true;
+  };
+};
+
 const SEED_BATCH_ID = 'BATCH-001-MEALSCOUT-MERLIN-SEED';
 const IMPORT_FIELDS = ['truckName', 'phone', 'email', 'website', 'cityArea', 'facebook', 'instagram'] as const;
 
@@ -435,6 +478,67 @@ export function authorizeMealScoutSeedApply(input: {
   };
 }
 
+export function buildMealScoutSeedApplySimulationReport(
+  authorization: MealScoutSeedApplyAuthorizationPlan,
+  generatedAt: string = new Date().toISOString()
+): MealScoutSeedApplySimulationReport {
+  if (authorization.status !== 'authorized' || !authorization.postApplyReportPath) {
+    throw new Error('mealscout_seed_apply_simulation_requires_authorized_plan');
+  }
+  return {
+    batchId: SEED_BATCH_ID,
+    generatedAt,
+    status: 'simulated',
+    mode: 'simulation',
+    mutationExecuted: false,
+    eligibleRowCount: authorization.readinessPlan.eligibleRowCount,
+    blockedRowCount: authorization.readinessPlan.blockedRowCount,
+    seedExportChecksum: authorization.seedExportChecksum,
+    authorization: {
+      status: 'authorized',
+      allowLiveApply: true,
+      dryRunArtifactFresh: true,
+      postApplyReportPath: authorization.postApplyReportPath
+    },
+    rows: authorization.applyPlan.map((row) => ({
+      source_file_name: row.source_file_name,
+      simulated_action: row.planned_action,
+      matched_existing_profile: row.existing_profile_id
+        ? {
+            id: row.existing_profile_id,
+            name: row.existing_profile_name
+          }
+        : undefined,
+      field_writes: row.field_writes,
+      omitted_fields: row.omitted_fields,
+      evidence: {
+        copied_evidence_file_id: row.evidence_file_id
+      },
+      provenance: {
+        original_source_file_id: row.original_source_file_id,
+        original_source_is_audit_only: true
+      },
+      post_apply_status: 'simulated_noop'
+    })),
+    blockedRows: authorization.readinessPlan.blockedRows,
+    safetyStatus: {
+      no_live_mutation_executor_called: true,
+      mutationExecuted: false,
+      copied_evidence_identity_preserved: true,
+      original_source_audit_only: true,
+      blank_null_fields_omitted: true
+    }
+  };
+}
+
+export function simulateMealScoutSeedApply(input: {
+  authorization: MealScoutSeedApplyAuthorizationPlan;
+  generatedAt?: string;
+  liveMutationExecutor?: (rows: MealScoutSeedImportPlanRow[]) => unknown;
+}): MealScoutSeedApplySimulationReport {
+  return buildMealScoutSeedApplySimulationReport(input.authorization, input.generatedAt);
+}
+
 function formatFieldWrites(writes: MealScoutSeedImportFieldWrites): string {
   const entries = Object.entries(writes);
   if (entries.length === 0) return '- none';
@@ -506,6 +610,62 @@ export function renderMealScoutSeedImportDryRunReviewMarkdown(
     '- Report generated from dry-run readiness plan only.',
     '- No live import or apply path was executed.',
     '- mutationAllowed: false'
+  );
+
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderMealScoutSeedApplySimulationMarkdown(report: MealScoutSeedApplySimulationReport): string {
+  const lines: string[] = [
+    '# MealScout Seed Apply Simulation Report',
+    '',
+    '## Summary',
+    '',
+    `- Batch ID: ${report.batchId}`,
+    `- Run mode: ${report.mode}`,
+    `- Mutation executed: ${report.mutationExecuted}`,
+    `- Eligible row count: ${report.eligibleRowCount}`,
+    `- Blocked row count: ${report.blockedRowCount}`,
+    `- Seed export checksum: ${report.seedExportChecksum.algorithm}:${report.seedExportChecksum.value}`,
+    '',
+    '## Simulated Rows'
+  ];
+
+  report.rows.forEach((row, index) => {
+    lines.push(
+      '',
+      `### Row ${index + 1}: ${row.source_file_name || row.evidence.copied_evidence_file_id}`,
+      '',
+      `- Simulated action: ${row.simulated_action}`,
+      `- Post-apply status: ${row.post_apply_status}`,
+      `- Matched existing profile: ${
+        row.matched_existing_profile
+          ? `${row.matched_existing_profile.id}${row.matched_existing_profile.name ? ` (${row.matched_existing_profile.name})` : ''}`
+          : 'none'
+      }`,
+      `- Copied evidence file ID: ${row.evidence.copied_evidence_file_id}`,
+      `- Original source file ID: ${row.provenance.original_source_file_id || 'unknown'}`,
+      `- Original source is audit-only provenance: ${row.provenance.original_source_is_audit_only}`,
+      '',
+      'Field writes:',
+      '',
+      formatFieldWrites(row.field_writes),
+      '',
+      'Omitted blank/null fields:',
+      '',
+      formatOmittedFields(row.omitted_fields)
+    );
+  });
+
+  lines.push(
+    '',
+    '## Safety Status',
+    '',
+    `- No live mutation executor called: ${report.safetyStatus.no_live_mutation_executor_called}`,
+    `- Mutation executed: ${report.safetyStatus.mutationExecuted}`,
+    `- Copied evidence identity preserved: ${report.safetyStatus.copied_evidence_identity_preserved}`,
+    `- Original source audit-only: ${report.safetyStatus.original_source_audit_only}`,
+    `- Blank/null fields omitted: ${report.safetyStatus.blank_null_fields_omitted}`
   );
 
   return `${lines.join('\n')}\n`;

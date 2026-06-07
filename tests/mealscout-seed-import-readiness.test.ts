@@ -7,10 +7,13 @@ import { tmpdir } from 'node:os';
 
 import {
   authorizeMealScoutSeedApply,
+  buildMealScoutSeedApplySimulationReport,
   buildMealScoutSeedImportDryRunReviewArtifact,
   computeMealScoutSeedExportChecksum,
   planMealScoutSeedImportReadiness,
+  renderMealScoutSeedApplySimulationMarkdown,
   renderMealScoutSeedImportDryRunReviewMarkdown,
+  simulateMealScoutSeedApply,
   type MealScoutSeedCopyAuditRow,
   type MealScoutSeedExportRow
 } from '../src/mealscoutSeedImportReadiness.ts';
@@ -420,4 +423,171 @@ test('MealScout seed apply authorization requires post-apply report path before 
   assert.equal(authorization.blockedReasons.includes('post_apply_report_path_required'), true);
   assert.equal(authorization.mutationAllowed, false);
   assert.equal(authorization.applyPlan.length, 0);
+});
+
+test('MealScout seed apply simulation writes report artifacts without live mutation', () => {
+  const artifactDir = mkdtempSync(join(tmpdir(), 'mealscout-seed-simulation-'));
+  try {
+    const reviewOutput = execFileSync(
+      process.execPath,
+      ['node_modules/tsx/dist/cli.mjs', 'scripts/mealscout-seed-import-readiness.ts', '--artifact-dir', artifactDir],
+      { encoding: 'utf8' }
+    );
+    const reviewSummary = JSON.parse(reviewOutput) as { seedExportChecksum: { value: string } };
+    const simulationJsonPath = join(artifactDir, 'batch001-apply-simulation-report.json');
+    const simulationMarkdownPath = join(artifactDir, 'batch001-apply-simulation-report.md');
+    const simulationOutput = execFileSync(
+      process.execPath,
+      [
+        'node_modules/tsx/dist/cli.mjs',
+        'scripts/mealscout-seed-import-readiness.ts',
+        '--artifact-dir',
+        artifactDir,
+        '--simulate-apply',
+        '--allow-live-apply',
+        '--dry-run-review',
+        join(artifactDir, 'batch001-dry-run-review.json'),
+        '--apply-simulation-report-json',
+        simulationJsonPath,
+        '--apply-simulation-report-md',
+        simulationMarkdownPath
+      ],
+      { encoding: 'utf8' }
+    );
+    const simulationSummary = JSON.parse(simulationOutput) as {
+      applySimulation: {
+        mutationExecuted: boolean;
+        eligibleRowCount: number;
+        blockedRowCount: number;
+        artifacts: { json: string; markdown: string };
+      };
+    };
+    const report = JSON.parse(readFileSync(simulationJsonPath, 'utf8')) as ReturnType<typeof buildMealScoutSeedApplySimulationReport>;
+    const markdown = readFileSync(simulationMarkdownPath, 'utf8');
+
+    assert.equal(existsSync(simulationJsonPath), true);
+    assert.equal(existsSync(simulationMarkdownPath), true);
+    assert.equal(simulationSummary.applySimulation.artifacts.json, simulationJsonPath);
+    assert.equal(simulationSummary.applySimulation.artifacts.markdown, simulationMarkdownPath);
+    assert.equal(report.mode, 'simulation');
+    assert.equal(report.mutationExecuted, false);
+    assert.equal(report.safetyStatus.no_live_mutation_executor_called, true);
+    assert.equal(report.eligibleRowCount, 2);
+    assert.equal(report.blockedRowCount, 0);
+    assert.equal(report.rows.length, 2);
+    assert.equal(report.seedExportChecksum.value, reviewSummary.seedExportChecksum.value);
+    assert.equal(markdown.includes('# MealScout Seed Apply Simulation Report'), true);
+    assert.equal(markdown.includes('Mutation executed: false'), true);
+    assert.equal(markdown.includes('Post-apply status: simulated_noop'), true);
+  } finally {
+    rmSync(artifactDir, { recursive: true, force: true });
+  }
+});
+
+test('MealScout seed apply simulation does not call a provided live mutation executor', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-apply-simulation-report.json'
+  });
+  let executorCalled = false;
+  const report = simulateMealScoutSeedApply({
+    authorization,
+    generatedAt: '2026-06-07T00:00:00.000Z',
+    liveMutationExecutor: () => {
+      executorCalled = true;
+    }
+  });
+
+  assert.equal(executorCalled, false);
+  assert.equal(report.mutationExecuted, false);
+  assert.equal(report.rows.every((row) => row.post_apply_status === 'simulated_noop'), true);
+});
+
+test('MealScout seed apply simulation is blocked by missing review artifact, stale checksum, or missing report path', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const staleArtifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', {
+    algorithm: 'sha256',
+    value: '1'.repeat(64)
+  });
+  const freshArtifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+
+  const missingArtifact = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-apply-simulation-report.json'
+  });
+  const stale = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: staleArtifact,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-apply-simulation-report.json'
+  });
+  const missingReportPath = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: freshArtifact,
+    allowLiveApply: true
+  });
+
+  assert.equal(missingArtifact.blockedReasons.includes('dry_run_review_artifact_required'), true);
+  assert.equal(stale.blockedReasons.includes('seed_export_checksum_mismatch'), true);
+  assert.equal(missingReportPath.blockedReasons.includes('post_apply_report_path_required'), true);
+  assert.equal(missingArtifact.mutationAllowed, false);
+  assert.equal(stale.mutationAllowed, false);
+  assert.equal(missingReportPath.mutationAllowed, false);
+});
+
+test('MealScout seed apply simulation report preserves row safety details', () => {
+  const seedExportContent = readGeneratedExportContent();
+  const seedExportRows = JSON.parse(seedExportContent) as MealScoutSeedExportRow[];
+  const copyAuditRows = readGeneratedCopyAudit();
+  const checksum = computeMealScoutSeedExportChecksum(seedExportContent);
+  const dryRunPlan = planMealScoutSeedImportReadiness({ seedExportRows, copyAuditRows });
+  const artifact = buildMealScoutSeedImportDryRunReviewArtifact(dryRunPlan, '2026-06-07T00:00:00.000Z', checksum);
+  const authorization = authorizeMealScoutSeedApply({
+    seedExportRows,
+    copyAuditRows,
+    seedExportChecksum: checksum,
+    dryRunReviewArtifact: artifact,
+    allowLiveApply: true,
+    postApplyReportPath: 'artifacts/mealscout-seed-import-readiness/batch001-apply-simulation-report.json'
+  });
+  const report = buildMealScoutSeedApplySimulationReport(authorization, '2026-06-07T00:00:00.000Z');
+  const markdown = renderMealScoutSeedApplySimulationMarkdown(report);
+
+  assert.equal(report.rows.length, 2);
+  assert.equal(report.rows.every((row) => row.simulated_action === 'create' || row.simulated_action === 'update'), true);
+  assert.equal(report.rows.every((row) => row.evidence.copied_evidence_file_id), true);
+  assert.equal(report.rows.every((row) => row.provenance.original_source_file_id), true);
+  assert.equal(
+    report.rows.every((row) => row.evidence.copied_evidence_file_id !== row.provenance.original_source_file_id),
+    true
+  );
+  assert.equal(report.rows.every((row) => row.provenance.original_source_is_audit_only), true);
+  assert.equal(report.rows.every((row) => !Object.prototype.hasOwnProperty.call(row.field_writes, 'email')), true);
+  assert.equal(report.rows.every((row) => !Object.prototype.hasOwnProperty.call(row.field_writes, 'website')), true);
+  assert.equal(report.rows.every((row) => row.omitted_fields.some((field) => field.field === 'email')), true);
+  assert.equal(report.safetyStatus.blank_null_fields_omitted, true);
+  assert.equal(markdown.includes('Omitted blank/null fields:'), true);
+  assert.equal(markdown.includes('Copied evidence file ID:'), true);
+  assert.equal(markdown.includes('Original source is audit-only provenance: true'), true);
 });
