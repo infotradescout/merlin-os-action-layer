@@ -129,6 +129,24 @@
       .status-ok {
         color: var(--positive);
       }
+
+      .doctrine-banner {
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: linear-gradient(120deg, rgba(88, 184, 255, 0.14), rgba(72, 209, 165, 0.08));
+      }
+
+      .doctrine-banner strong {
+        display: block;
+      }
+
+      .doctrine-spine {
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
     </style>
   </head>
   <body>
@@ -141,8 +159,14 @@
             <span id="generated-at">...</span>
           </p>
         </div>
-        <div class="subtitle">v1.0 command center</div>
+        <div class="subtitle">v1.0 action layer command center</div>
       </div>
+
+      <section class="doctrine-banner" aria-label="Merlin doctrine banner">
+        <strong>Merlin is not AI hype. Merlin is what comes after AI hype fails.</strong>
+        <div>AI 1.0 gave people answers. Merlin gives people action, memory, proof, and continuity.</div>
+        <div class="doctrine-spine">Input -> Understand -> Verify -> Route -> Act -> Prove -> Remember</div>
+      </section>
 
       <nav class="workspace-nav" aria-label="Operator workspace">
         <a href="/" aria-current="page">Daily Command Center</a>

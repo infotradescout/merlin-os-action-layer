@@ -104,12 +104,30 @@ test('main command center links to active operator review surfaces', async () =>
   assert.ok(response.body.includes('href="/admin/operator-workspace.css"'));
   assert.ok(response.body.includes('aria-label="Operator workspace"'));
   assert.ok(response.body.includes('aria-current="page">Daily Command Center'));
+  assert.ok(response.body.includes('Merlin is not AI hype. Merlin is what comes after AI hype fails.'));
+  assert.ok(response.body.includes('AI 1.0 gave people answers. Merlin gives people action, memory, proof, and continuity.'));
+  assert.ok(response.body.includes('Input -> Understand -> Verify -> Route -> Act -> Prove -> Remember'));
   assert.ok(response.body.includes('Current task: scan today'));
   assert.ok(response.body.includes('operator-link'));
   assert.ok(response.body.includes('href="/admin/drive-review-queue"'));
   assert.ok(response.body.includes('href="/admin/mealscout-review-queue"'));
   assert.ok(response.body.includes('Open Drive Review inbox'));
   assert.ok(response.body.includes('Open MealScout OCR review'));
+});
+
+test('main command center doctrine copy avoids banned hype language', async () => {
+  const response = await requestText('/');
+  assert.equal(response.status, 200);
+  const body = response.body.toLowerCase();
+  const blocked = [
+    /magic ai/i,
+    /fully autonomous/i,
+    /guaranteed/i,
+    /replaces humans/i
+  ];
+  for (const pattern of blocked) {
+    assert.equal(pattern.test(body), false, `unexpected wording: ${pattern}`);
+  }
 });
 
 test('shared operator workspace stylesheet is served for existing pages', async () => {
