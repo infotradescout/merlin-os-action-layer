@@ -1,0 +1,17 @@
+{
+  "totalRows": 896,
+  "cleanCandidateCount": 286,
+  "manualReviewCount": 46,
+  "rejectedCount": 451,
+  "duplicateGroupCount": 100,
+  "phoneDetectedCount": 501,
+  "emailDetectedCount": 380,
+  "examples": [
+    "1-8tyd1ovJviGaQdh8bUzyWu1d0pGBAIf: possible_truncated_business_name",
+    "1MYTL0nuEXkBndkLCkcBjVnhVYQOBNxiO: possible_truncated_business_name",
+    "1qV5MsNekQLHjOq6XIio96eD0G0_eMgAg: suspicious_business_name",
+    "1QsquSwY-jOrs74JNO8L5QnQyPa8ngXQ-: non_food_scope:home_services",
+    "157RwyOxslx7qC25duO8KmCs8wriutDsX: non_food_scope:painting",
+    "1-UE0dN2O4-lSbcHjQumIKZAKTYBHmSiL: missing_food_scope_signal"
+  ]
+}

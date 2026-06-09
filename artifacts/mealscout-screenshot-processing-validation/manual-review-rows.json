@@ -1,0 +1,952 @@
+[
+  {
+    "sourceRowNumber": 1,
+    "driveFileId": "1-8tyd1ovJviGaQdh8bUzyWu1d0pGBAIf",
+    "finalFilename": "M&M Southern BB.PNG",
+    "originalBusinessName": "M&M Southern BB",
+    "normalizedBusinessName": "M&M Southern BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "863-438-1137",
+      "email": "mmsouthernbbg@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "bbq",
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1-8tyd1ovJviGaQdh8bUzyWu1d0pGBAIf/view?usp=drivesdk",
+    "suggestedBusinessName": "M&M Southern BBQ"
+  },
+  {
+    "sourceRowNumber": 11,
+    "driveFileId": "1MYTL0nuEXkBndkLCkcBjVnhVYQOBNxiO",
+    "finalFilename": "Cocamoke Smoke BB.PNG",
+    "originalBusinessName": "Cocamoke Smoke BB",
+    "normalizedBusinessName": "Cocamoke Smoke BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "205-499-0022",
+      "email": "cturner@cocamokesmokebbq.com",
+      "website": "cocamokesmokebbq.com",
+      "instagram": "@cocamokesmokebbq.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "bbq",
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1MYTL0nuEXkBndkLCkcBjVnhVYQOBNxiO/view?usp=drivesdk",
+    "suggestedBusinessName": "Cocamoke Smoke BBQ"
+  },
+  {
+    "sourceRowNumber": 18,
+    "driveFileId": "1qV5MsNekQLHjOq6XIio96eD0G0_eMgAg",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "Aguaberry77@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1qV5MsNekQLHjOq6XIio96eD0G0_eMgAg/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 19,
+    "driveFileId": "14QoacXZ2loSHtJ9RbL-1gtWaUgeiFAvK",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "Aguaberry77@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/14QoacXZ2loSHtJ9RbL-1gtWaUgeiFAvK/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 37,
+    "driveFileId": "1DDVJN4O-opQeDQe8EzlRmPJlu4BLWIs8",
+    "finalFilename": "Angry Pigz BB.PNG",
+    "originalBusinessName": "Angry Pigz BB",
+    "normalizedBusinessName": "Angry Pigz BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {},
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1DDVJN4O-opQeDQe8EzlRmPJlu4BLWIs8/view?usp=drivesdk",
+    "suggestedBusinessName": "Angry Pigz BBQ"
+  },
+  {
+    "sourceRowNumber": 48,
+    "driveFileId": "1ABYHoGH90EqfdaT9y1iSRCd8nAjRi2Cd",
+    "finalFilename": "Yo Daddio BB.PNG",
+    "originalBusinessName": "Yo Daddio BB",
+    "normalizedBusinessName": "Yo Daddio BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "941-313-6499",
+      "email": "yo.daddio.bbq@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1ABYHoGH90EqfdaT9y1iSRCd8nAjRi2Cd/view?usp=drivesdk",
+    "suggestedBusinessName": "Yo Daddio BBQ"
+  },
+  {
+    "sourceRowNumber": 49,
+    "driveFileId": "1-O6iTbwfwjNOxo6byaAqEfwKiNzd8pTx",
+    "finalFilename": "Yo Daddio BB.PNG",
+    "originalBusinessName": "Yo Daddio BB",
+    "normalizedBusinessName": "Yo Daddio BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "941-313-6499",
+      "email": "yo.daddio.bbq@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1-O6iTbwfwjNOxo6byaAqEfwKiNzd8pTx/view?usp=drivesdk",
+    "suggestedBusinessName": "Yo Daddio BBQ"
+  },
+  {
+    "sourceRowNumber": 82,
+    "driveFileId": "1G32Zq5lGRHPu18zMgQj9kZatxlpVN7YL",
+    "finalFilename": "Panama City Downtown, FL - Panama City.PNG",
+    "originalBusinessName": "Panama City Downtown, FL - Panama City",
+    "normalizedBusinessName": "Panama City Downtown, FL - Panama City",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-376-1101",
+      "email": "bourbonstcafepc@gmail.com",
+      "website": "instagram.com/BourbonSt.Cate",
+      "instagram": "@BourbonSt.Cate"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1G32Zq5lGRHPu18zMgQj9kZatxlpVN7YL/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 86,
+    "driveFileId": "1I9z3IMMuEIONiNjjZHHYj5n9dRwCZugt",
+    "finalFilename": "Carolina Gold BB.PNG",
+    "originalBusinessName": "Carolina Gold BB",
+    "normalizedBusinessName": "Carolina Gold BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-503-4122",
+      "email": "telestrummer2014@gmail.com",
+      "instagram": "@gmail.com",
+      "address": "6866 Pine Forest Rd , Pensacola, FL,"
+    },
+    "categorySignals": [
+      "restaurant",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1I9z3IMMuEIONiNjjZHHYj5n9dRwCZugt/view?usp=drivesdk",
+    "suggestedBusinessName": "Carolina Gold BBQ"
+  },
+  {
+    "sourceRowNumber": 87,
+    "driveFileId": "1OhhA_amEeVy96MyxMw7trbaCJMjgvNn4",
+    "finalFilename": "Carolina Gold BB.PNG",
+    "originalBusinessName": "Carolina Gold BB",
+    "normalizedBusinessName": "Carolina Gold BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-503-4122",
+      "email": "telestrummer2014@gmail.com",
+      "instagram": "@gmail.com",
+      "address": "6866 Pine Forest Rd , Pensacola, FL,"
+    },
+    "categorySignals": [
+      "restaurant",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1OhhA_amEeVy96MyxMw7trbaCJMjgvNn4/view?usp=drivesdk",
+    "suggestedBusinessName": "Carolina Gold BBQ"
+  },
+  {
+    "sourceRowNumber": 96,
+    "driveFileId": "1ZaztxPLvA8gYAMw1gnLgjHjOc_lUBner",
+    "finalFilename": "Dadgum Good BB.PNG",
+    "originalBusinessName": "Dadgum Good BB",
+    "normalizedBusinessName": "Dadgum Good BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-312-3509",
+      "email": "dadgumgoodbbg@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "restaurant",
+      "catering",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1ZaztxPLvA8gYAMw1gnLgjHjOc_lUBner/view?usp=drivesdk",
+    "suggestedBusinessName": "Dadgum Good BBQ"
+  },
+  {
+    "sourceRowNumber": 97,
+    "driveFileId": "1TYxVdEmmQ93a8efkWs48c32iN9sQ9MKx",
+    "finalFilename": "Dadgum Good BB.PNG",
+    "originalBusinessName": "Dadgum Good BB",
+    "normalizedBusinessName": "Dadgum Good BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-312-3509",
+      "email": "dadgumgoodbbq@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "restaurant",
+      "catering",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1TYxVdEmmQ93a8efkWs48c32iN9sQ9MKx/view?usp=drivesdk",
+    "suggestedBusinessName": "Dadgum Good BBQ"
+  },
+  {
+    "sourceRowNumber": 129,
+    "driveFileId": "13iC0hlcuIYdoiSqfRcgaQSDOzuo7vqt1",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "Jesse@cutiepatootiecharcuterie.com",
+      "website": "online.skytab.com/s/",
+      "instagram": "@cutiepatootiecharcuterie.com"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/13iC0hlcuIYdoiSqfRcgaQSDOzuo7vqt1/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 130,
+    "driveFileId": "1gWKfiLh16UfIpsos4uDK0S0bK0YwBch-",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "Jesse@cutiepatootiecharcuterie.com",
+      "website": "online.skytab.com/s/",
+      "instagram": "@cutiepatootiecharcuterie.com"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1gWKfiLh16UfIpsos4uDK0S0bK0YwBch-/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 153,
+    "driveFileId": "1IEr3JE2CTdYTuix8bmquwJKW0Yu21zFS",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "contactus@smokingacesbbafl.com",
+      "website": "smokingacesbbafl.com",
+      "instagram": "@smokingacesbbafl.com"
+    },
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1IEr3JE2CTdYTuix8bmquwJKW0Yu21zFS/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 223,
+    "driveFileId": "1FRCNAk6ZO_bNllvN7E3tZz5uO29FBmIj",
+    "finalFilename": "1 Up Burger Food Truck.PNG",
+    "originalBusinessName": "1 Up Burger Food Truck",
+    "normalizedBusinessName": "1 Up Burger Food Truck",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "813-803-0887",
+      "email": "foodman1969@yahoo.com",
+      "instagram": "@yahoo.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "catering",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1FRCNAk6ZO_bNllvN7E3tZz5uO29FBmIj/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 233,
+    "driveFileId": "1h1uAiTEwzgvgQAmP14vlA9mJESOcA0wL",
+    "finalFilename": "The Smokin' Jokers BB.PNG",
+    "originalBusinessName": "The Smokin' Jokers BB",
+    "normalizedBusinessName": "The Smokin' Jokers BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-266-8163"
+    },
+    "categorySignals": [
+      "bbq",
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1h1uAiTEwzgvgQAmP14vlA9mJESOcA0wL/view?usp=drivesdk",
+    "suggestedBusinessName": "The Smokin' Jokers BBQ"
+  },
+  {
+    "sourceRowNumber": 270,
+    "driveFileId": "1N9bM3mAYxn_bY2NZPQ4OTFwQlDGtw8s5",
+    "finalFilename": "850 Barbecue.PNG",
+    "originalBusinessName": "850 Barbecue",
+    "normalizedBusinessName": "850 Barbecue",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-449-4720",
+      "email": "850barbecue@gmail.com",
+      "website": "850barbecue.com",
+      "instagram": "@850_barbecue"
+    },
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1N9bM3mAYxn_bY2NZPQ4OTFwQlDGtw8s5/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 286,
+    "driveFileId": "1u9rDEGQeuEe_eURTXbo8qfTTdgBAKxBB",
+    "finalFilename": "i Angry Pigz BB.PNG",
+    "originalBusinessName": "i Angry Pigz BB",
+    "normalizedBusinessName": "i Angry Pigz BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-485-3249",
+      "address": "1323 West Cervantes street every Sunday!! 850"
+    },
+    "categorySignals": [
+      "restaurant",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1u9rDEGQeuEe_eURTXbo8qfTTdgBAKxBB/view?usp=drivesdk",
+    "suggestedBusinessName": "i Angry Pigz BBQ"
+  },
+  {
+    "sourceRowNumber": 307,
+    "driveFileId": "1QppaTbDAtdRGmW3hHCbLdzTQqqhTsD1x",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "251-727-2047",
+      "email": "boujeebowlz@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1QppaTbDAtdRGmW3hHCbLdzTQqqhTsD1x/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 308,
+    "driveFileId": "10j-QdpRux5XXdX_5DhmBZ029hvrhkY35",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "251-727-2047",
+      "email": "boujeebowlz@gmail.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "food_truck",
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/10j-QdpRux5XXdX_5DhmBZ029hvrhkY35/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 380,
+    "driveFileId": "1urIMUwqzfqcwNA-pP79gpg74QWgScxUD",
+    "finalFilename": "Follow & Call now.PNG",
+    "originalBusinessName": "Follow & Call now",
+    "normalizedBusinessName": "Follow & Call now",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-558-4750",
+      "email": "Pensacola@cousinsmainelobster.com",
+      "instagram": "@cousinsmainelobster.com"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1urIMUwqzfqcwNA-pP79gpg74QWgScxUD/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 404,
+    "driveFileId": "1O3GAnaIXTX97Gztay9MIe-JF7CwAKwYG",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "209-677-7667"
+    },
+    "categorySignals": [
+      "dessert_bakery"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1O3GAnaIXTX97Gztay9MIe-JF7CwAKwYG/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 405,
+    "driveFileId": "1bVLGyM0noBr8RVvDC6RDPYpbWoVsnFv6",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "209-677-7667"
+    },
+    "categorySignals": [
+      "dessert_bakery"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1bVLGyM0noBr8RVvDC6RDPYpbWoVsnFv6/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 422,
+    "driveFileId": "1dKZkNRUeLKbkcl6SFToMCBZ95u4KauHt",
+    "finalFilename": "the streets of Kissimmee, FL..PNG",
+    "originalBusinessName": "the streets of Kissimmee, FL.",
+    "normalizedBusinessName": "the streets of Kissimmee, FL.",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "407-840-9736",
+      "email": "DioniEnLaCalle@gmail.com",
+      "website": "instagram.com/Dionienlacalle",
+      "instagram": "@Dionienlacalle"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1dKZkNRUeLKbkcl6SFToMCBZ95u4KauHt/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 423,
+    "driveFileId": "1ZdFe0ZsLCJiJUh-BSBW2V81PUtwlbojT",
+    "finalFilename": "the streets of Kissimmee, FL..PNG",
+    "originalBusinessName": "the streets of Kissimmee, FL.",
+    "normalizedBusinessName": "the streets of Kissimmee, FL.",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "407-840-9736",
+      "email": "DioniEnLaCalle@gmail.com",
+      "website": "instagram.com/Dionienlacalle",
+      "instagram": "@Dionienlacalle"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1ZdFe0ZsLCJiJUh-BSBW2V81PUtwlbojT/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 434,
+    "driveFileId": "1mXPIbJWwbxMF1kXoj-KKAamB50ajG3cj",
+    "finalFilename": "Follow WhatsApp.PNG",
+    "originalBusinessName": "Follow WhatsApp",
+    "normalizedBusinessName": "Follow WhatsApp",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "662-515-1363",
+      "email": "autotron2000@yahoo.com",
+      "instagram": "@yahoo.com"
+    },
+    "categorySignals": [
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1mXPIbJWwbxMF1kXoj-KKAamB50ajG3cj/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 435,
+    "driveFileId": "1ocE9h7UiyYl8vXRw5uXO4A4JYkDYZwLQ",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {},
+    "categorySignals": [
+      "drink_shaved_ice"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1ocE9h7UiyYl8vXRw5uXO4A4JYkDYZwLQ/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 475,
+    "driveFileId": "1U9QIkRUH1s2MlKATlu5e6nxPpMmf_Hh2",
+    "finalFilename": "Follow & Call now.PNG",
+    "originalBusinessName": "Follow & Call now",
+    "normalizedBusinessName": "Follow & Call now",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "address": "5601 Ayllon Ave, Pensacola, FL 32507"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1U9QIkRUH1s2MlKATlu5e6nxPpMmf_Hh2/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 476,
+    "driveFileId": "1i6gINMCSvnUiDJO1b6B3YmP61XA5fz6-",
+    "finalFilename": "Follow & Call now.PNG",
+    "originalBusinessName": "Follow & Call now",
+    "normalizedBusinessName": "Follow & Call now",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "address": "5601 Ayllon Ave, Pensacola, FL 32507"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1i6gINMCSvnUiDJO1b6B3YmP61XA5fz6-/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 516,
+    "driveFileId": "1KMlEyAIz6Wjko7ZJYacy5Os_-QbdC5rC",
+    "finalFilename": "RR Smokers BB.PNG",
+    "originalBusinessName": "RR Smokers BB",
+    "normalizedBusinessName": "RR Smokers BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-525-0017"
+    },
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1KMlEyAIz6Wjko7ZJYacy5Os_-QbdC5rC/view?usp=drivesdk",
+    "suggestedBusinessName": "RR Smokers BBQ"
+  },
+  {
+    "sourceRowNumber": 598,
+    "driveFileId": "17qs1b6JXOvR-S198cfxrVpxDyfpyB_Df",
+    "finalFilename": "Follow ¥ Order Food.PNG",
+    "originalBusinessName": "Follow ¥ Order Food",
+    "normalizedBusinessName": "Follow ¥ Order Food",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "251-504-0035",
+      "email": "willyumsmfu@gmail.com",
+      "website": "willyumsmfu.com",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/17qs1b6JXOvR-S198cfxrVpxDyfpyB_Df/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 613,
+    "driveFileId": "1SRm1uLrhQSAdzBnVldwQEw6PdnMQhE8Y",
+    "finalFilename": "BossMan's Bistro & BB.PNG",
+    "originalBusinessName": "BossMan's Bistro & BB",
+    "normalizedBusinessName": "BossMan's Bistro & BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-728-8442",
+      "email": "bossmansbistro@gmail.com",
+      "instagram": "@gmail.com",
+      "address": "3537 Thomasville Rd, Tallahassee, FL,"
+    },
+    "categorySignals": [
+      "food_truck",
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1SRm1uLrhQSAdzBnVldwQEw6PdnMQhE8Y/view?usp=drivesdk",
+    "suggestedBusinessName": "BossMan's Bistro & BBQ"
+  },
+  {
+    "sourceRowNumber": 630,
+    "driveFileId": "12kgpocgH-zsksRqKHWIeAp1szc1cY8Rr",
+    "finalFilename": "Follow Q Subscribe.PNG",
+    "originalBusinessName": "Follow Q Subscribe",
+    "normalizedBusinessName": "Follow Q Subscribe",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "email": "boogiechicksow@gmail.com",
+      "website": "votenappies.com/#/gallery/488573769",
+      "instagram": "@gmail.com"
+    },
+    "categorySignals": [
+      "restaurant",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/12kgpocgH-zsksRqKHWIeAp1szc1cY8Rr/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 659,
+    "driveFileId": "10kwAvfSlbOvxYm70losWPC56OjHBja7F",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "address": "1101 W Main st, Pensacola, FL, United"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/10kwAvfSlbOvxYm70losWPC56OjHBja7F/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 660,
+    "driveFileId": "1u6P8_sJRTTKsh56op4ix4x3_AFsJD4K7",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "address": "1101 W Main st, Pensacola, FL, United"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1u6P8_sJRTTKsh56op4ix4x3_AFsJD4K7/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 676,
+    "driveFileId": "1XeVJRYK3IDvLvGq4BqeAHDmViW7KolQx",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-602-1610",
+      "email": "Deepbluefoodtruck@yahoo.com",
+      "website": "instagram.com/",
+      "instagram": "@yahoo.com",
+      "address": "13595 Perdido Key Drive , Pensacola, FL,"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1XeVJRYK3IDvLvGq4BqeAHDmViW7KolQx/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 677,
+    "driveFileId": "1Z5G3tfLAALuLnsy8u1a5Cv9K264Lw_Vc",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-602-1610",
+      "email": "Deepbluefoodtruck@yahoo.com",
+      "website": "instagram.com/",
+      "instagram": "@yahoo.com",
+      "address": "13595 Perdido Key Drive , Pensacola, FL,"
+    },
+    "categorySignals": [
+      "food_truck",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1Z5G3tfLAALuLnsy8u1a5Cv9K264Lw_Vc/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 687,
+    "driveFileId": "12BSqSO47bXEzz_NIo7mJsXHM3GRrt1xp",
+    "finalFilename": "The Smokin' Jokers BB.PNG",
+    "originalBusinessName": "The Smokin' Jokers BB",
+    "normalizedBusinessName": "The Smokin' Jokers BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-266-8163",
+      "email": "jokersbbq850@gmail.com",
+      "instagram": "@gmail.com",
+      "address": "180 burgess Ave, Pensacola, FL, United"
+    },
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/12BSqSO47bXEzz_NIo7mJsXHM3GRrt1xp/view?usp=drivesdk",
+    "suggestedBusinessName": "The Smokin' Jokers BBQ"
+  },
+  {
+    "sourceRowNumber": 688,
+    "driveFileId": "1SXZACiNQyA1NWGy_3yU5c6djkdFVfRFr",
+    "finalFilename": "The Smokin' Jokers BB.PNG",
+    "originalBusinessName": "The Smokin' Jokers BB",
+    "normalizedBusinessName": "The Smokin' Jokers BBQ",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "possible_truncated_business_name"
+    ],
+    "contacts": {
+      "phone": "850-266-8163",
+      "email": "jokersbbq850@gmail.com",
+      "instagram": "@gmail.com",
+      "address": "180 burgess Ave, Pensacola, FL, United"
+    },
+    "categorySignals": [
+      "bbq"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1SXZACiNQyA1NWGy_3yU5c6djkdFVfRFr/view?usp=drivesdk",
+    "suggestedBusinessName": "The Smokin' Jokers BBQ"
+  },
+  {
+    "sourceRowNumber": 689,
+    "driveFileId": "1EY_37H_obMC8lZ2U9Q-4-S6MZ46r7YjV",
+    "finalFilename": "91YUM.PNG",
+    "originalBusinessName": "91YUM",
+    "normalizedBusinessName": "91YUM",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "865-337-9028",
+      "email": "Go91yum@outlook.com",
+      "website": "https://www.instagram.com/9.1.yum?",
+      "instagram": "@9.1.yum"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1EY_37H_obMC8lZ2U9Q-4-S6MZ46r7YjV/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 690,
+    "driveFileId": "18nEaa7KqVvsMMXCu6YMwH3Fm2J_6rgki",
+    "finalFilename": "91YUM.PNG",
+    "originalBusinessName": "91YUM",
+    "normalizedBusinessName": "91YUM",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "865-337-9028",
+      "email": "Go91yum@outlook.com",
+      "website": "https://www.instagram.com/9.1.yum?",
+      "instagram": "@9.1.yum"
+    },
+    "categorySignals": [
+      "food_truck"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/18nEaa7KqVvsMMXCu6YMwH3Fm2J_6rgki/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 713,
+    "driveFileId": "1s2X76jsddmFSpdotc1cUS6MZD04h1rTM",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-554-6735",
+      "facebook": "is"
+    },
+    "categorySignals": [
+      "dessert_bakery"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1s2X76jsddmFSpdotc1cUS6MZD04h1rTM/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 714,
+    "driveFileId": "1C31SRnxl_WW4tPGCPBYS-TdeWRSLayhC",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-554-6735",
+      "facebook": "is"
+    },
+    "categorySignals": [
+      "dessert_bakery"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/1C31SRnxl_WW4tPGCPBYS-TdeWRSLayhC/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 873,
+    "driveFileId": "13eF0emBXubiINaipRM9iEBe2EnYOPI7O",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-736-6960",
+      "email": "sergiomora77@icloud.com",
+      "instagram": "@icloud.com"
+    },
+    "categorySignals": [
+      "drink_shaved_ice",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/13eF0emBXubiINaipRM9iEBe2EnYOPI7O/view?usp=drivesdk"
+  },
+  {
+    "sourceRowNumber": 874,
+    "driveFileId": "13JiKwXUDeYy_OHVll_7e7ynNLyNe2kB9",
+    "finalFilename": "Follow @ Message.PNG",
+    "originalBusinessName": "Follow @ Message",
+    "normalizedBusinessName": "Follow @ Message",
+    "validationStatus": "manual_review",
+    "reasons": [
+      "suspicious_business_name"
+    ],
+    "contacts": {
+      "phone": "850-736-6960",
+      "email": "sergiomora77@icloud.com",
+      "instagram": "@icloud.com"
+    },
+    "categorySignals": [
+      "drink_shaved_ice",
+      "food_service"
+    ],
+    "driveUrl": "https://drive.google.com/file/d/13JiKwXUDeYy_OHVll_7e7ynNLyNe2kB9/view?usp=drivesdk"
+  }
+]
