@@ -5,14 +5,17 @@ import { join } from 'node:path';
 const docPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md');
 const handoffDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md');
 const flightPlanDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md');
+const contextReuseDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_CONTEXT_AND_REUSE_DOCTRINE.md');
 
 assert.equal(existsSync(docPath), true, 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md must exist');
 assert.equal(existsSync(handoffDocPath), true, 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md must exist');
 assert.equal(existsSync(flightPlanDocPath), true, 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md must exist');
+assert.equal(existsSync(contextReuseDocPath), true, 'MERLIN_CONTEXT_AND_REUSE_DOCTRINE.md must exist');
 
 const doctrine = readFileSync(docPath, 'utf8');
 const handoffDoc = readFileSync(handoffDocPath, 'utf8');
 const flightPlanDoc = readFileSync(flightPlanDocPath, 'utf8');
+const contextReuseDoc = readFileSync(contextReuseDocPath, 'utf8');
 
 function escapeForRegex(input) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -85,6 +88,27 @@ const doctrinePatterns = [
 
 for (const pattern of doctrinePatterns) {
   assert.match(doctrine, pattern, `Required doctrine text missing: ${pattern}`);
+}
+
+const contextReusePatterns = [
+  /1\) Review-before-create/i,
+  /2\) Constrained-builder rule/i,
+  /3\) Shared component stash/i,
+  /4\) Natural-language drop-in workflow/i,
+  /5\) Timestamped work ledger/i,
+  /6\) Time-gap awareness/i,
+  /reuse → extend → create only if justified/i,
+  /Created at/i,
+  /Started at/i,
+  /Completed at/i,
+  /Last user instruction at/i,
+  /1 minute later/i,
+  /1 month later/i,
+  /stale until re-reviewed/i
+];
+
+for (const pattern of contextReusePatterns) {
+  assert.match(contextReuseDoc, pattern, `Required context and reuse doctrine text missing: ${pattern}`);
 }
 
 const handoffPatterns = [
