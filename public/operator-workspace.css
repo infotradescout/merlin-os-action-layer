@@ -1,0 +1,88 @@
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--operator-radius-panel, 8px);
+  margin-bottom: var(--operator-panel-margin-bottom, 0);
+  padding: var(--operator-panel-padding, 0.85rem);
+}
+
+.item {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 0.35rem 0;
+  padding: 0.55rem;
+}
+
+.item:hover {
+  border-color: var(--accent);
+}
+
+.workspace-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0.8rem;
+}
+
+.workspace-nav a,
+.operator-link,
+.operator-button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.workspace-nav a,
+.operator-link {
+  color: var(--text, var(--ink));
+  background: var(--panel-soft, #fff6e8);
+  padding: 0.38rem 0.62rem;
+  font-size: 0.88rem;
+}
+
+.workspace-nav a[aria-current="page"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.workspace-nav a:hover,
+.operator-link:hover {
+  border-color: var(--accent);
+}
+
+.operator-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0.6rem;
+}
+
+.operator-task-strip {
+  background: var(--panel-soft, var(--panel));
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  color: var(--muted);
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.operator-task-strip strong {
+  color: var(--text, var(--ink));
+}
+
+.operator-button {
+  background: var(--panel-soft, #fff6e8);
+  color: var(--text, var(--ink));
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+}
+
+.operator-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

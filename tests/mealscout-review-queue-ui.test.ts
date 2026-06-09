@@ -62,10 +62,13 @@ test('mealscout review queue page renders review-only OCR operator surface', asy
   const response = await requestText('/admin/mealscout-review-queue');
   assert.equal(response.status, 200);
   assert.ok(response.body.includes('MealScout OCR Review Queue'));
+  assert.ok(response.body.includes('href="/admin/operator-workspace.css"'));
   assert.ok(response.body.includes('aria-label="Operator workspace"'));
   assert.ok(response.body.includes('href="/"'));
   assert.ok(response.body.includes('href="/admin/drive-review-queue"'));
   assert.ok(response.body.includes('aria-current="page">MealScout OCR Review'));
+  assert.ok(response.body.includes('Current task: review OCR-derived MealScout intake.'));
+  assert.ok(response.body.includes('Next: return to Daily Command Center'));
   assert.ok(response.body.includes('Preview-only operator station'));
   assert.ok(response.body.includes('OCR Draft Profiles'));
   assert.ok(response.body.includes('Duplicate / Merge Assist'));

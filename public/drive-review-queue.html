@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Drive Review Queue</title>
+    <link rel="stylesheet" href="/admin/operator-workspace.css" />
     <style>
       :root {
         --bg: #0b1021;
@@ -17,6 +18,7 @@
         --critical: #ff6b6b;
         --safe: #5fe3b8;
         --open: #6ea8ff;
+        --operator-panel-padding: 0.85rem;
       }
 
       * {
@@ -47,28 +49,6 @@
         align-items: baseline;
       }
 
-      .workspace-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin: 0.75rem 0 0.9rem;
-      }
-
-      .workspace-nav a {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        color: var(--text);
-        background: var(--panel-soft);
-        padding: 0.38rem 0.62rem;
-        text-decoration: none;
-        font-size: 0.88rem;
-      }
-
-      .workspace-nav a[aria-current="page"] {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-
       .subtitle {
         color: var(--muted);
         font-size: 0.95rem;
@@ -79,13 +59,6 @@
         grid-template-columns: 1.2fr 1fr;
         gap: 1rem;
         margin-top: 0.9rem;
-      }
-
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 0.85rem;
       }
 
       .strip {
@@ -133,18 +106,6 @@
         padding: 0;
         max-height: 360px;
         overflow: auto;
-      }
-
-      .item {
-        border: 1px solid transparent;
-        border-radius: 8px;
-        padding: 0.55rem;
-        margin: 0.35rem 0;
-        cursor: pointer;
-      }
-
-      .item:hover {
-        border-color: var(--accent);
       }
 
       .item-title {
@@ -258,6 +219,11 @@
         <a href="/admin/drive-review-queue" aria-current="page">Drive Review</a>
         <a href="/admin/mealscout-review-queue">MealScout OCR Review</a>
       </nav>
+
+      <div class="operator-task-strip" role="note">
+        <strong>Current task: reconcile Drive drift.</strong>
+        <span>Next: open MealScout OCR Review when screenshot intake evidence needs profile/menu review.</span>
+      </div>
 
       <section class="panel">
         <h2>Auth Health Strip</h2>

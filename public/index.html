@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Merlin Daily</title>
+    <link rel="stylesheet" href="/admin/operator-workspace.css" />
     <style>
       :root {
         --bg: #0b1021;
@@ -14,6 +15,8 @@
         --line: #27315e;
         --accent: #58b8ff;
         --positive: #48d1a5;
+        --operator-panel-margin-bottom: 1rem;
+        --operator-panel-padding: 0.9rem;
       }
 
       * {
@@ -47,28 +50,6 @@
         margin-bottom: 1rem;
       }
 
-      .workspace-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin: 0.75rem 0 1rem;
-      }
-
-      .workspace-nav a {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        color: var(--text);
-        background: var(--panel-soft);
-        padding: 0.38rem 0.62rem;
-        text-decoration: none;
-        font-size: 0.88rem;
-      }
-
-      .workspace-nav a[aria-current="page"] {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-
       .subtitle {
         color: var(--muted);
         font-size: 0.95rem;
@@ -78,14 +59,6 @@
         display: grid;
         grid-template-columns: 1.5fr 1fr;
         gap: 1rem;
-      }
-
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 0.9rem;
-        margin-bottom: 1rem;
       }
 
       .columns {
@@ -108,18 +81,6 @@
         margin: 0.4rem 0 0;
         max-height: 240px;
         overflow: auto;
-      }
-
-      .item {
-        border: 1px solid transparent;
-        border-radius: 8px;
-        padding: 0.55rem;
-        margin: 0.35rem 0;
-        cursor: pointer;
-      }
-
-      .item:hover {
-        border-color: var(--accent);
       }
 
       .item-title {
@@ -189,6 +150,11 @@
         <a href="/admin/mealscout-review-queue">MealScout OCR Review</a>
       </nav>
 
+      <div class="operator-task-strip" role="note">
+        <strong>Current task: scan today's command center.</strong>
+        <span>Next: open Drive Review for reconciliation drift, or MealScout OCR Review for intake evidence.</span>
+      </div>
+
       <div class="grid">
         <section class="panel">
           <h2>Merlin Daily</h2>
@@ -252,11 +218,10 @@
           </div>
           <div class="panel">
             <h2>Drive Review Queue</h2>
-            <p class="subtitle" style="margin: 0.4rem 0 0.6rem;">
-              <a href="/admin/drive-review-queue" style="color: var(--accent); text-decoration: none;">Open Drive Review inbox</a>
-              ·
-              <a href="/admin/mealscout-review-queue" style="color: var(--accent); text-decoration: none;">Open MealScout OCR review</a>
-            </p>
+            <div class="operator-link-row">
+              <a class="operator-link" href="/admin/drive-review-queue">Open Drive Review inbox</a>
+              <a class="operator-link" href="/admin/mealscout-review-queue">Open MealScout OCR review</a>
+            </div>
             <ul id="drive-review-list" class="list"></ul>
           </div>
         </section>

@@ -473,6 +473,7 @@ test('merlin daily includes internal admin navigation link to drive review queue
   });
 
   await page.goto('/');
+  await expect(page.getByText("Current task: scan today's command center.")).toBeVisible();
   const link = page.getByRole('link', { name: 'Open Drive Review inbox' });
   await expect(link).toBeVisible();
 });
