@@ -22,6 +22,7 @@ Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove
 
 See `docs/MERLIN_AI_2_0_DOCTRINE.md` for the one-page thesis and language guardrails.
 See `docs/MERLIN_AI_COUNCIL_MISSION_BLUEPRINT.md` for the full mission execution blueprint.
+See `docs/MERLIN_AI_COUNCIL_6_WEEK_EXECUTION_BOARD.md` for the owner-lane execution board, pass/fail gates, and KPI scoreboard.
 
 It is not a chatbot prompt collection. It is the operating contract that decides:
 
