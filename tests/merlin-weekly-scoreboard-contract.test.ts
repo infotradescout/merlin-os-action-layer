@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { after, before, beforeEach, test } from 'node:test';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
@@ -19,6 +22,11 @@ const {
   getMerlinWeeklyScoreboardContract,
   validateMerlinWeeklyScoreboardContract
 } = await import('../src/merlin/weeklyScoreboardContract.ts');
+const {
+  buildMerlinWeeklyScoreboardSnapshotArtifact,
+  weeklyScoreboardArtifactPath,
+  writeMerlinWeeklyScoreboardSnapshotArtifact
+} = await import('../src/merlin/weeklyScoreboardSnapshotArtifact.ts');
 
 let server: Server;
 let baseUrl = '';
@@ -94,4 +102,63 @@ test('weekly scoreboard endpoints expose contract and all KPI slots', async () =
   for (const requiredId of MERLIN_WEEKLY_SCOREBOARD_KPI_IDS) {
     assert.equal(Object.prototype.hasOwnProperty.call(weeklyResponse.body.metrics, requiredId), true, `missing metric slot: ${requiredId}`);
   }
+});
+
+test('weekly scoreboard artifact preserves all KPI slots and unavailable metrics', () => {
+  const artifact = buildMerlinWeeklyScoreboardSnapshotArtifact({
+    weekStart: '2026-06-01T00:00:00.000Z',
+    weekEnd: '2026-06-08T00:00:00.000Z',
+    generatedAt: '2026-06-08T12:00:00.000Z'
+  });
+
+  assert.equal(artifact.generated_at, '2026-06-08T12:00:00.000Z');
+  assert.equal(artifact.mutationAllowed, false);
+  assert.equal(artifact.contractVersion, 'v1');
+  assert.equal(artifact.council_decision, null);
+  assert.equal(artifact.notes, '');
+  assert.equal(Object.keys(artifact.metrics).length, 8);
+  for (const requiredId of MERLIN_WEEKLY_SCOREBOARD_KPI_IDS) {
+    assert.equal(Object.prototype.hasOwnProperty.call(artifact.metrics, requiredId), true, `missing artifact metric: ${requiredId}`);
+  }
+
+  const notImplemented = artifact.metrics.verification_failure_rate;
+  assert.equal(notImplemented.status, 'unavailable');
+  assert.equal(notImplemented.missing_reason, 'source_not_implemented');
+  assert.equal(notImplemented.value, null);
+  assert.equal(notImplemented.numerator, null);
+  assert.equal(notImplemented.denominator, null);
+  assert.equal(notImplemented.sample_size, 0);
+});
+
+test('weekly scoreboard artifact path is deterministic by ISO week', () => {
+  const result = weeklyScoreboardArtifactPath({
+    artifactRoot: 'artifacts/merlin-scoreboard',
+    weekStart: '2026-06-01T00:00:00.000Z'
+  });
+
+  assert.equal(result.weekKey, '2026-23');
+  assert.equal(result.artifactPath, resolve('artifacts/merlin-scoreboard/2026-23/weekly-scoreboard.json'));
+});
+
+test('weekly scoreboard artifact writer does not invent fake KPI values', () => {
+  const artifactRoot = mkdtempSync(resolve(tmpdir(), 'merlin-scoreboard-artifact-'));
+  const result = writeMerlinWeeklyScoreboardSnapshotArtifact({
+    artifactRoot,
+    weekStart: '2026-06-01T00:00:00.000Z',
+    weekEnd: '2026-06-08T00:00:00.000Z',
+    generatedAt: '2026-06-08T12:00:00.000Z'
+  });
+
+  assert.equal(result.weekKey, '2026-23');
+  assert.equal(result.artifactPath, resolve(artifactRoot, '2026-23', 'weekly-scoreboard.json'));
+  assert.equal(existsSync(result.artifactPath), true);
+
+  const written = JSON.parse(readFileSync(result.artifactPath, 'utf8'));
+  assert.equal(written.mutationAllowed, false);
+  assert.equal(written.metrics.loop_completion_rate.status, 'unavailable');
+  assert.equal(written.metrics.loop_completion_rate.missing_reason, 'no_started_loops');
+  assert.equal(written.metrics.loop_completion_rate.value, null);
+  assert.equal(written.metrics.intake_to_action_cycle_time.value, null);
+  assert.equal(written.metrics.approval_turnaround_time.value, null);
+  assert.equal(written.metrics.model_cost_per_completed_loop.missing_reason, 'source_not_implemented');
 });

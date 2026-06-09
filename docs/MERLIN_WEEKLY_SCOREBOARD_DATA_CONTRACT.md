@@ -11,6 +11,26 @@ Authoritative output endpoints:
 
 Contract version: `v1`
 
+## Immutable weekly snapshot artifact
+
+Weekly council review should use saved evidence, not transient API output. Generate the read-only snapshot artifact with:
+
+```bash
+npx tsx scripts/merlin-weekly-scoreboard-snapshot.ts --week-start <ISO> --week-end <ISO>
+```
+
+The process writes:
+
+- `artifacts/merlin-scoreboard/YYYY-WW/weekly-scoreboard.json`
+
+The artifact uses the same contract shape as `GET /api/merlin/scoreboard/weekly` and adds:
+
+- `generated_at`
+- `council_decision: null`
+- `notes: ""`
+
+Unavailable KPI metrics must remain present with their `missing_reason`; the snapshot process must not invent KPI values.
+
 ## Weekly output shape
 
 Each KPI is emitted at:

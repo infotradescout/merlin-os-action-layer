@@ -1,0 +1,103 @@
+{
+  "generated_at": "2026-06-08T12:00:00.000Z",
+  "status": "ok",
+  "mode": "read_only",
+  "mutationAllowed": false,
+  "contractVersion": "v1",
+  "week": {
+    "start": "2026-06-01T00:00:00.000Z",
+    "end": "2026-06-08T00:00:00.000Z"
+  },
+  "metrics": {
+    "loop_completion_rate": {
+      "kpi_id": "loop_completion_rate",
+      "owner_lane": "Product Loop Owner",
+      "value": null,
+      "unit": "ratio",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "no_started_loops"
+    },
+    "intake_to_action_cycle_time": {
+      "kpi_id": "intake_to_action_cycle_time",
+      "owner_lane": "Runtime/Platform Owner",
+      "value": null,
+      "unit": "hours",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "no_linked_samples"
+    },
+    "approval_turnaround_time": {
+      "kpi_id": "approval_turnaround_time",
+      "owner_lane": "Verification/Policy Owner",
+      "value": null,
+      "unit": "hours",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "no_terminal_approvals"
+    },
+    "verification_failure_rate": {
+      "kpi_id": "verification_failure_rate",
+      "owner_lane": "Verification/Policy Owner",
+      "value": null,
+      "unit": "ratio",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "source_not_implemented"
+    },
+    "context_loss_incidents": {
+      "kpi_id": "context_loss_incidents",
+      "owner_lane": "Memory/Knowledge Owner",
+      "value": null,
+      "unit": "count",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "source_not_implemented"
+    },
+    "model_cost_per_completed_loop": {
+      "kpi_id": "model_cost_per_completed_loop",
+      "owner_lane": "Economics Owner",
+      "value": null,
+      "unit": "usd",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "source_not_implemented"
+    },
+    "external_action_failure_rate": {
+      "kpi_id": "external_action_failure_rate",
+      "owner_lane": "Connector Operations Owner",
+      "value": null,
+      "unit": "ratio",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "source_not_implemented"
+    },
+    "operator_override_rate": {
+      "kpi_id": "operator_override_rate",
+      "owner_lane": "Operator Experience Owner",
+      "value": null,
+      "unit": "ratio",
+      "numerator": null,
+      "denominator": null,
+      "sample_size": 0,
+      "status": "unavailable",
+      "missing_reason": "source_not_implemented"
+    }
+  },
+  "council_decision": null,
+  "notes": ""
+}
