@@ -26,6 +26,26 @@
       .wrap { max-width: 1320px; margin: 0 auto; padding: 1rem; }
       h1, h2, h3, h4 { margin: 0; }
       .subtitle { color: var(--muted); font-size: 0.95rem; }
+      .workspace-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.75rem;
+      }
+      .workspace-nav a {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        background: #fff6e8;
+        padding: 0.38rem 0.62rem;
+        text-decoration: none;
+        font-size: 0.88rem;
+      }
+      .workspace-nav a[aria-current="page"] {
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+      }
       .panel {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -105,6 +125,11 @@
       <div class="panel">
         <h1>MealScout OCR Review Queue</h1>
         <p class="subtitle">Preview-only operator station. No auto-merge, no publish, no production mutation.</p>
+        <nav class="workspace-nav" aria-label="Operator workspace">
+          <a href="/">Daily Command Center</a>
+          <a href="/admin/drive-review-queue">Drive Review</a>
+          <a href="/admin/mealscout-review-queue" aria-current="page">MealScout OCR Review</a>
+        </nav>
       </div>
 
       <section class="summary" id="summary-grid"></section>

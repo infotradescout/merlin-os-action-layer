@@ -77,6 +77,10 @@ test('admin review queue page renders operational inbox envelope', async () => {
   const response = await requestText('/admin/drive-review-queue');
   assert.equal(response.status, 200);
   assert.ok(response.body.includes('Drive Review Queue'));
+  assert.ok(response.body.includes('aria-label="Operator workspace"'));
+  assert.ok(response.body.includes('href="/"'));
+  assert.ok(response.body.includes('href="/admin/mealscout-review-queue"'));
+  assert.ok(response.body.includes('aria-current="page">Drive Review'));
   assert.ok(response.body.includes('Auth Health Strip'));
   assert.ok(response.body.includes('Reconciliation Summary'));
   assert.ok(response.body.includes('Decision Audit Trail'));
@@ -89,6 +93,17 @@ test('admin review queue page renders operational inbox envelope', async () => {
   assert.ok(response.body.includes('Mark false positive'));
   assert.ok(response.body.includes('Defer'));
   assert.ok(response.body.includes('Decision History'));
+});
+
+test('main command center links to active operator review surfaces', async () => {
+  const response = await requestText('/');
+  assert.equal(response.status, 200);
+  assert.ok(response.body.includes('aria-label="Operator workspace"'));
+  assert.ok(response.body.includes('aria-current="page">Daily Command Center'));
+  assert.ok(response.body.includes('href="/admin/drive-review-queue"'));
+  assert.ok(response.body.includes('href="/admin/mealscout-review-queue"'));
+  assert.ok(response.body.includes('Open Drive Review inbox'));
+  assert.ok(response.body.includes('Open MealScout OCR review'));
 });
 
 test('admin review queue page does not expose remediation commands', async () => {

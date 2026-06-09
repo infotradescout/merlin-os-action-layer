@@ -47,6 +47,28 @@
         align-items: baseline;
       }
 
+      .workspace-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.75rem 0 0.9rem;
+      }
+
+      .workspace-nav a {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: var(--panel-soft);
+        padding: 0.38rem 0.62rem;
+        text-decoration: none;
+        font-size: 0.88rem;
+      }
+
+      .workspace-nav a[aria-current="page"] {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
       .subtitle {
         color: var(--muted);
         font-size: 0.95rem;
@@ -231,6 +253,12 @@
         <div class="subtitle">Read-only mode · No Drive changes will be made</div>
       </div>
 
+      <nav class="workspace-nav" aria-label="Operator workspace">
+        <a href="/">Daily Command Center</a>
+        <a href="/admin/drive-review-queue" aria-current="page">Drive Review</a>
+        <a href="/admin/mealscout-review-queue">MealScout OCR Review</a>
+      </nav>
+
       <section class="panel">
         <h2>Auth Health Strip</h2>
         <div id="auth-strip" class="strip">Loading Drive auth health...</div>
@@ -286,9 +314,6 @@
             </ul>
             <p id="auth-warning" class="muted-note"></p>
           </div>
-          <p class="subtitle">
-            <a class="inline-link" href="/">Back to main Merlin Daily</a>
-          </p>
         </section>
       </div>
     </div>

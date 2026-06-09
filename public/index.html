@@ -47,6 +47,28 @@
         margin-bottom: 1rem;
       }
 
+      .workspace-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin: 0.75rem 0 1rem;
+      }
+
+      .workspace-nav a {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        background: var(--panel-soft);
+        padding: 0.38rem 0.62rem;
+        text-decoration: none;
+        font-size: 0.88rem;
+      }
+
+      .workspace-nav a[aria-current="page"] {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
       .subtitle {
         color: var(--muted);
         font-size: 0.95rem;
@@ -161,6 +183,12 @@
         <div class="subtitle">v1.0 command center</div>
       </div>
 
+      <nav class="workspace-nav" aria-label="Operator workspace">
+        <a href="/" aria-current="page">Daily Command Center</a>
+        <a href="/admin/drive-review-queue">Drive Review</a>
+        <a href="/admin/mealscout-review-queue">MealScout OCR Review</a>
+      </nav>
+
       <div class="grid">
         <section class="panel">
           <h2>Merlin Daily</h2>
@@ -225,7 +253,9 @@
           <div class="panel">
             <h2>Drive Review Queue</h2>
             <p class="subtitle" style="margin: 0.4rem 0 0.6rem;">
-              <a href="/admin/drive-review-queue" style="color: var(--accent); text-decoration: none;">Open admin operational inbox</a>
+              <a href="/admin/drive-review-queue" style="color: var(--accent); text-decoration: none;">Open Drive Review inbox</a>
+              ·
+              <a href="/admin/mealscout-review-queue" style="color: var(--accent); text-decoration: none;">Open MealScout OCR review</a>
             </p>
             <ul id="drive-review-list" class="list"></ul>
           </div>
