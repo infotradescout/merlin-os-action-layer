@@ -31,6 +31,38 @@ The artifact uses the same contract shape as `GET /api/merlin/scoreboard/weekly`
 
 Unavailable KPI metrics must remain present with their `missing_reason`; the snapshot process must not invent KPI values.
 
+## Immutable council decision record
+
+Create a companion decision artifact after review using the same week evidence:
+
+```bash
+npx tsx scripts/merlin-council-decision-record.ts \
+  --snapshot-path artifacts/merlin-scoreboard/YYYY-WW/weekly-scoreboard.json \
+  --decision pass|fail|deferred \
+  --decided-by "<operator>" \
+  --rationale "<decision rationale>" \
+  --blockers "<comma-separated blockers>"
+```
+
+The process writes:
+
+- `artifacts/merlin-scoreboard/YYYY-WW/council-decision.json`
+
+Required fields:
+
+- `generated_at`
+- `weekKey`
+- `snapshotPath`
+- `decision`
+- `rationale`
+- `blockers`
+- `next_actions`
+- `owner_lane_decisions`
+- `decided_by`
+- `mutationAllowed: false`
+
+The command validates that `snapshotPath` exists before writing so the KPI evidence file is never mutated by the decision process.
+
 ## Weekly output shape
 
 Each KPI is emitted at:

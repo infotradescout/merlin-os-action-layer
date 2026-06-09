@@ -27,6 +27,11 @@ const {
   weeklyScoreboardArtifactPath,
   writeMerlinWeeklyScoreboardSnapshotArtifact
 } = await import('../src/merlin/weeklyScoreboardSnapshotArtifact.ts');
+const {
+  buildMerlinCouncilDecisionArtifact,
+  councilDecisionArtifactPath,
+  writeMerlinCouncilDecisionArtifact
+} = await import('../src/merlin/councilDecisionArtifact.ts');
 
 let server: Server;
 let baseUrl = '';
@@ -161,4 +166,81 @@ test('weekly scoreboard artifact writer does not invent fake KPI values', () => 
   assert.equal(written.metrics.intake_to_action_cycle_time.value, null);
   assert.equal(written.metrics.approval_turnaround_time.value, null);
   assert.equal(written.metrics.model_cost_per_completed_loop.missing_reason, 'source_not_implemented');
+});
+
+test('council decision artifact path is deterministic by week key', () => {
+  const result = councilDecisionArtifactPath({
+    artifactRoot: 'artifacts/merlin-scoreboard',
+    weekKey: '2026-23'
+  });
+
+  assert.equal(result.weekKey, '2026-23');
+  assert.equal(result.artifactPath, resolve('artifacts/merlin-scoreboard/2026-23/council-decision.json'));
+});
+
+test('council decision artifact writer preserves snapshot evidence and writes immutable decision record', () => {
+  const artifactRoot = mkdtempSync(resolve(tmpdir(), 'merlin-scoreboard-council-'));
+  const weeklyResult = writeMerlinWeeklyScoreboardSnapshotArtifact({
+    artifactRoot,
+    weekStart: '2026-06-01T00:00:00.000Z',
+    weekEnd: '2026-06-08T00:00:00.000Z',
+    generatedAt: '2026-06-08T12:00:00.000Z'
+  });
+
+  const before = readFileSync(weeklyResult.artifactPath, 'utf8');
+  const decisionResult = writeMerlinCouncilDecisionArtifact({
+    artifactRoot,
+    snapshotPath: weeklyResult.artifactPath,
+    decision: 'pass',
+    rationale: 'Council approved KPI outcome',
+    blockers: ['External failure rate needs monitoring'],
+    nextActions: ['Track retry strategy'],
+    decidedBy: 'merlin-mission-owner',
+    ownerLaneDecisions: [
+      {
+        owner_lane: 'Verification/Policy Owner',
+        decision: 'pass',
+        rationale: 'No major verification gaps found.'
+      }
+    ],
+    generatedAt: '2026-06-08T13:00:00.000Z'
+  });
+
+  assert.equal(decisionResult.weekKey, '2026-23');
+  assert.equal(decisionResult.artifactPath, resolve(artifactRoot, '2026-23', 'council-decision.json'));
+  assert.equal(decisionResult.artifact.decision, 'pass');
+  assert.equal(decisionResult.artifact.mutationAllowed, false);
+  assert.equal(decisionResult.artifact.snapshotPath, weeklyResult.artifactPath);
+
+  const after = readFileSync(weeklyResult.artifactPath, 'utf8');
+  assert.equal(after, before);
+});
+
+test('council decision artifact rejects invalid decision values', () => {
+  const artifactRoot = mkdtempSync(resolve(tmpdir(), 'merlin-scoreboard-council-'));
+  const weeklyResult = writeMerlinWeeklyScoreboardSnapshotArtifact({
+    artifactRoot,
+    weekStart: '2026-06-01T00:00:00.000Z',
+    weekEnd: '2026-06-08T00:00:00.000Z'
+  });
+
+  assert.throws(
+    () =>
+      writeMerlinCouncilDecisionArtifact({
+        snapshotPath: weeklyResult.artifactPath,
+        decision: 'invalid'
+      }),
+    /invalid_decision/
+  );
+});
+
+test('council decision artifact rejects missing snapshot path', () => {
+  assert.throws(
+    () =>
+      buildMerlinCouncilDecisionArtifact({
+        snapshotPath: '',
+        decision: 'pass'
+      }),
+    /invalid_snapshot_path/
+  );
 });

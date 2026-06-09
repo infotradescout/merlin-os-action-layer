@@ -234,6 +234,7 @@ Use this structure each week:
 - operator override rate: value, delta, status
 - gate decision: pass/fail
 - blocker list: open/closed with owner lane
+- decision artifact: `artifacts/merlin-scoreboard/YYYY-WW/council-decision.json`
 
 ## Non-negotiables
 
