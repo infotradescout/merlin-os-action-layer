@@ -5,15 +5,23 @@
 Merlin is not AI hype.
 Merlin is what comes after AI hype fails.
 
-AI 1.0 gave people answers.
-Merlin gives people action, memory, proof, and continuity.
+Merlin does not replace AI.
+Merlin makes constrained AI usable.
 
-## AI 1.0 crash thesis
+## AI 1.0 reset and scaling-ceiling thesis
 
-AI 1.0 is entering a trust crash.
+AI 1.0 is approaching a reset because the current delivery model is expensive, energy-intensive, compute-constrained, inconsistent for normal users, and too dependent on chat-based human babysitting.
 
 Many products overpromised intelligence and underdelivered usable outcomes.
 People do not need more chat surfaces. They need systems that can receive messy inputs, understand intent, verify facts, route work, execute actions, preserve memory, and prove what happened.
+
+This reset is also a scaling ceiling:
+
+- compute scarcity constrains broad reliable access
+- energy and data center pressure raise the cost of always-on AI delivery
+- normal-user friction remains high because chat systems require constant babysitting
+- context loss breaks continuity between sessions and tasks
+- an access gap persists between premium and normal AI experience
 
 Temporary winners will be backlash narratives because fear sells after overhype.
 Durable winners will be platforms that turn AI from novelty into infrastructure.
@@ -26,7 +34,7 @@ The shift is not better chatbot UX. The shift is an operating-layer transition:
 
 AI as chatbot -> AI as action layer.
 
-Merlin is the coordination layer for work, memory, intake, action, and proof.
+Merlin is the coordination layer for work, memory, intake, action, and proof-backed execution.
 
 Merlin is not:
 
@@ -46,11 +54,11 @@ Merlin is:
 - continuity
 
 AI 1.0 answered questions.
-Merlin completes loops.
+Merlin completes loops and makes constrained AI usable.
 
 ## Product spine
 
-Input -> Understand -> Verify -> Route -> Act -> Prove -> Remember
+Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove
 
 This sequence is the product spine for operator-facing language and runtime behavior.
 

@@ -11,12 +11,14 @@ The Merlin OS Action Layer turns trusted business intent into safe, auditable ac
 Merlin is not AI hype.
 Merlin is what comes after AI hype fails.
 
-AI 1.0 gave people answers.
-Merlin gives people action, memory, proof, and continuity.
+Merlin does not replace AI.
+Merlin makes constrained AI usable.
+
+AI 1.0 is approaching a reset because delivery is expensive, energy-intensive, compute-constrained, and still too dependent on chat babysitting for normal users.
 
 Core spine:
 
-Input -> Understand -> Verify -> Route -> Act -> Prove -> Remember
+Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove
 
 See `docs/MERLIN_AI_2_0_DOCTRINE.md` for the one-page thesis and language guardrails.
 

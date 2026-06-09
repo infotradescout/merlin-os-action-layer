@@ -105,8 +105,8 @@ test('main command center links to active operator review surfaces', async () =>
   assert.ok(response.body.includes('aria-label="Operator workspace"'));
   assert.ok(response.body.includes('aria-current="page">Daily Command Center'));
   assert.ok(response.body.includes('Merlin is not AI hype. Merlin is what comes after AI hype fails.'));
-  assert.ok(response.body.includes('AI 1.0 gave people answers. Merlin gives people action, memory, proof, and continuity.'));
-  assert.ok(response.body.includes('Input -> Understand -> Verify -> Route -> Act -> Prove -> Remember'));
+  assert.ok(response.body.includes('Merlin does not replace AI. Merlin makes constrained AI usable with proof-backed execution.'));
+  assert.ok(response.body.includes('Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove'));
   assert.ok(response.body.includes('Current task: scan today'));
   assert.ok(response.body.includes('operator-link'));
   assert.ok(response.body.includes('href="/admin/drive-review-queue"'));
