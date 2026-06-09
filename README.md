@@ -24,6 +24,7 @@ See `docs/MERLIN_AI_2_0_DOCTRINE.md` for the one-page thesis and language guardr
 See `docs/MERLIN_AI_COUNCIL_MISSION_BLUEPRINT.md` for the full mission execution blueprint.
 See `docs/MERLIN_AI_COUNCIL_6_WEEK_EXECUTION_BOARD.md` for the owner-lane execution board, pass/fail gates, and KPI scoreboard.
 See `docs/MERLIN_WEEKLY_SCOREBOARD_DATA_CONTRACT.md` for the weekly KPI data-source contract and authoritative query/output paths.
+See `docs/MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md` for the mandatory Project Flight Plan doctrine and anti-drift execution flow.
 
 It is not a chatbot prompt collection. It is the operating contract that decides:
 
