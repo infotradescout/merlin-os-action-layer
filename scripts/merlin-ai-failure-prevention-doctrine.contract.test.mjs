@@ -6,16 +6,19 @@ const docPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_AI_FAILURE_PREVENT
 const handoffDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md');
 const flightPlanDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md');
 const contextReuseDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_CONTEXT_AND_REUSE_DOCTRINE.md');
+const failureTaxonomyDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_AI_FAILURE_TAXONOMY_AND_PREVENTION_GATES.md');
 
 assert.equal(existsSync(docPath), true, 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md must exist');
 assert.equal(existsSync(handoffDocPath), true, 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md must exist');
 assert.equal(existsSync(flightPlanDocPath), true, 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md must exist');
 assert.equal(existsSync(contextReuseDocPath), true, 'MERLIN_CONTEXT_AND_REUSE_DOCTRINE.md must exist');
+assert.equal(existsSync(failureTaxonomyDocPath), true, 'MERLIN_AI_FAILURE_TAXONOMY_AND_PREVENTION_GATES.md must exist');
 
 const doctrine = readFileSync(docPath, 'utf8');
 const handoffDoc = readFileSync(handoffDocPath, 'utf8');
 const flightPlanDoc = readFileSync(flightPlanDocPath, 'utf8');
 const contextReuseDoc = readFileSync(contextReuseDocPath, 'utf8');
+const failureTaxonomyDoc = readFileSync(failureTaxonomyDocPath, 'utf8');
 
 function escapeForRegex(input) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -109,6 +112,42 @@ const contextReusePatterns = [
 
 for (const pattern of contextReusePatterns) {
   assert.match(contextReuseDoc, pattern, `Required context and reuse doctrine text missing: ${pattern}`);
+}
+
+const failureTaxonomyPatterns = [
+  /## 1\. Project Reality Gate/i,
+  /## 2\. Brand \/ Market Scope Firewall/i,
+  /## 3\. Priority Lock/i,
+  /## 4\. Motive \/ Intent \/ Expectation Gate/i,
+  /## 5\. Existing-System Scan Requirement/i,
+  /## 6\. Complexity Budget/i,
+  /## 7\. Done Means Proven/i,
+  /## 8\. Evidence Quality Ladder/i,
+  /## 9\. Assumption Ledger/i,
+  /## 10\. Time-Gap Awareness/i,
+  /## 11\. Context Decay Detection/i,
+  /## 12\. Revert \/ Disable \/ Isolation Gate/i,
+  /## 13\. Natural-Language Component Drop-In/i,
+  /## 14\. Screenshot Is Not Source/i,
+  /## 15\. Operator Burden Reduction/i,
+  /## 16\. Cross-Repo Coordination Ledger/i,
+  /## 17\. No Endless World Rule/i,
+  /## 18\. Failure Taxonomy/i,
+  /Active project/i,
+  /reuse → extend → create new only with justification/i,
+  /Function warning: 80 lines/i,
+  /Never allow 12,000-line files/i,
+  /Built \+ wired \+ tested \+ validated \+ evidence returned/i,
+  /Merlin must not act like no time has passed/i,
+  /Stale or contradicted/i,
+  /No safe revert/i,
+  /Screenshots are reference and visual proof only/i,
+  /cannot authorize new work/i,
+  /control mapping and enforcement/i
+];
+
+for (const pattern of failureTaxonomyPatterns) {
+  assert.match(failureTaxonomyDoc, pattern, `Required AI failure taxonomy requirement missing: ${pattern}`);
 }
 
 const handoffPatterns = [
