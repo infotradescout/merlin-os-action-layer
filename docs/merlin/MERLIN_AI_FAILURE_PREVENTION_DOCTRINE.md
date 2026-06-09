@@ -106,6 +106,7 @@ Codex must always include:
 - unfinished items
 - commit message
 - next slice
+- enable / disable / revert summary
 
 ### 7) No fake progress
 
@@ -191,6 +192,35 @@ The following requirements must be contract-checked in automation:
 - screen-level packet contract language is present
 - evidence/gating language is present
 - no forbidden progress claims in scope definitions
+
+### 14) Easy On / Off / Revert
+
+Every AI-built change must have an easy on/off switch and a clean revert path.
+
+No slice is complete unless it includes:
+
+- feature flag or config gate when applicable
+- enable instructions
+- disable instructions
+- rollback instructions
+- files changed
+- database migration rollback plan if applicable
+- deployment rollback plan if applicable
+- safe-disable behavior
+- user impact if disabled
+- validation after revert
+- what data cannot be reverted
+
+Merlin must block risky changes that cannot be safely disabled, reverted, or isolated.
+
+Codex return packets must include:
+
+- how to enable it
+- how to disable it
+- how to revert it
+- what breaks if reverted
+- what data, if any, cannot be reverted
+- validation after revert
 
 ## Doctrine enforcement checklist
 

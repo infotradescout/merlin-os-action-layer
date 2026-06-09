@@ -3,9 +3,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const docPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md');
-assert.equal(existsSync(docPath), true, 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md must exist');
+const handoffDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md');
+const flightPlanDocPath = join(process.cwd(), 'docs', 'merlin', 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md');
 
-const doc = readFileSync(docPath, 'utf8');
+assert.equal(existsSync(docPath), true, 'MERLIN_AI_FAILURE_PREVENTION_DOCTRINE.md must exist');
+assert.equal(existsSync(handoffDocPath), true, 'MERLIN_APP_BUILDER_CODEX_HANDOFF_CONTRACT.md must exist');
+assert.equal(existsSync(flightPlanDocPath), true, 'MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md must exist');
+
+const doctrine = readFileSync(docPath, 'utf8');
+const handoffDoc = readFileSync(handoffDocPath, 'utf8');
+const flightPlanDoc = readFileSync(flightPlanDocPath, 'utf8');
 
 function escapeForRegex(input) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -25,17 +32,18 @@ const requiredSections = [
   '10) Human + Council authority model',
   '11) Built-in drift prevention',
   '12) Route first through Design Source Packet for UI',
-  '13) Mandatory contract checks'
+  '13) Mandatory contract checks',
+  '14) Easy On / Off / Revert'
 ];
 
 for (const section of requiredSections) {
   const pattern = section.startsWith('1)')
     ? new RegExp(`### ${escapeForRegex(section)}`)
     : new RegExp(`## ${escapeForRegex(section)}`);
-  assert.match(doc, pattern, `Missing required section: ${section}`);
+  assert.match(doctrine, pattern, `Missing required section: ${section}`);
 }
 
-const requiredPatterns = [
+const doctrinePatterns = [
   /Every function, file, component, route, schema, and test/,
   /No AI output is considered complete unless it is:/,
   /Soft warning at \*\*400 lines\*\*/,
@@ -62,11 +70,55 @@ const requiredPatterns = [
   /known risks/,
   /unfinished items/,
   /commit message/,
-  /next slice/
+  /next slice/,
+  /enable \/ disable \/ revert summary/i,
+  /Every AI-built change must have an easy on\/off switch and a clean revert path/i,
+  /Feature flag or config gate when applicable/i,
+  /Enable instructions/i,
+  /Disable instructions/i,
+  /Rollback instructions/i,
+  /Safe-disable behavior/i,
+  /Validation after revert/i,
+  /What data cannot be reverted/i,
+  /What breaks if reverted/i
 ];
 
-for (const pattern of requiredPatterns) {
-  assert.match(doc, pattern, `Required doctrine text missing: ${pattern}`);
+for (const pattern of doctrinePatterns) {
+  assert.match(doctrine, pattern, `Required doctrine text missing: ${pattern}`);
+}
+
+const handoffPatterns = [
+  /Enable \/ Disable \/ Revert Contract/i,
+  /Enable Instructions/i,
+  /Disable Instructions/i,
+  /Revert Instructions/i,
+  /Safe-disable behavior/i,
+  /Validation after revert/i,
+  /What data cannot be reverted/i,
+  /Data Non-revertibility Notes/i,
+  /Migration rollback requirements/i,
+  /Deployment rollback requirements/i
+];
+
+for (const pattern of handoffPatterns) {
+  assert.match(handoffDoc, pattern, `Missing codex handoff contract requirement: ${pattern}`);
+}
+
+const flightPlanPatterns = [
+  /14\. Revert \/ Disable Strategy/i,
+  /Enable instructions/i,
+  /Disable instructions/i,
+  /Revert instructions/i,
+  /Safe-disable behavior/i,
+  /Validation after revert/i,
+  /Rollback\/disable route documented/i,
+  /Migration rollback requirements reviewed when applicable/i,
+  /Deployment rollback requirements reviewed when applicable/i,
+  /Feature flag or config gate when applicable/i
+];
+
+for (const pattern of flightPlanPatterns) {
+  assert.match(flightPlanDoc, pattern, `Missing Flight Plan doctrine requirement: ${pattern}`);
 }
 
 console.log('Merlin AI failure prevention doctrine contract passed');

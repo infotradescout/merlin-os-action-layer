@@ -31,6 +31,7 @@ Every Project Flight Plan must include:
 11. Council Review Points
 12. Launch Checklist
 13. Scale Checklist
+14. Revert / Disable Strategy
 
 ## Canonical Project Journey
 
@@ -211,6 +212,13 @@ Each task must include:
 - Forbidden changes
 - Acceptance criteria
 - Validation commands
+- Feature flag or config gate when applicable
+- Enable instructions
+- Disable instructions
+- Revert instructions
+- Safe-disable behavior
+- User impact if disabled
+- Validation after revert
 - Rollback risk
 - Expected user-visible outcome
 
@@ -254,6 +262,10 @@ Minimum launch checklist:
 - Public copy reviewed
 - Admin/review path available when needed
 - Rollback plan defined
+- Rollback/disable route documented
+- Migration rollback requirements reviewed when applicable
+- Deployment rollback requirements reviewed when applicable
+- Validation after revert
 - Launch decision approved
 
 ## Scale Checklist

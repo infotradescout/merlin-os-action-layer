@@ -71,6 +71,11 @@ Forbidden Changes
 Acceptance Criteria
 Validation Commands
 Rollback Risk
+Enable Instructions
+Disable Instructions
+Revert Instructions
+Data Non-revertibility Notes
+Safe-disable behavior
 Expected User-Visible Outcome
 Commit Message
 PR Summary
@@ -85,12 +90,33 @@ Files Changed
 Implementation Summary
 Validation Commands Run
 Validation Results
+Enable Instructions
+Disable Instructions
+Revert Instructions
+What breaks if reverted
+What data cannot be reverted
+Validation after revert
 Known Risks
 Unresolved Questions
 Commit SHA
 PR Link or PR Summary
 Next Recommended Slice
 ```
+
+## Enable / Disable / Revert Contract
+
+Every accepted slice must define:
+
+- Feature flag or config gate when applicable
+- How to enable the change
+- How to disable the change
+- How to revert the change
+- Safe-disable behavior
+- User impact if disabled
+- Validation steps after revert
+- Migration rollback requirements when applicable
+- Deployment rollback requirements when applicable
+- Data that cannot be reverted
 
 ## Approval Boundaries
 
