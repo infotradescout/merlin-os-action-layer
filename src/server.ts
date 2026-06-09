@@ -191,6 +191,7 @@ import { handleMerlinConnectorAdapterRoute } from './merlin/routes/merlinConnect
 import { handleMerlinDryRunExecutorRoute } from './merlin/routes/merlinDryRunExecutorRoutes.js';
 import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveExecutionGateRoutes.js';
 import { handleMerlinWorkspaceRoute } from './merlin/routes/merlinWorkspaceRoutes.js';
+import { handleMerlinScoreboardRoute } from './merlin/routes/merlinScoreboardRoutes.js';
 
 loadEnvFromDotFile();
 
@@ -1667,6 +1668,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
   if (pathname.startsWith('/api/merlin/operator-console')) {
     const handled = await handleMerlinOperatorConsoleRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/scoreboard')) {
+    const handled = await handleMerlinScoreboardRoute(req, res, pathname);
     if (handled) return;
   }
   if (pathname.startsWith('/api/merlin/approvals') || pathname.match(/^\/api\/merlin\/action-cards\/[^/]+\/approval-state$/)) {

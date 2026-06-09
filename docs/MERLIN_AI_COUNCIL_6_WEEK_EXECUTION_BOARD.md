@@ -43,6 +43,10 @@ Merlin makes constrained AI usable through action loops, memory, proof, and gove
 
 Track all KPIs every week. Red requires corrective action before expanding scope.
 
+Authoritative KPI data-source contract:
+
+- `docs/MERLIN_WEEKLY_SCOREBOARD_DATA_CONTRACT.md`
+
 ### KPI definitions
 
 - loop completion rate: completed loops / started loops.
