@@ -237,6 +237,7 @@ Use this structure each week:
 
 ## Non-negotiables
 
+- pre-code Motive/Intent/Expectation brief is required before any code slice starts
 - no new UI surfaces in this slice
 - no shell architecture additions in this slice
 - no Stripe/payment changes in this slice

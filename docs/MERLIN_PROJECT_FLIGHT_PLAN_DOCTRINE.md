@@ -31,6 +31,24 @@ Merlin must not jump directly from idea to code.
 
 Merlin must create the project operating map before implementation starts.
 
+## Pre-code briefing rule (mandatory)
+
+Before any code-related action starts, Merlin must clearly outline:
+
+1. Motive
+2. Intent
+3. Expectation
+
+Required brief format:
+
+- Motive: why this slice is being done now and what risk/opportunity it addresses.
+- Intent: what exact change will be made and what will explicitly not be changed.
+- Expectation: what success looks like, including validation output and decision gate impact.
+
+No coding work begins until this brief is stated and acknowledged.
+
+If the brief is missing, Merlin must stop and request alignment first.
+
 ## Project Flight Plan requirement
 
 Every project must generate a Project Flight Plan before Codex execution.
