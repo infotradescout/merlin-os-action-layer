@@ -1,5 +1,29 @@
 import type { RoutingDecision, UploadIntent, UploadIntentFileRef } from './intakeTypes.js';
 
+type RoutableType = Exclude<RoutingDecision['routedType'], 'held' | 'unknown'>;
+
+const ACTION_EXPECTED_ROUTES: Record<string, RoutableType[]> = {
+  update_menu: ['menu'],
+  update_schedule: ['schedule'],
+  upload_logo: ['logo'],
+  add_food_photos: ['photo'],
+  attach_menu_evidence: ['menu'],
+  attach_schedule_evidence: ['schedule'],
+  attach_logo_media: ['logo'],
+  add_event_flyer: ['photo'],
+  attach_event_flyer: ['photo'],
+  update_hours: ['schedule'],
+  update_location: ['photo'],
+  update_contact_info: ['photo', 'document']
+};
+
+const ACTION_ROUTE_CONFIDENCE_BONUS = 0.2;
+const MIN_EXPECTED_DESTINATION_CONFIDENCE = 0.8;
+
+function isRoutableType(routedType: RoutingDecision['routedType']): routedType is RoutableType {
+  return routedType !== 'held' && routedType !== 'unknown';
+}
+
 function classifyBase(file: UploadIntentFileRef): RoutingDecision {
   const name = (file.fileName || '').toLowerCase();
   const text = (file.extractedText || '').toLowerCase();
@@ -8,12 +32,27 @@ function classifyBase(file: UploadIntentFileRef): RoutingDecision {
   let routedType: RoutingDecision['routedType'] = 'unknown';
   let confidence = 0.2;
 
-  const menuSignal = /menu|combo|wings|plate|special|price|fries|burger|taco/.test(name) || /\$\s?\d|\b\d+\.\d{2}\b|menu|combo|wings|plate|taco/.test(text);
+  const menuSignal = /menu|special|price/.test(name) || /\$\s?\d|\b\d+\.\d{2}\b|menu|combo|wings|plate|taco/.test(text);
   const scheduleSignal = /schedule|hours|open|closed|today|monday|tuesday|wednesday|thursday|friday|saturday|sunday|event/.test(name) ||
     /\b(mon|tue|wed|thu|fri|sat|sun)\b|hours|open|closed|\d{1,2}:\d{2}\s?(am|pm)/.test(text);
   const logoSignal = /logo|fb_img|avatar|profile[_ -]?pic/.test(name) || /logo/.test(text);
   const photoSignal = mime.startsWith('image/') && text.trim().length < 16;
   const docSignal = mime === 'application/pdf' || /\.pdf$/i.test(file.fileName || '');
+  const contentSignalNames: Array<'menu' | 'schedule' | 'logo'> = [];
+
+  if (menuSignal) contentSignalNames.push('menu');
+  if (scheduleSignal) contentSignalNames.push('schedule');
+  if (logoSignal) contentSignalNames.push('logo');
+
+  if (contentSignalNames.length > 1) {
+    return {
+      ...file,
+      routedType: 'held',
+      confidence: 0.55,
+      reasons: contentSignalNames.map((signal) => `${signal}_signal_detected`).concat('competing_destination_signals'),
+      holdReason: 'ambiguous'
+    };
+  }
 
   if (menuSignal) {
     routedType = 'menu';
@@ -37,8 +76,11 @@ function classifyBase(file: UploadIntentFileRef): RoutingDecision {
     reasons.push('document_signal_detected');
   }
 
-  if (confidence < 0.6 || routedType === 'unknown') {
-    return { ...file, routedType: 'held', confidence, reasons: reasons.length ? reasons : ['ambiguous_file_intent'], holdReason: 'ambiguous' };
+  if (routedType === 'unknown') {
+    return { ...file, routedType: 'held', confidence, reasons: ['no_destination_signal_detected'], holdReason: 'insufficient_evidence' };
+  }
+  if (confidence < 0.6) {
+    return { ...file, routedType: 'held', confidence, reasons: reasons.concat('low_base_confidence'), holdReason: 'insufficient_evidence' };
   }
   return { ...file, routedType, confidence, reasons };
 }
@@ -49,38 +91,34 @@ export function routeUploadIntentFiles(intent: UploadIntent): RoutingDecision[] 
     const text = (file.extractedText || '').toLowerCase();
     const actionId = intent.actionId;
     let biased = routed;
+    const expectedRoutings = ACTION_EXPECTED_ROUTES[actionId];
 
-    if (actionId === 'update_menu' && biased.routedType === 'menu') {
+    if (expectedRoutings && isRoutableType(biased.routedType) && expectedRoutings.includes(biased.routedType)) {
       biased = {
         ...biased,
-        confidence: Math.min(0.98, biased.confidence + 0.2),
-        reasons: biased.reasons.concat('action_bias_update_menu')
-      };
-    } else if (actionId === 'update_schedule' && biased.routedType === 'schedule') {
-      biased = {
-        ...biased,
-        confidence: Math.min(0.98, biased.confidence + 0.2),
-        reasons: biased.reasons.concat('action_bias_update_schedule')
-      };
-    } else if (actionId === 'upload_logo' && biased.routedType === 'logo') {
-      biased = {
-        ...biased,
-        confidence: Math.min(0.98, biased.confidence + 0.2),
-        reasons: biased.reasons.concat('action_bias_upload_logo')
-      };
-    } else if (actionId === 'add_food_photos' && biased.routedType === 'photo') {
-      biased = {
-        ...biased,
-        confidence: Math.min(0.98, biased.confidence + 0.2),
-        reasons: biased.reasons.concat('action_bias_add_food_photos')
+        confidence: Math.min(0.98, biased.confidence + ACTION_ROUTE_CONFIDENCE_BONUS),
+        reasons: biased.reasons.concat(`action_bias_${actionId}`)
       };
     }
 
     if (intent.brand === 'MEALSCOUT' && /warranty|permit|invoice|contractor|home id/.test(text)) {
       return { ...biased, routedType: 'held', holdReason: 'AMBIGUOUS_OR_WRONG_DOMAIN', reasons: biased.reasons.concat('ambiguous_or_wrong_domain') };
     }
-    if ((actionId === 'update_menu' && biased.routedType === 'schedule') || (actionId === 'update_schedule' && biased.routedType === 'menu')) {
-      return { ...biased, routedType: 'held', holdReason: 'INTENT_EVIDENCE_CONFLICT', reasons: biased.reasons.concat('intent_evidence_conflict') };
+    if (expectedRoutings && isRoutableType(biased.routedType) && !expectedRoutings.includes(biased.routedType)) {
+      return {
+        ...biased,
+        routedType: 'held',
+        holdReason: 'INTENT_EVIDENCE_CONFLICT',
+        reasons: biased.reasons.concat(`expected_route_${expectedRoutings.join('_or_')}`, 'intent_destination_mismatch')
+      };
+    }
+    if (expectedRoutings && biased.routedType !== 'held' && biased.confidence < MIN_EXPECTED_DESTINATION_CONFIDENCE) {
+      return {
+        ...biased,
+        routedType: 'held',
+        holdReason: 'insufficient_evidence',
+        reasons: biased.reasons.concat('low_destination_confidence', `minimum_destination_confidence_${MIN_EXPECTED_DESTINATION_CONFIDENCE}`)
+      };
     }
     return biased;
   });
