@@ -14,6 +14,8 @@ export type MerlinIntakeStatus =
   | 'ERROR';
 export type MerlinImplementationMode = 'draft_only' | 'approval_required' | 'admin_review_required';
 export type MerlinRiskLevel = 'low' | 'medium' | 'high';
+export type MerlinRoutedDestination = 'menu' | 'schedule' | 'logo' | 'photo' | 'document';
+export type MerlinRoutingOperatorAction = 'approve_route' | 'change_destination' | 'request_more_info' | 'reject_upload' | 'defer';
 
 export type IntentActionDefinition = {
   actionId: string;
@@ -44,10 +46,35 @@ export type UploadIntentFileRef = {
 };
 
 export type RoutingDecision = UploadIntentFileRef & {
-  routedType: 'menu' | 'schedule' | 'logo' | 'photo' | 'document' | 'unknown' | 'held';
+  routedType: MerlinRoutedDestination | 'unknown' | 'held';
+  proposedDestination?: MerlinRoutedDestination;
   confidence: number;
   reasons: string[];
   holdReason?: 'ambiguous' | 'unrelated' | 'insufficient_evidence' | 'INTENT_EVIDENCE_CONFLICT' | 'AMBIGUOUS_OR_WRONG_DOMAIN';
+};
+
+export type HeldRoutingReviewPacket = {
+  packetId: string;
+  uploadId: string;
+  fileId: string;
+  fileName?: string;
+  declaredIntent: {
+    brand: MerlinBrand;
+    actionId: string;
+    actorScope: MerlinActorScope;
+    entityType: MerlinEntityType;
+    entityId?: string;
+  };
+  detectedEvidenceSignals: string[];
+  proposedDestination?: MerlinRoutedDestination;
+  holdReason: NonNullable<RoutingDecision['holdReason']>;
+  confidence: {
+    score: number;
+    reasons: string[];
+  };
+  operatorActionOptions: MerlinRoutingOperatorAction[];
+  mutationAllowed: false;
+  implementationAllowed: false;
 };
 
 export type PreviewPacket = {

@@ -1,8 +1,6 @@
-import type { RoutingDecision, UploadIntent, UploadIntentFileRef } from './intakeTypes.js';
+import type { MerlinRoutedDestination, RoutingDecision, UploadIntent, UploadIntentFileRef } from './intakeTypes.js';
 
-type RoutableType = Exclude<RoutingDecision['routedType'], 'held' | 'unknown'>;
-
-const ACTION_EXPECTED_ROUTES: Record<string, RoutableType[]> = {
+const ACTION_EXPECTED_ROUTES: Record<string, MerlinRoutedDestination[]> = {
   update_menu: ['menu'],
   update_schedule: ['schedule'],
   upload_logo: ['logo'],
@@ -20,7 +18,7 @@ const ACTION_EXPECTED_ROUTES: Record<string, RoutableType[]> = {
 const ACTION_ROUTE_CONFIDENCE_BONUS = 0.2;
 const MIN_EXPECTED_DESTINATION_CONFIDENCE = 0.8;
 
-function isRoutableType(routedType: RoutingDecision['routedType']): routedType is RoutableType {
+function isRoutableType(routedType: RoutingDecision['routedType']): routedType is MerlinRoutedDestination {
   return routedType !== 'held' && routedType !== 'unknown';
 }
 
@@ -102,19 +100,27 @@ export function routeUploadIntentFiles(intent: UploadIntent): RoutingDecision[] 
     }
 
     if (intent.brand === 'MEALSCOUT' && /warranty|permit|invoice|contractor|home id/.test(text)) {
-      return { ...biased, routedType: 'held', holdReason: 'AMBIGUOUS_OR_WRONG_DOMAIN', reasons: biased.reasons.concat('ambiguous_or_wrong_domain') };
+      return {
+        ...biased,
+        proposedDestination: isRoutableType(biased.routedType) ? biased.routedType : biased.proposedDestination,
+        routedType: 'held',
+        holdReason: 'AMBIGUOUS_OR_WRONG_DOMAIN',
+        reasons: biased.reasons.concat('ambiguous_or_wrong_domain')
+      };
     }
     if (expectedRoutings && isRoutableType(biased.routedType) && !expectedRoutings.includes(biased.routedType)) {
       return {
         ...biased,
+        proposedDestination: biased.routedType,
         routedType: 'held',
         holdReason: 'INTENT_EVIDENCE_CONFLICT',
         reasons: biased.reasons.concat(`expected_route_${expectedRoutings.join('_or_')}`, 'intent_destination_mismatch')
       };
     }
-    if (expectedRoutings && biased.routedType !== 'held' && biased.confidence < MIN_EXPECTED_DESTINATION_CONFIDENCE) {
+    if (expectedRoutings && isRoutableType(biased.routedType) && biased.confidence < MIN_EXPECTED_DESTINATION_CONFIDENCE) {
       return {
         ...biased,
+        proposedDestination: biased.routedType,
         routedType: 'held',
         holdReason: 'insufficient_evidence',
         reasons: biased.reasons.concat('low_destination_confidence', `minimum_destination_confidence_${MIN_EXPECTED_DESTINATION_CONFIDENCE}`)

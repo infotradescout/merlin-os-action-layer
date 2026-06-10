@@ -84,6 +84,7 @@ test('routeUploadIntentFiles blocks clear destination mismatch for explicit menu
   const routed = routeUploadIntentFiles(intent);
   assert.equal(routed[0].routedType, 'held');
   assert.equal(routed[0].holdReason, 'INTENT_EVIDENCE_CONFLICT');
+  assert.equal(routed[0].proposedDestination, 'schedule');
   assert.equal(routed[0].reasons.includes('intent_destination_mismatch'), true);
 });
 
@@ -102,6 +103,7 @@ test('routeUploadIntentFiles requires confidence for destination-specific action
   const routed = routeUploadIntentFiles(intent);
   assert.equal(routed[0].routedType, 'held');
   assert.equal(routed[0].holdReason, 'INTENT_EVIDENCE_CONFLICT');
+  assert.equal(routed[0].proposedDestination, 'menu');
   assert.equal(routed[0].reasons.includes('intent_destination_mismatch'), true);
   assert.equal(routed[0].reasons.includes('expected_route_logo'), true);
 });
