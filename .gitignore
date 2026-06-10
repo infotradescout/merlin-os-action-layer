@@ -5,3 +5,4 @@ data/
 tmp-dev-*.log
 .env
 .env.local
+.artifact-quarantine/

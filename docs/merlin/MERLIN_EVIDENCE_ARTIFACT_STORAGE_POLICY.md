@@ -51,7 +51,19 @@ Every raw artifact must have:
 - hash or checksum
 - a canonical repo summary path
 
-## Required raw artifact exception register
+## Required raw artifact quarantine register
+
+The following raw artifacts have been quarantined and replaced in repo by pointer
+records at their original paths. The canonical pointer index is:
+
+- `artifacts/quarantine/raw-artifact-pointer-index.json`
+
+Quarantined raw payloads are retained outside tracked source under:
+
+- `.artifact-quarantine/raw-evidence/`
+
+This local quarantine is intentionally ignored by git until an external Drive or
+object-storage destination is attached.
 
 Quarantine is required for at least:
 
@@ -68,7 +80,19 @@ Quarantine is required for at least:
 - `artifacts/mealscout-menu-artifact-classification/menu-review-required.json` (2,123 lines)
 - `artifacts/mealscout-menu-artifact-classification/menu-review-required.csv` (1,389 lines)
 
-These must be represented by a small, deterministic in-repo summary and an external storage pointer in a future pass.
+The same enforcement also pointerizes oversized root-level batch or preview
+artifacts, including:
+
+- `pilot7o-truck1-preview.json`
+- `pilot7p-preview-check.json`
+- `truck1-full-preview-attributed.json`
+- `truck1-full-preview.json`
+- `truck2-preview.json`
+- `truck2-recovery-file-audit.json`
+
+Each pointer record must preserve the original path, quarantine path, SHA-256,
+byte size, line count, generation timestamp, pointer index path, and
+`mutationAllowed: false`.
 
 ## Enforcement gates
 
@@ -77,3 +101,7 @@ Merlin governance must enforce:
 - no source artifact payload above Tier 2 thresholds remains untracked in core source paths
 - no new raw evidence dump in `artifacts/` without a registered index entry
 - explicit migration path before large-file accumulation is accepted again
+
+The deterministic enforcement gate is:
+
+- `scripts/merlin-artifact-quarantine-enforcement.contract.test.mjs`
