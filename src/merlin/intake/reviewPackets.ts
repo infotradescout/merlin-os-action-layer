@@ -2,6 +2,7 @@ import type {
   HeldRoutingApplyEligibility,
   HeldRoutingDecisionStatus,
   HeldRoutingExplicitApplyApproval,
+  HeldRoutingFinalExecutorPreview,
   HeldRoutingOperatorDecision,
   HeldRoutingReviewPacket,
   MerlinRoutedDestination,
@@ -47,6 +48,10 @@ type HeldRoutingExplicitApplyApprovalInput = {
   approvalId?: string;
   operatorId?: string;
   approvedAt: string;
+};
+
+type HeldRoutingFinalExecutorPreviewInput = {
+  previewId?: string;
 };
 
 function detectedEvidenceSignals(row: RoutingDecision): string[] {
@@ -121,6 +126,35 @@ function explicitApplyApproval(input: {
     mutationAllowed: false,
     implementationAllowed: false
   };
+}
+
+function finalExecutorPreview(input: {
+  previewId: string;
+  packet: HeldRoutingReviewPacket;
+  decision: HeldRoutingOperatorDecision;
+  approval: HeldRoutingExplicitApplyApproval;
+  readyForFinalExecutor: boolean;
+  reason: HeldRoutingFinalExecutorPreview['reason'];
+  resolvedDestination?: MerlinRoutedDestination;
+}): HeldRoutingFinalExecutorPreview {
+  return {
+    previewId: input.previewId,
+    packetId: input.packet.packetId,
+    decisionId: input.decision.decisionId,
+    approvalId: input.approval.approvalId,
+    resolvedDestination: input.resolvedDestination,
+    readyForFinalExecutor: input.readyForFinalExecutor,
+    reason: input.reason,
+    requiresFinalExecution: true,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false
+  };
+}
+
+function hasExecutionAllowedTrue(record: unknown): boolean {
+  if (!record || typeof record !== 'object') return false;
+  return (record as { executionAllowed?: boolean }).executionAllowed === true;
 }
 
 function decisionIdFor(input: {
@@ -427,5 +461,165 @@ export function createHeldRoutingExplicitApplyApproval(
     resolvedDestination: eligibilityRecord.resolvedDestination,
     applyApproved: true,
     reason: 'explicit_apply_approval_recorded'
+  });
+}
+
+export function createHeldRoutingFinalExecutorPreview(
+  packet: HeldRoutingReviewPacket,
+  decisionRecord: HeldRoutingOperatorDecision,
+  eligibilityRecord: HeldRoutingApplyEligibility,
+  approvalRecord: HeldRoutingExplicitApplyApproval,
+  input: HeldRoutingFinalExecutorPreviewInput
+): HeldRoutingFinalExecutorPreview {
+  const previewId = input.previewId?.trim() || '';
+
+  if (!previewId) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'missing_preview_id'
+    });
+  }
+  if (decisionRecord.packetId !== packet.packetId || eligibilityRecord.packetId !== packet.packetId || approvalRecord.packetId !== packet.packetId) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'packet_mismatch'
+    });
+  }
+  if (!decisionRecord.decisionId?.trim() || decisionRecord.decisionId !== eligibilityRecord.decisionId || decisionRecord.decisionId !== approvalRecord.decisionId) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'decision_mismatch'
+    });
+  }
+  if (!approvalRecord.approvalId?.trim()) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'approval_mismatch'
+    });
+  }
+  if (eligibilityRecord.applyEligible !== true) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'ineligible_eligibility'
+    });
+  }
+  if (approvalRecord.applyApproved !== true) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'approval_not_applied'
+    });
+  }
+  if (approvalRecord.requiresFinalExecutor !== true) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'approval_not_final_executor_ready'
+    });
+  }
+  if (
+    decisionRecord.mutationAllowed !== false ||
+    eligibilityRecord.mutationAllowed !== false ||
+    approvalRecord.mutationAllowed !== false
+  ) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'mutation_not_allowed'
+    });
+  }
+  if (
+    decisionRecord.implementationAllowed !== false ||
+    eligibilityRecord.implementationAllowed !== false ||
+    approvalRecord.implementationAllowed !== false
+  ) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'implementation_not_allowed'
+    });
+  }
+  if (
+    hasExecutionAllowedTrue(decisionRecord) ||
+    hasExecutionAllowedTrue(eligibilityRecord) ||
+    hasExecutionAllowedTrue(approvalRecord)
+  ) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'execution_not_allowed'
+    });
+  }
+  if (
+    !isRoutedDestination(decisionRecord.resolvedDestination) ||
+    !isRoutedDestination(eligibilityRecord.resolvedDestination) ||
+    !isRoutedDestination(approvalRecord.resolvedDestination)
+  ) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'missing_resolved_destination'
+    });
+  }
+  if (
+    decisionRecord.resolvedDestination !== eligibilityRecord.resolvedDestination ||
+    decisionRecord.resolvedDestination !== approvalRecord.resolvedDestination
+  ) {
+    return finalExecutorPreview({
+      previewId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      readyForFinalExecutor: false,
+      reason: 'approval_mismatch'
+    });
+  }
+
+  return finalExecutorPreview({
+    previewId,
+    packet,
+    decision: decisionRecord,
+    approval: approvalRecord,
+    readyForFinalExecutor: true,
+    reason: 'final_executor_preview_ready',
+    resolvedDestination: approvalRecord.resolvedDestination
   });
 }

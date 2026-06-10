@@ -141,6 +141,32 @@ export type HeldRoutingExplicitApplyApproval = {
   implementationAllowed: false;
 };
 
+export type HeldRoutingFinalExecutorPreview = {
+  previewId: string;
+  packetId: string;
+  decisionId: string;
+  approvalId: string;
+  resolvedDestination?: MerlinRoutedDestination;
+  readyForFinalExecutor: boolean;
+  reason:
+    | 'final_executor_preview_ready'
+    | 'missing_preview_id'
+    | 'packet_mismatch'
+    | 'decision_mismatch'
+    | 'approval_mismatch'
+    | 'ineligible_eligibility'
+    | 'approval_not_applied'
+    | 'approval_not_final_executor_ready'
+    | 'missing_resolved_destination'
+    | 'mutation_not_allowed'
+    | 'implementation_not_allowed'
+    | 'execution_not_allowed';
+  requiresFinalExecution: true;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  executionAllowed: false;
+};
+
 export type PreviewPacket = {
   draftId: string;
   uploadId: string;
