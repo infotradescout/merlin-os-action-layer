@@ -1,4 +1,5 @@
 import type {
+  HeldRoutingApplyEligibility,
   HeldRoutingDecisionStatus,
   HeldRoutingOperatorDecision,
   HeldRoutingReviewPacket,
@@ -31,6 +32,8 @@ const REVIEW_SIGNAL_REASONS = new Set([
 ]);
 
 const ROUTED_DESTINATIONS = new Set<MerlinRoutedDestination>(['menu', 'schedule', 'logo', 'photo', 'document']);
+const APPLY_READY_ACTIONS = new Set<MerlinRoutingOperatorAction>(['approve_route', 'change_destination']);
+const APPLY_READY_STATUSES = new Set<HeldRoutingDecisionStatus>(['approved_for_apply', 'destination_changed_for_apply']);
 
 type HeldRoutingOperatorDecisionInput = {
   action: string;
@@ -222,5 +225,65 @@ export function applyHeldRoutingOperatorDecision(
     note,
     resultingStatus: 'deferred',
     stillRequiresApply: false
+  });
+}
+
+function eligibility(input: {
+  packet: HeldRoutingReviewPacket;
+  decision?: HeldRoutingOperatorDecision;
+  applyEligible: boolean;
+  reason: HeldRoutingApplyEligibility['reason'];
+  resolvedDestination?: MerlinRoutedDestination;
+}): HeldRoutingApplyEligibility {
+  return {
+    applyEligible: input.applyEligible,
+    reason: input.reason,
+    packetId: input.packet.packetId,
+    decisionId: input.decision?.decisionId,
+    resolvedDestination: input.resolvedDestination,
+    requiresExplicitApplyApproval: true,
+    mutationAllowed: false,
+    implementationAllowed: false
+  };
+}
+
+export function evaluateHeldRoutingApplyEligibility(
+  packet: HeldRoutingReviewPacket,
+  decisionRecord: HeldRoutingOperatorDecision
+): HeldRoutingApplyEligibility {
+  if (!decisionRecord.decisionId?.trim()) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'missing_decision_id' });
+  }
+  if (!decisionRecord.operatorId?.trim()) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'missing_operator_id' });
+  }
+  if (decisionRecord.packetId !== packet.packetId) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'packet_mismatch' });
+  }
+  if (decisionRecord.mutationAllowed !== false) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'mutation_not_allowed' });
+  }
+  if (decisionRecord.implementationAllowed !== false) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'implementation_not_allowed' });
+  }
+  if (!isOperatorAction(decisionRecord.action)) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'invalid_action' });
+  }
+  if (!APPLY_READY_ACTIONS.has(decisionRecord.action) || !APPLY_READY_STATUSES.has(decisionRecord.resultingStatus)) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'decision_not_apply_ready' });
+  }
+  if (decisionRecord.stillRequiresApply !== true) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'still_requires_apply_false' });
+  }
+  if (!isRoutedDestination(decisionRecord.resolvedDestination)) {
+    return eligibility({ packet, decision: decisionRecord, applyEligible: false, reason: 'missing_resolved_destination' });
+  }
+
+  return eligibility({
+    packet,
+    decision: decisionRecord,
+    applyEligible: true,
+    reason: 'apply_ready_requires_explicit_approval',
+    resolvedDestination: decisionRecord.resolvedDestination
   });
 }
