@@ -167,6 +167,36 @@ export type HeldRoutingFinalExecutorPreview = {
   executionAllowed: false;
 };
 
+export type HeldRoutingFinalExecutorDryRunPlan = {
+  dryRunId: string;
+  packetId: string;
+  decisionId: string;
+  approvalId: string;
+  previewId: string;
+  resolvedDestination?: MerlinRoutedDestination;
+  plannedOperation: 'route_to_resolved_destination' | 'hold_for_manual_destination_review' | 'refuse_invalid_preview';
+  preconditions: string[];
+  blockedMutations: string[];
+  readyForExecution: false;
+  requiresLiveExecutor: true;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  executionAllowed: false;
+  reason:
+    | 'dry_run_plan_ready'
+    | 'missing_dry_run_id'
+    | 'packet_mismatch'
+    | 'decision_mismatch'
+    | 'approval_mismatch'
+    | 'preview_mismatch'
+    | 'preview_not_ready'
+    | 'preview_does_not_require_final_execution'
+    | 'missing_resolved_destination'
+    | 'mutation_not_allowed'
+    | 'implementation_not_allowed'
+    | 'execution_not_allowed';
+};
+
 export type PreviewPacket = {
   draftId: string;
   uploadId: string;

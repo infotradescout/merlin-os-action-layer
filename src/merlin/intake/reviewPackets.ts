@@ -1,6 +1,7 @@
 import type {
   HeldRoutingApplyEligibility,
   HeldRoutingDecisionStatus,
+  HeldRoutingFinalExecutorDryRunPlan,
   HeldRoutingExplicitApplyApproval,
   HeldRoutingFinalExecutorPreview,
   HeldRoutingOperatorDecision,
@@ -52,6 +53,12 @@ type HeldRoutingExplicitApplyApprovalInput = {
 
 type HeldRoutingFinalExecutorPreviewInput = {
   previewId?: string;
+};
+
+type HeldRoutingFinalExecutorDryRunPlanInput = {
+  dryRunId?: string;
+  previewId?: string;
+  executionAllowed?: boolean;
 };
 
 function detectedEvidenceSignals(row: RoutingDecision): string[] {
@@ -149,6 +156,37 @@ function finalExecutorPreview(input: {
     mutationAllowed: false,
     implementationAllowed: false,
     executionAllowed: false
+  };
+}
+
+function finalExecutorDryRunPlan(input: {
+  dryRunId: string;
+  packet: HeldRoutingReviewPacket;
+  decision: HeldRoutingOperatorDecision;
+  approval: HeldRoutingExplicitApplyApproval;
+  preview: HeldRoutingFinalExecutorPreview;
+  plannedOperation: HeldRoutingFinalExecutorDryRunPlan['plannedOperation'];
+  reason: HeldRoutingFinalExecutorDryRunPlan['reason'];
+  preconditions: string[];
+  blockedMutations: string[];
+  resolvedDestination?: MerlinRoutedDestination;
+}): HeldRoutingFinalExecutorDryRunPlan {
+  return {
+    dryRunId: input.dryRunId,
+    packetId: input.packet.packetId,
+    decisionId: input.decision.decisionId,
+    approvalId: input.approval.approvalId,
+    previewId: input.preview.previewId,
+    resolvedDestination: input.resolvedDestination,
+    plannedOperation: input.plannedOperation,
+    preconditions: input.preconditions,
+    blockedMutations: input.blockedMutations,
+    readyForExecution: false,
+    requiresLiveExecutor: true,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false,
+    reason: input.reason
   };
 }
 
@@ -621,5 +659,213 @@ export function createHeldRoutingFinalExecutorPreview(
     readyForFinalExecutor: true,
     reason: 'final_executor_preview_ready',
     resolvedDestination: approvalRecord.resolvedDestination
+  });
+}
+
+export function createHeldRoutingFinalExecutorDryRunPlan(
+  packet: HeldRoutingReviewPacket,
+  decisionRecord: HeldRoutingOperatorDecision,
+  eligibilityRecord: HeldRoutingApplyEligibility,
+  approvalRecord: HeldRoutingExplicitApplyApproval,
+  previewRecord: HeldRoutingFinalExecutorPreview,
+  input: HeldRoutingFinalExecutorDryRunPlanInput
+): HeldRoutingFinalExecutorDryRunPlan {
+  const dryRunId = input.dryRunId?.trim() || '';
+  const expectedPreviewId = input.previewId?.trim();
+
+  if (!dryRunId) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'missing_dry_run_id',
+      preconditions: ['dry_run_id_required'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    decisionRecord.packetId !== packet.packetId ||
+    eligibilityRecord.packetId !== packet.packetId ||
+    approvalRecord.packetId !== packet.packetId ||
+    previewRecord.packetId !== packet.packetId
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'packet_mismatch',
+      preconditions: ['packet_ids_must_match_across_chain'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    !decisionRecord.decisionId?.trim() ||
+    decisionRecord.decisionId !== eligibilityRecord.decisionId ||
+    decisionRecord.decisionId !== approvalRecord.decisionId ||
+    decisionRecord.decisionId !== previewRecord.decisionId
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'decision_mismatch',
+      preconditions: ['decision_ids_must_match_across_chain'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (!approvalRecord.approvalId?.trim() || previewRecord.approvalId !== approvalRecord.approvalId) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'approval_mismatch',
+      preconditions: ['approval_id_required_and_must_match_preview'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (!previewRecord.previewId?.trim() || (expectedPreviewId && expectedPreviewId !== previewRecord.previewId)) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'preview_mismatch',
+      preconditions: ['preview_id_required_and_must_match_expected'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (previewRecord.readyForFinalExecutor !== true) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'preview_not_ready',
+      preconditions: ['preview_must_be_ready_for_final_executor'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (previewRecord.requiresFinalExecution !== true) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'preview_does_not_require_final_execution',
+      preconditions: ['preview_requires_final_execution_true'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    decisionRecord.mutationAllowed !== false ||
+    eligibilityRecord.mutationAllowed !== false ||
+    approvalRecord.mutationAllowed !== false ||
+    previewRecord.mutationAllowed !== false
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'mutation_not_allowed',
+      preconditions: ['mutation_allowed_must_remain_false'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    decisionRecord.implementationAllowed !== false ||
+    eligibilityRecord.implementationAllowed !== false ||
+    approvalRecord.implementationAllowed !== false ||
+    previewRecord.implementationAllowed !== false
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'implementation_not_allowed',
+      preconditions: ['implementation_allowed_must_remain_false'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    hasExecutionAllowedTrue(decisionRecord) ||
+    hasExecutionAllowedTrue(eligibilityRecord) ||
+    hasExecutionAllowedTrue(approvalRecord) ||
+    hasExecutionAllowedTrue(previewRecord) ||
+    input.executionAllowed === true
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'refuse_invalid_preview',
+      reason: 'execution_not_allowed',
+      preconditions: ['execution_allowed_must_remain_false'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+  if (
+    !isRoutedDestination(decisionRecord.resolvedDestination) ||
+    !isRoutedDestination(eligibilityRecord.resolvedDestination) ||
+    !isRoutedDestination(approvalRecord.resolvedDestination) ||
+    !isRoutedDestination(previewRecord.resolvedDestination)
+  ) {
+    return finalExecutorDryRunPlan({
+      dryRunId,
+      packet,
+      decision: decisionRecord,
+      approval: approvalRecord,
+      preview: previewRecord,
+      plannedOperation: 'hold_for_manual_destination_review',
+      reason: 'missing_resolved_destination',
+      preconditions: ['resolved_destination_required_before_live_execution'],
+      blockedMutations: ['route_destination_write', 'artifact_move', 'executor_apply']
+    });
+  }
+
+  return finalExecutorDryRunPlan({
+    dryRunId,
+    packet,
+    decision: decisionRecord,
+    approval: approvalRecord,
+    preview: previewRecord,
+    resolvedDestination: previewRecord.resolvedDestination,
+    plannedOperation: 'route_to_resolved_destination',
+    reason: 'dry_run_plan_ready',
+    preconditions: [
+      'final_executor_must_verify_packet_lock',
+      'final_executor_must_verify_destination_still_valid',
+      'final_executor_must_write_auditable_execution_record'
+    ],
+    blockedMutations: [
+      'route_destination_write',
+      'artifact_move',
+      'external_api_apply'
+    ]
   });
 }
