@@ -16,6 +16,13 @@ export type MerlinImplementationMode = 'draft_only' | 'approval_required' | 'adm
 export type MerlinRiskLevel = 'low' | 'medium' | 'high';
 export type MerlinRoutedDestination = 'menu' | 'schedule' | 'logo' | 'photo' | 'document';
 export type MerlinRoutingOperatorAction = 'approve_route' | 'change_destination' | 'request_more_info' | 'reject_upload' | 'defer';
+export type HeldRoutingDecisionStatus =
+  | 'approved_for_apply'
+  | 'destination_changed_for_apply'
+  | 'pending_more_info'
+  | 'rejected'
+  | 'deferred'
+  | 'invalid_action';
 
 export type IntentActionDefinition = {
   actionId: string;
@@ -73,6 +80,19 @@ export type HeldRoutingReviewPacket = {
     reasons: string[];
   };
   operatorActionOptions: MerlinRoutingOperatorAction[];
+  mutationAllowed: false;
+  implementationAllowed: false;
+};
+
+export type HeldRoutingOperatorDecision = {
+  decisionId: string;
+  packetId: string;
+  action: MerlinRoutingOperatorAction | 'invalid_action';
+  operatorId: string;
+  note: string;
+  resultingStatus: HeldRoutingDecisionStatus;
+  resolvedDestination?: MerlinRoutedDestination;
+  stillRequiresApply: boolean;
   mutationAllowed: false;
   implementationAllowed: false;
 };
