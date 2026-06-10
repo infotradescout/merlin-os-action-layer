@@ -197,6 +197,64 @@ export type HeldRoutingFinalExecutorDryRunPlan = {
     | 'execution_not_allowed';
 };
 
+export type HeldRoutingOperatorReviewNextRequiredAction =
+  | 'operator_decision_required'
+  | 'apply_eligibility_required'
+  | 'explicit_apply_approval_required'
+  | 'final_executor_preview_required'
+  | 'dry_run_required'
+  | 'ready_for_live_executor'
+  | 'blocked';
+
+export type HeldRoutingOperatorReviewSummary = {
+  summaryId: string;
+  packetId: string;
+  currentStatus: 'incomplete' | 'ready' | 'blocked';
+  decisionSummary: {
+    present: boolean;
+    decisionId?: string;
+    resultingStatus?: HeldRoutingDecisionStatus;
+    resolvedDestination?: MerlinRoutedDestination;
+    valid: boolean;
+  };
+  eligibilitySummary: {
+    present: boolean;
+    decisionId?: string;
+    applyEligible?: boolean;
+    reason?: HeldRoutingApplyEligibility['reason'];
+    valid: boolean;
+  };
+  explicitApprovalSummary: {
+    present: boolean;
+    approvalId?: string;
+    decisionId?: string;
+    applyApproved?: boolean;
+    reason?: HeldRoutingExplicitApplyApproval['reason'];
+    valid: boolean;
+  };
+  finalExecutorPreviewSummary: {
+    present: boolean;
+    previewId?: string;
+    approvalId?: string;
+    readyForFinalExecutor?: boolean;
+    reason?: HeldRoutingFinalExecutorPreview['reason'];
+    valid: boolean;
+  };
+  dryRunPlanSummary: {
+    present: boolean;
+    dryRunId?: string;
+    previewId?: string;
+    plannedOperation?: HeldRoutingFinalExecutorDryRunPlan['plannedOperation'];
+    reason?: HeldRoutingFinalExecutorDryRunPlan['reason'];
+    valid: boolean;
+  };
+  nextRequiredAction: HeldRoutingOperatorReviewNextRequiredAction;
+  operatorWarnings: string[];
+  mutationAllowed: false;
+  implementationAllowed: false;
+  executionAllowed: false;
+};
+
 export type PreviewPacket = {
   draftId: string;
   uploadId: string;
