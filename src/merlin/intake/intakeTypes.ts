@@ -255,6 +255,27 @@ export type HeldRoutingOperatorReviewSummary = {
   executionAllowed: false;
 };
 
+export type HeldRoutingOperatorReviewPresentation = {
+  presentationId: string;
+  status: 'ok';
+  mode: 'read_only';
+  advisoryOnly: true;
+  summaryId: string;
+  packetId: string;
+  currentStatus: HeldRoutingOperatorReviewSummary['currentStatus'];
+  nextRequiredAction: HeldRoutingOperatorReviewSummary['nextRequiredAction'];
+  operatorWarnings: string[];
+  display: {
+    title: string;
+    subtitle: string;
+    detailLines: string[];
+  };
+  summary: HeldRoutingOperatorReviewSummary;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  executionAllowed: false;
+};
+
 export type PreviewPacket = {
   draftId: string;
   uploadId: string;
