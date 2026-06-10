@@ -1,6 +1,7 @@
 import type {
   HeldRoutingApplyEligibility,
   HeldRoutingDecisionStatus,
+  HeldRoutingExplicitApplyApproval,
   HeldRoutingOperatorDecision,
   HeldRoutingReviewPacket,
   MerlinRoutedDestination,
@@ -40,6 +41,12 @@ type HeldRoutingOperatorDecisionInput = {
   operatorId?: string;
   note?: string;
   selectedDestination?: string;
+};
+
+type HeldRoutingExplicitApplyApprovalInput = {
+  approvalId?: string;
+  operatorId?: string;
+  approvedAt: string;
 };
 
 function detectedEvidenceSignals(row: RoutingDecision): string[] {
@@ -89,6 +96,31 @@ function isOperatorAction(action: string): action is MerlinRoutingOperatorAction
 
 function isRoutedDestination(destination: string | undefined): destination is MerlinRoutedDestination {
   return typeof destination === 'string' && ROUTED_DESTINATIONS.has(destination as MerlinRoutedDestination);
+}
+
+function explicitApplyApproval(input: {
+  approvalId: string;
+  packet: HeldRoutingReviewPacket;
+  decision: HeldRoutingOperatorDecision;
+  operatorId: string;
+  approvedAt: string;
+  applyApproved: boolean;
+  reason: HeldRoutingExplicitApplyApproval['reason'];
+  resolvedDestination?: MerlinRoutedDestination;
+}): HeldRoutingExplicitApplyApproval {
+  return {
+    approvalId: input.approvalId,
+    packetId: input.packet.packetId,
+    decisionId: input.decision.decisionId,
+    operatorId: input.operatorId,
+    approvedAt: input.approvedAt,
+    resolvedDestination: input.resolvedDestination,
+    applyApproved: input.applyApproved,
+    reason: input.reason,
+    requiresFinalExecutor: true,
+    mutationAllowed: false,
+    implementationAllowed: false
+  };
 }
 
 function decisionIdFor(input: {
@@ -285,5 +317,115 @@ export function evaluateHeldRoutingApplyEligibility(
     applyEligible: true,
     reason: 'apply_ready_requires_explicit_approval',
     resolvedDestination: decisionRecord.resolvedDestination
+  });
+}
+
+export function createHeldRoutingExplicitApplyApproval(
+  packet: HeldRoutingReviewPacket,
+  decisionRecord: HeldRoutingOperatorDecision,
+  eligibilityRecord: HeldRoutingApplyEligibility,
+  input: HeldRoutingExplicitApplyApprovalInput
+): HeldRoutingExplicitApplyApproval {
+  const approvalId = input.approvalId?.trim() || '';
+  const operatorId = input.operatorId?.trim() || '';
+
+  if (!approvalId) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'missing_approval_id'
+    });
+  }
+  if (eligibilityRecord.mutationAllowed !== false || decisionRecord.mutationAllowed !== false) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'mutation_not_allowed'
+    });
+  }
+  if (eligibilityRecord.implementationAllowed !== false || decisionRecord.implementationAllowed !== false) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'implementation_not_allowed'
+    });
+  }
+  if (decisionRecord.packetId !== packet.packetId || eligibilityRecord.packetId !== packet.packetId) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'packet_mismatch'
+    });
+  }
+  if (!decisionRecord.decisionId?.trim() || decisionRecord.decisionId !== eligibilityRecord.decisionId) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'decision_mismatch'
+    });
+  }
+  if (eligibilityRecord.applyEligible !== true || eligibilityRecord.requiresExplicitApplyApproval !== true) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'ineligible_decision'
+    });
+  }
+  if (!isRoutedDestination(eligibilityRecord.resolvedDestination) || !isRoutedDestination(decisionRecord.resolvedDestination)) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'missing_resolved_destination'
+    });
+  }
+  if (!operatorId) {
+    return explicitApplyApproval({
+      approvalId,
+      packet,
+      decision: decisionRecord,
+      operatorId,
+      approvedAt: input.approvedAt,
+      applyApproved: false,
+      reason: 'missing_operator_id'
+    });
+  }
+
+  return explicitApplyApproval({
+    approvalId,
+    packet,
+    decision: decisionRecord,
+    operatorId,
+    approvedAt: input.approvedAt,
+    resolvedDestination: eligibilityRecord.resolvedDestination,
+    applyApproved: true,
+    reason: 'explicit_apply_approval_recorded'
   });
 }
