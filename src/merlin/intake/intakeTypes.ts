@@ -183,7 +183,7 @@ export type HeldRoutingFinalExecutorDryRunPlan = {
   implementationAllowed: false;
   executionAllowed: false;
   reason:
-    | 'dry_run_plan_ready'
+    | 'dry_run_ready_for_live_executor'
     | 'missing_dry_run_id'
     | 'packet_mismatch'
     | 'decision_mismatch'

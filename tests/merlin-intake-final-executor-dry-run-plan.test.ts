@@ -198,7 +198,7 @@ test('valid final executor preview creates dry-run plan', () => {
     previewId: preview.previewId
   });
 
-  assert.equal(dryRun.reason, 'dry_run_plan_ready');
+  assert.equal(dryRun.reason, 'dry_run_ready_for_live_executor');
   assert.equal(dryRun.readyForExecution, false);
   assert.equal(dryRun.requiresLiveExecutor, true);
   assert.equal(dryRun.mutationAllowed, false);

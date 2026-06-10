@@ -13,6 +13,14 @@ type HeldRoutingOperatorReviewSummaryInput = {
   executionAllowed?: boolean;
 };
 
+function isNonEmptyId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function pushWarning(target: string[], warning: string): void {
+  if (!target.includes(warning)) target.push(warning);
+}
+
 function hasExecutionAllowedTrue(record: unknown): boolean {
   if (!record || typeof record !== 'object') return false;
   return (record as { executionAllowed?: boolean }).executionAllowed === true;
@@ -39,6 +47,7 @@ export function createHeldRoutingOperatorReviewSummary(
 ): HeldRoutingOperatorReviewSummary {
   const summaryId = input.summaryId?.trim() || '';
   const warnings: string[] = [];
+  const packetId = packet.packetId?.trim() || '';
 
   const decisionSummary: HeldRoutingOperatorReviewSummary['decisionSummary'] = {
     present: Boolean(decisionRecord),
@@ -82,7 +91,7 @@ export function createHeldRoutingOperatorReviewSummary(
     reason: dryRunRecord?.reason,
     valid: Boolean(
       dryRunRecord &&
-        dryRunRecord.reason === 'dry_run_plan_ready' &&
+        dryRunRecord.reason === 'dry_run_ready_for_live_executor' &&
         dryRunRecord.plannedOperation === 'route_to_resolved_destination'
     )
   };
@@ -115,9 +124,10 @@ export function createHeldRoutingOperatorReviewSummary(
     hasExecutionAllowedTrue(dryRunRecord) ||
     input.executionAllowed === true;
 
-  if (!summaryId) warnings.push('missing_summary_id');
-  if (packetMismatch) warnings.push('packet_mismatch');
-  if (authorityContaminated) warnings.push('authority_contamination');
+  if (!summaryId) pushWarning(warnings, 'missing_summary_id');
+  if (!packetId) pushWarning(warnings, 'missing_packet_id');
+  if (packetMismatch) pushWarning(warnings, 'packet_mismatch');
+  if (authorityContaminated) pushWarning(warnings, 'authority_contamination');
 
   let nextRequiredAction: HeldRoutingOperatorReviewSummary['nextRequiredAction'] = 'ready_for_live_executor';
   let currentStatus: HeldRoutingOperatorReviewSummary['currentStatus'] = 'ready';
@@ -126,32 +136,57 @@ export function createHeldRoutingOperatorReviewSummary(
     nextRequiredAction = 'blocked';
     currentStatus = 'blocked';
   } else if (!decisionRecord) {
-    warnings.push('decision_missing');
+    pushWarning(warnings, 'decision_missing');
     nextRequiredAction = 'operator_decision_required';
     currentStatus = 'incomplete';
   } else if (!eligibilityRecord) {
-    warnings.push('eligibility_missing');
+    pushWarning(warnings, 'eligibility_missing');
     nextRequiredAction = 'apply_eligibility_required';
     currentStatus = 'incomplete';
   } else if (!approvalRecord) {
-    warnings.push('explicit_approval_missing');
+    pushWarning(warnings, 'explicit_approval_missing');
     nextRequiredAction = 'explicit_apply_approval_required';
     currentStatus = 'incomplete';
   } else if (!previewRecord) {
-    warnings.push('final_executor_preview_missing');
+    pushWarning(warnings, 'final_executor_preview_missing');
     nextRequiredAction = 'final_executor_preview_required';
     currentStatus = 'incomplete';
   } else if (!dryRunRecord) {
-    warnings.push('dry_run_missing');
+    pushWarning(warnings, 'dry_run_missing');
     nextRequiredAction = 'dry_run_required';
     currentStatus = 'incomplete';
   } else {
+    const decisionId = decisionRecord.decisionId;
+    const approvalId = approvalRecord.approvalId;
+    const previewId = previewRecord.previewId;
+    const dryRunId = dryRunRecord.dryRunId;
+
+    const idsPresent =
+      isNonEmptyId(summaryId) &&
+      isNonEmptyId(packetId) &&
+      isNonEmptyId(decisionId) &&
+      isNonEmptyId(approvalId) &&
+      isNonEmptyId(previewId) &&
+      isNonEmptyId(dryRunId);
+
+    const decisionStatusReady =
+      decisionRecord.resultingStatus === 'approved_for_apply' ||
+      decisionRecord.resultingStatus === 'destination_changed_for_apply';
+
+    const reasonsReady =
+      eligibilityRecord.reason === 'apply_ready_requires_explicit_approval' &&
+      approvalRecord.reason === 'explicit_apply_approval_recorded' &&
+      previewRecord.reason === 'final_executor_preview_ready' &&
+      dryRunRecord.reason === 'dry_run_ready_for_live_executor';
+
     const chainIsReady =
+      idsPresent &&
       eligibilityRecord.applyEligible === true &&
       approvalRecord.applyApproved === true &&
+      decisionStatusReady &&
+      reasonsReady &&
       previewRecord.readyForFinalExecutor === true &&
       previewRecord.requiresFinalExecution === true &&
-      dryRunRecord.reason === 'dry_run_plan_ready' &&
       dryRunRecord.plannedOperation === 'route_to_resolved_destination' &&
       dryRunRecord.requiresLiveExecutor === true &&
       dryRunRecord.readyForExecution === false &&
@@ -164,7 +199,10 @@ export function createHeldRoutingOperatorReviewSummary(
       previewRecord.previewId === dryRunRecord.previewId;
 
     if (!chainIsReady) {
-      warnings.push('invalid_ready_chain');
+      if (!idsPresent) pushWarning(warnings, 'missing_required_ids');
+      if (!decisionStatusReady) pushWarning(warnings, 'invalid_decision_status');
+      if (!reasonsReady) pushWarning(warnings, 'invalid_stage_reasons');
+      pushWarning(warnings, 'invalid_ready_chain');
       nextRequiredAction = 'blocked';
       currentStatus = 'blocked';
     }
@@ -185,4 +223,55 @@ export function createHeldRoutingOperatorReviewSummary(
     implementationAllowed: false,
     executionAllowed: false
   };
+}
+
+export function serializeHeldRoutingOperatorReviewSummary(summary: HeldRoutingOperatorReviewSummary): string {
+  return JSON.stringify({
+    summaryId: summary.summaryId,
+    packetId: summary.packetId,
+    currentStatus: summary.currentStatus,
+    decisionSummary: {
+      present: summary.decisionSummary.present,
+      decisionId: summary.decisionSummary.decisionId,
+      resultingStatus: summary.decisionSummary.resultingStatus,
+      resolvedDestination: summary.decisionSummary.resolvedDestination,
+      valid: summary.decisionSummary.valid
+    },
+    eligibilitySummary: {
+      present: summary.eligibilitySummary.present,
+      decisionId: summary.eligibilitySummary.decisionId,
+      applyEligible: summary.eligibilitySummary.applyEligible,
+      reason: summary.eligibilitySummary.reason,
+      valid: summary.eligibilitySummary.valid
+    },
+    explicitApprovalSummary: {
+      present: summary.explicitApprovalSummary.present,
+      approvalId: summary.explicitApprovalSummary.approvalId,
+      decisionId: summary.explicitApprovalSummary.decisionId,
+      applyApproved: summary.explicitApprovalSummary.applyApproved,
+      reason: summary.explicitApprovalSummary.reason,
+      valid: summary.explicitApprovalSummary.valid
+    },
+    finalExecutorPreviewSummary: {
+      present: summary.finalExecutorPreviewSummary.present,
+      previewId: summary.finalExecutorPreviewSummary.previewId,
+      approvalId: summary.finalExecutorPreviewSummary.approvalId,
+      readyForFinalExecutor: summary.finalExecutorPreviewSummary.readyForFinalExecutor,
+      reason: summary.finalExecutorPreviewSummary.reason,
+      valid: summary.finalExecutorPreviewSummary.valid
+    },
+    dryRunPlanSummary: {
+      present: summary.dryRunPlanSummary.present,
+      dryRunId: summary.dryRunPlanSummary.dryRunId,
+      previewId: summary.dryRunPlanSummary.previewId,
+      plannedOperation: summary.dryRunPlanSummary.plannedOperation,
+      reason: summary.dryRunPlanSummary.reason,
+      valid: summary.dryRunPlanSummary.valid
+    },
+    nextRequiredAction: summary.nextRequiredAction,
+    operatorWarnings: [...summary.operatorWarnings],
+    mutationAllowed: summary.mutationAllowed,
+    implementationAllowed: summary.implementationAllowed,
+    executionAllowed: summary.executionAllowed
+  });
 }

@@ -19,7 +19,10 @@ import {
   createHeldRoutingFinalExecutorPreview,
   evaluateHeldRoutingApplyEligibility
 } from '../src/merlin/intake/reviewPackets.ts';
-import { createHeldRoutingOperatorReviewSummary } from '../src/merlin/intake/operatorReviewSummary.ts';
+import {
+  createHeldRoutingOperatorReviewSummary,
+  serializeHeldRoutingOperatorReviewSummary
+} from '../src/merlin/intake/operatorReviewSummary.ts';
 import { routeUploadIntentFiles } from '../src/merlin/intake/router.ts';
 
 function makeActionSnapshot(actionId: string): IntentActionDefinition {
@@ -186,7 +189,7 @@ function unsafeDryRun(overrides: Partial<HeldRoutingFinalExecutorDryRunPlan>): H
     mutationAllowed: false,
     implementationAllowed: false,
     executionAllowed: false,
-    reason: 'dry_run_plan_ready',
+    reason: 'dry_run_ready_for_live_executor',
     ...overrides
   } as unknown as HeldRoutingFinalExecutorDryRunPlan;
 }
@@ -356,4 +359,160 @@ test('no packet mutation occurs', () => {
   });
 
   assert.deepEqual(packet, before);
+});
+
+test('ready path only succeeds with complete valid chain', () => {
+  const { packet, decision, eligibility, approval, preview, dryRun } = buildCompleteChain();
+  const invalidDecision = {
+    ...decision,
+    resultingStatus: 'pending_more_info'
+  } as unknown as HeldRoutingOperatorDecision;
+
+  const summary = createHeldRoutingOperatorReviewSummary(packet, invalidDecision, eligibility, approval, preview, dryRun, {
+    summaryId: 'summary-invalid-decision-status'
+  });
+
+  assert.equal(summary.nextRequiredAction, 'blocked');
+  assert.equal(summary.operatorWarnings.includes('invalid_decision_status'), true);
+  assert.equal(summary.operatorWarnings.includes('invalid_ready_chain'), true);
+});
+
+test('malformed JS-style objects fail closed', () => {
+  const packet = mismatchPacket();
+  const malformedDecision = {
+    decisionId: '   ',
+    packetId: packet.packetId,
+    action: 'approve_route',
+    operatorId: 'operator-js',
+    note: 'js-malformed',
+    resultingStatus: 'approved_for_apply',
+    resolvedDestination: 'schedule',
+    stillRequiresApply: true,
+    mutationAllowed: false,
+    implementationAllowed: false
+  } as unknown as HeldRoutingOperatorDecision;
+  const malformedEligibility = {
+    applyEligible: true,
+    reason: 'decision_not_apply_ready',
+    packetId: packet.packetId,
+    decisionId: '   ',
+    resolvedDestination: 'schedule',
+    requiresExplicitApplyApproval: true,
+    mutationAllowed: false,
+    implementationAllowed: false
+  } as unknown as HeldRoutingApplyEligibility;
+  const malformedApproval = {
+    approvalId: '   ',
+    packetId: packet.packetId,
+    decisionId: '   ',
+    operatorId: 'operator-js',
+    approvedAt: '2026-06-10T12:00:00.000Z',
+    resolvedDestination: 'schedule',
+    applyApproved: true,
+    reason: 'ineligible_decision',
+    requiresFinalExecutor: true,
+    mutationAllowed: false,
+    implementationAllowed: false
+  } as unknown as HeldRoutingExplicitApplyApproval;
+  const malformedPreview = {
+    previewId: '   ',
+    packetId: packet.packetId,
+    decisionId: '   ',
+    approvalId: '   ',
+    resolvedDestination: 'schedule',
+    readyForFinalExecutor: true,
+    reason: 'missing_preview_id',
+    requiresFinalExecution: true,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false
+  } as unknown as HeldRoutingFinalExecutorPreview;
+  const malformedDryRun = {
+    dryRunId: '   ',
+    packetId: packet.packetId,
+    decisionId: '   ',
+    approvalId: '   ',
+    previewId: '   ',
+    resolvedDestination: 'schedule',
+    plannedOperation: 'route_to_resolved_destination',
+    preconditions: ['x'],
+    blockedMutations: ['y'],
+    readyForExecution: false,
+    requiresLiveExecutor: true,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false,
+    reason: 'preview_not_ready'
+  } as unknown as HeldRoutingFinalExecutorDryRunPlan;
+
+  const summary = createHeldRoutingOperatorReviewSummary(
+    packet,
+    malformedDecision,
+    malformedEligibility,
+    malformedApproval,
+    malformedPreview,
+    malformedDryRun,
+    { summaryId: '   ' }
+  );
+
+  assert.equal(summary.nextRequiredAction, 'blocked');
+  assert.equal(summary.currentStatus, 'blocked');
+  assert.deepEqual(summary.operatorWarnings, ['missing_summary_id']);
+});
+
+test('blocked overrides ready when contamination exists', () => {
+  const { packet, decision, eligibility, approval, preview, dryRun } = buildCompleteChain();
+  const contaminatedDryRun = {
+    ...dryRun,
+    executionAllowed: true
+  } as unknown as HeldRoutingFinalExecutorDryRunPlan;
+
+  const summary = createHeldRoutingOperatorReviewSummary(packet, decision, eligibility, approval, preview, contaminatedDryRun, {
+    summaryId: 'summary-blocked-overrides-ready'
+  });
+
+  assert.equal(summary.nextRequiredAction, 'blocked');
+  assert.equal(summary.currentStatus, 'blocked');
+  assert.equal(summary.operatorWarnings.includes('authority_contamination'), true);
+});
+
+test('warning ordering is stable', () => {
+  const packet = mismatchPacket();
+  const mismatchedDecision = unsafeDecision({ packetId: 'other-packet' });
+
+  const summary = createHeldRoutingOperatorReviewSummary(packet, mismatchedDecision, undefined, undefined, undefined, undefined, {
+    summaryId: '',
+    executionAllowed: true
+  });
+
+  assert.deepEqual(summary.operatorWarnings, ['missing_summary_id', 'packet_mismatch', 'authority_contamination']);
+});
+
+test('byte-for-byte repeated JSON serialization is identical', () => {
+  const { packet, decision, eligibility, approval, preview, dryRun } = buildCompleteChain();
+  const summary = createHeldRoutingOperatorReviewSummary(packet, decision, eligibility, approval, preview, dryRun, {
+    summaryId: 'summary-stable-serialization'
+  });
+
+  const serializedA = serializeHeldRoutingOperatorReviewSummary(summary);
+  const serializedB = serializeHeldRoutingOperatorReviewSummary(summary);
+
+  assert.equal(serializedA, serializedB);
+
+  const topLevelKeys = Object.keys(JSON.parse(serializedA) as Record<string, unknown>);
+  assert.deepEqual(topLevelKeys, [
+    'summaryId',
+    'packetId',
+    'currentStatus',
+    'decisionSummary',
+    'eligibilitySummary',
+    'explicitApprovalSummary',
+    'finalExecutorPreviewSummary',
+    'dryRunPlanSummary',
+    'nextRequiredAction',
+    'operatorWarnings',
+    'mutationAllowed',
+    'implementationAllowed',
+    'executionAllowed'
+  ]);
 });

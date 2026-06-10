@@ -856,7 +856,7 @@ export function createHeldRoutingFinalExecutorDryRunPlan(
     preview: previewRecord,
     resolvedDestination: previewRecord.resolvedDestination,
     plannedOperation: 'route_to_resolved_destination',
-    reason: 'dry_run_plan_ready',
+    reason: 'dry_run_ready_for_live_executor',
     preconditions: [
       'final_executor_must_verify_packet_lock',
       'final_executor_must_verify_destination_still_valid',
