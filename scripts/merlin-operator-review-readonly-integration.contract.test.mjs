@@ -26,6 +26,7 @@ includesAll(
   [
     '/api/merlin/operator-review/presentation',
     'serializedPresentation',
+    'decisionLedgerPreview',
     'mutationAllowed: false',
     'implementationAllowed: false',
     'executionAllowed: false',
@@ -40,6 +41,9 @@ includesAll(
     'evidence binding',
     'detail line evidence',
     'warning evidence',
+    'decision ledger preview',
+    'would-record event type',
+    'preview_only_no_mutation',
     'no_evidence:not_applicable'
   ],
   'operator review view read-only evidence surface'
@@ -62,6 +66,17 @@ const forbiddenRoutePhrases = [
 ];
 for (const phrase of forbiddenRoutePhrases) {
   assert.equal(routeSource.includes(phrase), false, `operator review route must not define forbidden endpoint: ${phrase}`);
+}
+
+const forbiddenPersistencePhrases = [
+  'better-sqlite3',
+  '.run(',
+  'insert into',
+  'update ',
+  'delete from'
+];
+for (const phrase of forbiddenPersistencePhrases) {
+  assert.equal(routeSource.toLowerCase().includes(phrase.toLowerCase()), false, `operator review route must not include persistence phrase: ${phrase}`);
 }
 
 console.log('Merlin operator review read-only integration contract passed');

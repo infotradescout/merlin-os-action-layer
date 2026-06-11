@@ -284,6 +284,39 @@ export type HeldRoutingOperatorReviewPresentation = {
       noEvidenceReason?: 'not_applicable' | 'source_unavailable';
     }>;
   };
+  decisionLedgerPreview: {
+    kind: 'operator_review_decision_ledger_preview';
+    presentationId: string;
+    packetId: string;
+    summaryId: string;
+    wouldRecordEventType: 'held_routing_operator_review_decision_preview';
+    noActionStatus: 'preview_only_no_mutation';
+    noActionReasonCode:
+      | 'current_status_ready_no_action_surface'
+      | 'current_status_blocked_no_action_surface'
+      | 'current_status_incomplete_no_action_surface';
+    evidenceSummary: {
+      detailLines: {
+        total: number;
+        bound: number;
+        noEvidence: number;
+      };
+      warnings: {
+        total: number;
+        bound: number;
+        noEvidence: number;
+      };
+    };
+    authoritySnapshot: {
+      mutationAllowed: false;
+      implementationAllowed: false;
+      executionAllowed: false;
+    };
+    timestampPolicy: {
+      mode: 'deterministic_static';
+      previewedAt: string;
+    };
+  };
   summary: HeldRoutingOperatorReviewSummary;
   mutationAllowed: false;
   implementationAllowed: false;

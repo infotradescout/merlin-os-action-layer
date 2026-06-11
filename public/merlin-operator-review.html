@@ -189,6 +189,14 @@
           </div>
         </div>
       </section>
+
+      <section class="panel">
+        <h3>Decision Ledger Preview</h3>
+        <p class="muted">would-record event type and audit metadata are shown as read-only preview only.</p>
+        <ul id="ledger-preview" class="mono">
+          <li class="muted">Loading decision ledger preview...</li>
+        </ul>
+      </section>
     </div>
 
     <script>
@@ -293,6 +301,26 @@
             parsed.evidenceBindings?.warnings || [],
             'warning'
           );
+
+          const ledgerPreview = parsed.decisionLedgerPreview || {};
+          renderList(
+            document.getElementById('ledger-preview'),
+            [
+              `kind: ${ledgerPreview.kind || 'operator_review_decision_ledger_preview'}`,
+              `presentationId: ${ledgerPreview.presentationId || 'unavailable'}`,
+              `packetId: ${ledgerPreview.packetId || 'unavailable'}`,
+              `summaryId: ${ledgerPreview.summaryId || 'unavailable'}`,
+              `would-record event type: ${ledgerPreview.wouldRecordEventType || 'unavailable'}`,
+              `noActionStatus: ${ledgerPreview.noActionStatus || 'preview_only_no_mutation'}`,
+              `noActionReasonCode: ${ledgerPreview.noActionReasonCode || 'unavailable'}`,
+              `evidenceSummary.detailLines: total=${ledgerPreview.evidenceSummary?.detailLines?.total ?? 0} bound=${ledgerPreview.evidenceSummary?.detailLines?.bound ?? 0} noEvidence=${ledgerPreview.evidenceSummary?.detailLines?.noEvidence ?? 0}`,
+              `evidenceSummary.warnings: total=${ledgerPreview.evidenceSummary?.warnings?.total ?? 0} bound=${ledgerPreview.evidenceSummary?.warnings?.bound ?? 0} noEvidence=${ledgerPreview.evidenceSummary?.warnings?.noEvidence ?? 0}`,
+              `authoritySnapshot: mutation=${ledgerPreview.authoritySnapshot?.mutationAllowed} implementation=${ledgerPreview.authoritySnapshot?.implementationAllowed} execution=${ledgerPreview.authoritySnapshot?.executionAllowed}`,
+              `timestampPolicy: ${ledgerPreview.timestampPolicy?.mode || 'deterministic_static'} @ ${ledgerPreview.timestampPolicy?.previewedAt || 'unavailable'}`
+            ],
+            'Decision ledger preview unavailable.',
+            'mono'
+          );
         } catch (error) {
           document.getElementById('title').textContent = 'Operator review payload unavailable';
           document.getElementById('subtitle').textContent = error instanceof Error ? error.message : 'Unknown error';
@@ -301,6 +329,7 @@
           renderList(document.getElementById('authority-flags'), [], 'Authority flags unavailable.', 'muted');
           renderEvidence(document.getElementById('evidence-details'), [], 'line');
           renderEvidence(document.getElementById('evidence-warnings'), [], 'warning');
+          renderList(document.getElementById('ledger-preview'), [], 'Decision ledger preview unavailable.', 'muted');
         }
       }
 

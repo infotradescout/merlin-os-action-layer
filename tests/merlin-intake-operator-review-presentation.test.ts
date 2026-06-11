@@ -161,6 +161,7 @@ test('presentation serialization is deterministic', () => {
     'operatorWarnings',
     'display',
     'evidenceBindings',
+    'decisionLedgerPreview',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -188,6 +189,28 @@ test('presentation includes evidence binding for detail lines and warnings', () 
   assert.equal(presentation.evidenceBindings.warnings[0].warning, 'none');
   assert.equal(presentation.evidenceBindings.warnings[0].evidenceState, 'no_evidence');
   assert.equal(presentation.evidenceBindings.warnings[0].noEvidenceReason, 'not_applicable');
+
+  assert.equal(presentation.decisionLedgerPreview.kind, 'operator_review_decision_ledger_preview');
+  assert.equal(presentation.decisionLedgerPreview.presentationId, 'presentation-evidence');
+  assert.equal(presentation.decisionLedgerPreview.packetId, presentation.packetId);
+  assert.equal(presentation.decisionLedgerPreview.summaryId, presentation.summaryId);
+  assert.equal(
+    presentation.decisionLedgerPreview.wouldRecordEventType,
+    'held_routing_operator_review_decision_preview'
+  );
+  assert.equal(presentation.decisionLedgerPreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(
+    presentation.decisionLedgerPreview.noActionReasonCode,
+    'current_status_ready_no_action_surface'
+  );
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.decisionLedgerPreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
 });
 
 test('presentation builder is side-effect free for summary input', () => {

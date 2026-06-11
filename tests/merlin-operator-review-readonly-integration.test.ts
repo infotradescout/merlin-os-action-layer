@@ -74,6 +74,10 @@ test('read-only API returns serialized operator review presentation payload', as
     advisoryOnly: boolean;
     authorityReference: string;
     serializedPresentation: string;
+    decisionLedgerPreview: {
+      kind: string;
+      noActionStatus: string;
+    };
     mutationAllowed: boolean;
     implementationAllowed: boolean;
     executionAllowed: boolean;
@@ -83,6 +87,8 @@ test('read-only API returns serialized operator review presentation payload', as
   assert.equal(response.body.status, 'ok');
   assert.equal(response.body.mode, 'read_only');
   assert.equal(response.body.advisoryOnly, true);
+  assert.equal(response.body.decisionLedgerPreview.kind, 'operator_review_decision_ledger_preview');
+  assert.equal(response.body.decisionLedgerPreview.noActionStatus, 'preview_only_no_mutation');
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.implementationAllowed, false);
   assert.equal(response.body.executionAllowed, false);
@@ -107,6 +113,28 @@ test('read-only API returns serialized operator review presentation payload', as
         evidenceState: 'bound' | 'no_evidence';
         noEvidenceReason?: 'not_applicable' | 'source_unavailable';
       }>;
+    };
+    decisionLedgerPreview: {
+      kind: string;
+      presentationId: string;
+      packetId: string;
+      summaryId: string;
+      wouldRecordEventType: string;
+      noActionStatus: string;
+      noActionReasonCode: string;
+      evidenceSummary: {
+        detailLines: { total: number; bound: number; noEvidence: number };
+        warnings: { total: number; bound: number; noEvidence: number };
+      };
+      authoritySnapshot: {
+        mutationAllowed: boolean;
+        implementationAllowed: boolean;
+        executionAllowed: boolean;
+      };
+      timestampPolicy: {
+        mode: string;
+        previewedAt: string;
+      };
     };
     mutationAllowed: boolean;
     implementationAllowed: boolean;
@@ -148,6 +176,28 @@ test('read-only API returns serialized operator review presentation payload', as
     ),
     true
   );
+  assert.equal(presentation.decisionLedgerPreview.kind, 'operator_review_decision_ledger_preview');
+  assert.equal(
+    presentation.decisionLedgerPreview.wouldRecordEventType,
+    'held_routing_operator_review_decision_preview'
+  );
+  assert.equal(presentation.decisionLedgerPreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.decisionLedgerPreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.decisionLedgerPreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
+  assert.equal(
+    presentation.decisionLedgerPreview.evidenceSummary.detailLines.total,
+    presentation.evidenceBindings.detailLines.length
+  );
+  assert.equal(
+    presentation.decisionLedgerPreview.evidenceSummary.warnings.total,
+    presentation.evidenceBindings.warnings.length
+  );
   assert.equal(presentation.mutationAllowed, false);
   assert.equal(presentation.implementationAllowed, false);
   assert.equal(presentation.executionAllowed, false);
@@ -181,6 +231,9 @@ test('operator review admin view exposes read-only details without action button
   assert.ok(response.body.includes('Evidence Binding'));
   assert.ok(response.body.includes('Detail Line Evidence'));
   assert.ok(response.body.includes('Warning Evidence'));
+  assert.ok(response.body.includes('Decision Ledger Preview'));
+  assert.ok(response.body.includes('would-record event type'));
+  assert.ok(response.body.includes('preview_only_no_mutation'));
   assert.ok(response.body.includes('Authority Flags'));
   assert.ok(response.body.includes('Authority Reference'));
   assert.ok(response.body.includes('docs/merlin/MERLIN_OPERATOR_REVIEW_PRESENTATION_CLOSEOUT.md'));

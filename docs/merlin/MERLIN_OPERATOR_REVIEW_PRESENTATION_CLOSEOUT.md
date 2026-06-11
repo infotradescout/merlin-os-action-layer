@@ -144,6 +144,32 @@ Read-only boundary remains unchanged:
 - no action buttons
 - authority flags remain hard-false
 
+## G3 Decision Ledger Preview (Read-Only)
+
+G3 adds a deterministic decision ledger preview shape to the read-only presentation payload.
+
+Purpose:
+- show what audit ledger event would be recorded during future operator decision handling
+- prove ledger/audit structure before any approval gate opens mutation surfaces
+
+Preview contents are metadata only:
+- preview kind and packet/presentation references
+- evidence binding summary counts
+- authority snapshot with hard-false flags
+- would-record event type
+- no-action status and reason code sourced from current review state
+- deterministic timestamp policy (`deterministic_static`)
+
+No-persistence doctrine for G3:
+- no database writes
+- no ledger persistence
+- no external integrations
+- no mutation, apply, execute, or implementation routes
+
+Relationship to future gates:
+- G3 provides preview-only audit shape
+- future approval gate may consume the shape later, but write behavior remains out of scope here
+
 ## Operator Guidance
 
 Operator review presentation should be interpreted as decision support only.
@@ -158,3 +184,4 @@ All operational execution remains separate and outside this chain.
 - P11 documents closeout and defines the first future integration gate.
 - G1 exposes one read-only API payload and one minimal read-only operator view without execution authority.
 - G2 adds read-only evidence/source bindings with explicit no-evidence states while preserving zero-execution authority.
+- G3 adds deterministic read-only decision ledger preview metadata without persistence or action authority.
