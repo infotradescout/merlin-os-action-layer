@@ -94,6 +94,20 @@ test('read-only API returns serialized operator review presentation payload', as
   const presentation = JSON.parse(response.body.serializedPresentation) as {
     display: { title: string; subtitle: string; detailLines: string[] };
     operatorWarnings: string[];
+    evidenceBindings: {
+      detailLines: Array<{
+        line: string;
+        sourceReferences: string[];
+        evidenceState: 'bound' | 'no_evidence';
+        noEvidenceReason?: 'not_applicable' | 'source_unavailable';
+      }>;
+      warnings: Array<{
+        warning: string;
+        sourceReferences: string[];
+        evidenceState: 'bound' | 'no_evidence';
+        noEvidenceReason?: 'not_applicable' | 'source_unavailable';
+      }>;
+    };
     mutationAllowed: boolean;
     implementationAllowed: boolean;
     executionAllowed: boolean;
@@ -103,6 +117,37 @@ test('read-only API returns serialized operator review presentation payload', as
   assert.equal(typeof presentation.display.subtitle, 'string');
   assert.equal(Array.isArray(presentation.display.detailLines), true);
   assert.equal(Array.isArray(presentation.operatorWarnings), true);
+  assert.equal(Array.isArray(presentation.evidenceBindings.detailLines), true);
+  assert.equal(Array.isArray(presentation.evidenceBindings.warnings), true);
+  assert.equal(
+    presentation.evidenceBindings.detailLines.length,
+    presentation.display.detailLines.length
+  );
+
+  for (const detailEvidence of presentation.evidenceBindings.detailLines) {
+    if (detailEvidence.evidenceState === 'bound') {
+      assert.equal(detailEvidence.sourceReferences.length > 0, true);
+    } else {
+      assert.equal(detailEvidence.sourceReferences.length, 0);
+      assert.equal(typeof detailEvidence.noEvidenceReason, 'string');
+    }
+  }
+
+  for (const warningEvidence of presentation.evidenceBindings.warnings) {
+    if (warningEvidence.evidenceState === 'bound') {
+      assert.equal(warningEvidence.sourceReferences.length > 0, true);
+    } else {
+      assert.equal(warningEvidence.sourceReferences.length, 0);
+      assert.equal(typeof warningEvidence.noEvidenceReason, 'string');
+    }
+  }
+
+  assert.equal(
+    presentation.evidenceBindings.warnings.some(
+      (entry) => entry.evidenceState === 'no_evidence' && entry.noEvidenceReason === 'not_applicable'
+    ),
+    true
+  );
   assert.equal(presentation.mutationAllowed, false);
   assert.equal(presentation.implementationAllowed, false);
   assert.equal(presentation.executionAllowed, false);
@@ -133,9 +178,13 @@ test('operator review admin view exposes read-only details without action button
   assert.ok(response.body.includes('/api/merlin/operator-review/presentation'));
   assert.ok(response.body.includes('Detail Lines'));
   assert.ok(response.body.includes('Warnings'));
+  assert.ok(response.body.includes('Evidence Binding'));
+  assert.ok(response.body.includes('Detail Line Evidence'));
+  assert.ok(response.body.includes('Warning Evidence'));
   assert.ok(response.body.includes('Authority Flags'));
   assert.ok(response.body.includes('Authority Reference'));
   assert.ok(response.body.includes('docs/merlin/MERLIN_OPERATOR_REVIEW_PRESENTATION_CLOSEOUT.md'));
+  assert.ok(response.body.includes('no_evidence:not_applicable'));
 
   const normalized = response.body.toLowerCase();
   assert.equal(normalized.includes('<button'), false);

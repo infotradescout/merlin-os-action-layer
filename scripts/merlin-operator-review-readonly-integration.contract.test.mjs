@@ -35,6 +35,17 @@ includesAll(
 );
 
 includesAll(
+  viewSource,
+  [
+    'evidence binding',
+    'detail line evidence',
+    'warning evidence',
+    'no_evidence:not_applicable'
+  ],
+  'operator review view read-only evidence surface'
+);
+
+includesAll(
   serverSource,
   [
     "pathname.startsWith('/api/merlin/operator-review')",

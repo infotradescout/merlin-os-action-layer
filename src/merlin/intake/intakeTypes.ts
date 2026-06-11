@@ -270,6 +270,20 @@ export type HeldRoutingOperatorReviewPresentation = {
     subtitle: string;
     detailLines: string[];
   };
+  evidenceBindings: {
+    detailLines: Array<{
+      line: string;
+      sourceReferences: string[];
+      evidenceState: 'bound' | 'no_evidence';
+      noEvidenceReason?: 'not_applicable' | 'source_unavailable';
+    }>;
+    warnings: Array<{
+      warning: string;
+      sourceReferences: string[];
+      evidenceState: 'bound' | 'no_evidence';
+      noEvidenceReason?: 'not_applicable' | 'source_unavailable';
+    }>;
+  };
   summary: HeldRoutingOperatorReviewSummary;
   mutationAllowed: false;
   implementationAllowed: false;

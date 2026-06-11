@@ -25,6 +25,7 @@ test('dashboard fixture is deterministic and serializer-backed', () => {
     'nextRequiredAction',
     'operatorWarnings',
     'display',
+    'evidenceBindings',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -61,6 +62,9 @@ test('dashboard fixture cannot execute or mutate', () => {
   assert.equal(Object.isFrozen(fixture.presentation.summary), true);
   assert.equal(Object.isFrozen(fixture.presentation.operatorWarnings), true);
   assert.equal(Object.isFrozen(fixture.presentation.display.detailLines), true);
+  assert.equal(Object.isFrozen(fixture.presentation.evidenceBindings), true);
+  assert.equal(Object.isFrozen(fixture.presentation.evidenceBindings.detailLines), true);
+  assert.equal(Object.isFrozen(fixture.presentation.evidenceBindings.warnings), true);
 
   assert.equal('execute' in (fixture as Record<string, unknown>), false);
   assert.equal('apply' in (fixture as Record<string, unknown>), false);
@@ -75,5 +79,13 @@ test('dashboard fixture cannot execute or mutate', () => {
   }, TypeError);
   assert.throws(() => {
     fixture.presentation.display.detailLines.push('authority:execution=true');
+  }, TypeError);
+  assert.throws(() => {
+    fixture.presentation.evidenceBindings.warnings.push({
+      warning: 'forced_warning',
+      sourceReferences: [],
+      evidenceState: 'no_evidence',
+      noEvidenceReason: 'not_applicable'
+    });
   }, TypeError);
 });

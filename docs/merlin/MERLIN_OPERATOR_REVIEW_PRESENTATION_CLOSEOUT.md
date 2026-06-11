@@ -125,6 +125,25 @@ The G1 integration surface is intentionally narrow and read-only:
 
 Both surfaces must treat this closeout document as the authority reference and must not add apply/execute controls.
 
+## G2 Evidence Binding (Read-Only)
+
+G2 extends the same read-only surfaces with evidence-linked metadata for presentation details and warnings.
+
+Behavior:
+- serialized presentation payload includes evidence/source bindings for detail lines and warnings
+- each rendered detail line and warning is paired with either:
+	- `evidenceState: bound` plus `sourceReferences`, or
+	- `evidenceState: no_evidence` with explicit `noEvidenceReason`
+- no fake evidence IDs or placeholder records are introduced
+
+Read-only boundary remains unchanged:
+- no mutation route
+- no apply route
+- no execute route
+- no implementation route
+- no action buttons
+- authority flags remain hard-false
+
 ## Operator Guidance
 
 Operator review presentation should be interpreted as decision support only.
@@ -138,3 +157,4 @@ All operational execution remains separate and outside this chain.
 - P10 introduced deterministic dashboard fixture and fixture contract guards.
 - P11 documents closeout and defines the first future integration gate.
 - G1 exposes one read-only API payload and one minimal read-only operator view without execution authority.
+- G2 adds read-only evidence/source bindings with explicit no-evidence states while preserving zero-execution authority.

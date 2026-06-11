@@ -160,11 +160,34 @@ test('presentation serialization is deterministic', () => {
     'nextRequiredAction',
     'operatorWarnings',
     'display',
+    'evidenceBindings',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
     'executionAllowed'
   ]);
+});
+
+test('presentation includes evidence binding for detail lines and warnings', () => {
+  const summary = buildSummary();
+  const presentation = createHeldRoutingOperatorReviewPresentation(summary, {
+    presentationId: 'presentation-evidence'
+  });
+
+  assert.equal(presentation.evidenceBindings.detailLines.length, presentation.display.detailLines.length);
+  for (const entry of presentation.evidenceBindings.detailLines) {
+    if (entry.evidenceState === 'bound') {
+      assert.equal(entry.sourceReferences.length > 0, true);
+    } else {
+      assert.equal(entry.sourceReferences.length, 0);
+      assert.equal(typeof entry.noEvidenceReason, 'string');
+    }
+  }
+
+  assert.equal(presentation.evidenceBindings.warnings.length, 1);
+  assert.equal(presentation.evidenceBindings.warnings[0].warning, 'none');
+  assert.equal(presentation.evidenceBindings.warnings[0].evidenceState, 'no_evidence');
+  assert.equal(presentation.evidenceBindings.warnings[0].noEvidenceReason, 'not_applicable');
 });
 
 test('presentation builder is side-effect free for summary input', () => {

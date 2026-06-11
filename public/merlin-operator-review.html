@@ -87,6 +87,25 @@
         white-space: pre-wrap;
       }
 
+      .evidence-group {
+        margin-top: 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.55rem;
+      }
+
+      .evidence-title {
+        font-weight: 700;
+      }
+
+      .evidence-source {
+        color: var(--accent);
+      }
+
+      .no-evidence {
+        color: var(--muted);
+      }
+
       a.inline {
         color: var(--accent);
       }
@@ -150,6 +169,26 @@
           </p>
         </section>
       </div>
+
+      <section class="panel">
+        <h3>Evidence Binding</h3>
+        <p class="muted">Each detail line and warning is mapped to source references or an explicit no-evidence state.</p>
+        <p class="muted">No-evidence marker format: <span class="mono">no_evidence:not_applicable</span>.</p>
+        <div id="evidence-bindings" class="grid">
+          <div class="evidence-group">
+            <div class="evidence-title">Detail Line Evidence</div>
+            <ul id="evidence-details">
+              <li class="muted">Loading detail evidence...</li>
+            </ul>
+          </div>
+          <div class="evidence-group">
+            <div class="evidence-title">Warning Evidence</div>
+            <ul id="evidence-warnings">
+              <li class="muted">Loading warning evidence...</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
 
     <script>
@@ -167,6 +206,33 @@
           const li = document.createElement('li');
           li.className = className || '';
           li.textContent = String(value);
+          target.appendChild(li);
+        }
+      }
+
+      function renderEvidence(target, entries, primaryField) {
+        target.innerHTML = '';
+        if (!Array.isArray(entries) || entries.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'no-evidence';
+          li.textContent = 'No evidence bindings available.';
+          target.appendChild(li);
+          return;
+        }
+
+        for (const entry of entries) {
+          const li = document.createElement('li');
+          const primary = String(entry?.[primaryField] || 'unknown');
+          const state = String(entry?.evidenceState || 'no_evidence');
+          const refs = Array.isArray(entry?.sourceReferences) ? entry.sourceReferences : [];
+          const noEvidenceReason = entry?.noEvidenceReason ? String(entry.noEvidenceReason) : 'not_applicable';
+
+          if (refs.length > 0) {
+            li.innerHTML = `<span class="mono">${primary}</span> -> <span class="evidence-source">${refs.join(' | ')}</span>`;
+          } else {
+            li.innerHTML = `<span class="mono">${primary}</span> -> <span class="no-evidence">${state}:${noEvidenceReason}</span>`;
+          }
+
           target.appendChild(li);
         }
       }
@@ -215,12 +281,26 @@
           const authorityLink = document.getElementById('authority-reference');
           authorityLink.textContent = payload.authorityReference || 'docs/merlin/MERLIN_OPERATOR_REVIEW_PRESENTATION_CLOSEOUT.md';
           authorityLink.href = payload.authorityReference || '#';
+
+          renderEvidence(
+            document.getElementById('evidence-details'),
+            parsed.evidenceBindings?.detailLines || [],
+            'line'
+          );
+
+          renderEvidence(
+            document.getElementById('evidence-warnings'),
+            parsed.evidenceBindings?.warnings || [],
+            'warning'
+          );
         } catch (error) {
           document.getElementById('title').textContent = 'Operator review payload unavailable';
           document.getElementById('subtitle').textContent = error instanceof Error ? error.message : 'Unknown error';
           renderList(document.getElementById('detail-lines'), [], 'No detail lines available.', 'muted');
           renderList(document.getElementById('warnings'), ['payload_load_failed'], 'No warnings.', 'warning');
           renderList(document.getElementById('authority-flags'), [], 'Authority flags unavailable.', 'muted');
+          renderEvidence(document.getElementById('evidence-details'), [], 'line');
+          renderEvidence(document.getElementById('evidence-warnings'), [], 'warning');
         }
       }
 
