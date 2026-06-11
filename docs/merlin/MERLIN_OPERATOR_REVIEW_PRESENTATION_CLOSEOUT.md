@@ -200,6 +200,50 @@ Relationship to future approval artifact:
 - G4 exposes preview-only future artifact requirements as metadata
 - no artifact creation occurs in this slice
 
+## G5 Approval Artifact Preview (Read-Only)
+
+G5 adds a deterministic approval artifact preview model that defines the exact future artifact contract without creating the artifact.
+
+Purpose:
+- state which approval artifact fields will be required later
+- bind the future artifact shape back to evidence summary, decision ledger preview, approval gate preview, and operator identity
+- prove artifact policy before any approval/rejection action exists
+
+Required future artifact fields:
+- operatorIdentity
+- approvalDecision
+- approvalTimestamp
+- evidenceBindingSummary
+- decisionLedgerPreviewReference
+- approvalGatePreviewReference
+- authoritySnapshot
+
+Read-only boundary:
+- artifactStatus may be `required_not_created` only when the gate is `eligible_preview_only`
+- `required_not_created` still grants no approval authority
+- missingFields remains explicit for operatorIdentity, approvalDecision, and approvalTimestamp because no real operator action exists in this surface
+- no approval artifact is created
+- no ledger/database write occurs
+- no external integration is introduced
+
+Fail-closed behavior:
+- block when approvalGatePreview is missing
+- block when approvalGatePreview is blocked
+- block when authority flags are not hard-false
+- preserve hard-false mutationAllowed, implementationAllowed, and executionAllowed snapshots
+- use deterministic timestamp policy (`deterministic_static`)
+
+No-action doctrine:
+- no approval route
+- no rejection route
+- no action route
+- no mutation route
+- no apply route
+- no execute route
+- no implementation route
+- no action buttons
+- no persistence/database write path
+
 ## Operator Guidance
 
 Operator review presentation should be interpreted as decision support only.
@@ -216,3 +260,4 @@ All operational execution remains separate and outside this chain.
 - G2 adds read-only evidence/source bindings with explicit no-evidence states while preserving zero-execution authority.
 - G3 adds deterministic read-only decision ledger preview metadata without persistence or action authority.
 - G4 adds deterministic fail-closed approval gate preview metadata without approval/rejection actions or persistence.
+- G5 adds deterministic approval artifact preview metadata without creating artifacts, buttons, routes, or persistence.

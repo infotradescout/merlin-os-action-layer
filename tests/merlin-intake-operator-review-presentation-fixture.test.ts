@@ -28,6 +28,7 @@ test('dashboard fixture is deterministic and serializer-backed', () => {
     'evidenceBindings',
     'decisionLedgerPreview',
     'approvalGatePreview',
+    'approvalArtifactPreview',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -73,6 +74,12 @@ test('dashboard fixture cannot execute or mutate', () => {
   assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview), true);
   assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview.evidenceBindingStatus), true);
   assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview.authoritySnapshot), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview.requiredFields), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview.missingFields), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview.references), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview.futureArtifactPolicy), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalArtifactPreview.authoritySnapshot), true);
 
   assert.equal('execute' in (fixture as Record<string, unknown>), false);
   assert.equal('apply' in (fixture as Record<string, unknown>), false);
@@ -101,5 +108,8 @@ test('dashboard fixture cannot execute or mutate', () => {
   }, TypeError);
   assert.throws(() => {
     fixture.presentation.approvalGatePreview.gateStatus = 'eligible_preview_only';
+  }, TypeError);
+  assert.throws(() => {
+    fixture.presentation.approvalArtifactPreview.missingFields.push('operatorIdentity');
   }, TypeError);
 });

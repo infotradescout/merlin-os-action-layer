@@ -9,6 +9,7 @@ type HeldRoutingOperatorReviewPresentationInput = {
 
 const LEDGER_PREVIEW_STATIC_TIMESTAMP = '2026-06-10T00:00:00.000Z';
 const APPROVAL_GATE_PREVIEW_STATIC_TIMESTAMP = '2026-06-10T00:00:00.000Z';
+const APPROVAL_ARTIFACT_PREVIEW_STATIC_TIMESTAMP = '2026-06-10T00:00:00.000Z';
 
 type PresentationEvidenceItem = {
   sourceReferences: string[];
@@ -285,6 +286,115 @@ function determineApprovalGatePreview(input: {
   };
 }
 
+function determineApprovalArtifactPreview(input: {
+  presentationId: string;
+  packetId: string;
+  summaryId: string;
+  decisionLedgerPreview: HeldRoutingOperatorReviewPresentation['decisionLedgerPreview'];
+  approvalGatePreview?: HeldRoutingOperatorReviewPresentation['approvalGatePreview'];
+  mutationAllowed: boolean;
+  implementationAllowed: boolean;
+  executionAllowed: boolean;
+}): HeldRoutingOperatorReviewPresentation['approvalArtifactPreview'] {
+  const gateMissing =
+    !input.approvalGatePreview ||
+    input.approvalGatePreview.kind !== 'operator_review_approval_gate_preview';
+  const authorityContaminated =
+    input.mutationAllowed ||
+    input.implementationAllowed ||
+    input.executionAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.mutationAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.implementationAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.executionAllowed ||
+    input.approvalGatePreview?.authoritySnapshot.mutationAllowed ||
+    input.approvalGatePreview?.authoritySnapshot.implementationAllowed ||
+    input.approvalGatePreview?.authoritySnapshot.executionAllowed;
+  const gateBlocked = gateMissing || input.approvalGatePreview?.gateStatus !== 'eligible_preview_only';
+
+  let artifactStatus: 'required_not_created' | 'blocked_by_gate' = 'required_not_created';
+  let artifactReasonCode:
+    | 'required_future_approval_artifact_not_created'
+    | 'approval_gate_preview_missing'
+    | 'approval_gate_blocked'
+    | 'authority_flags_not_hard_false' = 'required_future_approval_artifact_not_created';
+
+  if (gateMissing) {
+    artifactStatus = 'blocked_by_gate';
+    artifactReasonCode = 'approval_gate_preview_missing';
+  } else if (authorityContaminated) {
+    artifactStatus = 'blocked_by_gate';
+    artifactReasonCode = 'authority_flags_not_hard_false';
+  } else if (gateBlocked) {
+    artifactStatus = 'blocked_by_gate';
+    artifactReasonCode = 'approval_gate_blocked';
+  }
+
+  return {
+    kind: 'operator_review_approval_artifact_preview',
+    presentationId: input.presentationId,
+    packetId: input.packetId,
+    summaryId: input.summaryId,
+    artifactStatus,
+    artifactReasonCode,
+    requiredFields: [
+      'operatorIdentity',
+      'approvalDecision',
+      'approvalTimestamp',
+      'evidenceBindingSummary',
+      'decisionLedgerPreviewReference',
+      'approvalGatePreviewReference',
+      'authoritySnapshot'
+    ],
+    missingFields: ['operatorIdentity', 'approvalDecision', 'approvalTimestamp'],
+    references: {
+      decisionLedgerPreviewReference: {
+        kind: input.decisionLedgerPreview.kind,
+        presentationId: input.decisionLedgerPreview.presentationId,
+        packetId: input.decisionLedgerPreview.packetId,
+        summaryId: input.decisionLedgerPreview.summaryId,
+        noActionStatus: input.decisionLedgerPreview.noActionStatus
+      },
+      approvalGatePreviewReference: {
+        kind: input.approvalGatePreview?.kind,
+        gateStatus: input.approvalGatePreview?.gateStatus,
+        gateReasonCode: input.approvalGatePreview?.gateReasonCode,
+        noActionStatus: input.approvalGatePreview?.noActionStatus
+      },
+      evidenceBindingSummary: {
+        detailLines: {
+          total: input.decisionLedgerPreview.evidenceSummary.detailLines.total,
+          bound: input.decisionLedgerPreview.evidenceSummary.detailLines.bound,
+          noEvidence: input.decisionLedgerPreview.evidenceSummary.detailLines.noEvidence
+        },
+        warnings: {
+          total: input.decisionLedgerPreview.evidenceSummary.warnings.total,
+          bound: input.decisionLedgerPreview.evidenceSummary.warnings.bound,
+          noEvidence: input.decisionLedgerPreview.evidenceSummary.warnings.noEvidence
+        }
+      }
+    },
+    futureArtifactPolicy: {
+      generation: 'must_be_generated_only_by_explicit_future_approval_action',
+      bindings: [
+        'must_bind_evidence_hash_or_summary',
+        'must_bind_decision_ledger_preview',
+        'must_bind_approval_gate_preview',
+        'must_bind_operator_identity'
+      ]
+    },
+    noActionStatus: 'preview_only_no_mutation',
+    authoritySnapshot: {
+      mutationAllowed: false,
+      implementationAllowed: false,
+      executionAllowed: false
+    },
+    timestampPolicy: {
+      mode: 'deterministic_static',
+      previewedAt: APPROVAL_ARTIFACT_PREVIEW_STATIC_TIMESTAMP
+    }
+  };
+}
+
 export function createHeldRoutingOperatorReviewPresentation(
   summary: HeldRoutingOperatorReviewSummary,
   input: HeldRoutingOperatorReviewPresentationInput
@@ -384,6 +494,16 @@ export function createHeldRoutingOperatorReviewPresentation(
     implementationAllowed: false,
     executionAllowed: false
   });
+  const approvalArtifactPreview = determineApprovalArtifactPreview({
+    presentationId,
+    packetId: normalizedSummary.packetId,
+    summaryId: normalizedSummary.summaryId,
+    decisionLedgerPreview,
+    approvalGatePreview,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false
+  });
 
   return {
     presentationId,
@@ -414,6 +534,7 @@ export function createHeldRoutingOperatorReviewPresentation(
     },
     decisionLedgerPreview,
     approvalGatePreview,
+    approvalArtifactPreview,
     summary: normalizedSummary,
     mutationAllowed: false,
     implementationAllowed: false,
@@ -518,6 +639,57 @@ export function serializeHeldRoutingOperatorReviewPresentation(presentation: Hel
       timestampPolicy: {
         mode: presentation.approvalGatePreview.timestampPolicy.mode,
         previewedAt: presentation.approvalGatePreview.timestampPolicy.previewedAt
+      }
+    },
+    approvalArtifactPreview: {
+      kind: presentation.approvalArtifactPreview.kind,
+      presentationId: presentation.approvalArtifactPreview.presentationId,
+      packetId: presentation.approvalArtifactPreview.packetId,
+      summaryId: presentation.approvalArtifactPreview.summaryId,
+      artifactStatus: presentation.approvalArtifactPreview.artifactStatus,
+      artifactReasonCode: presentation.approvalArtifactPreview.artifactReasonCode,
+      requiredFields: [...presentation.approvalArtifactPreview.requiredFields],
+      missingFields: [...presentation.approvalArtifactPreview.missingFields],
+      references: {
+        decisionLedgerPreviewReference: {
+          kind: presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.kind,
+          presentationId: presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.presentationId,
+          packetId: presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.packetId,
+          summaryId: presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.summaryId,
+          noActionStatus: presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.noActionStatus
+        },
+        approvalGatePreviewReference: {
+          kind: presentation.approvalArtifactPreview.references.approvalGatePreviewReference.kind,
+          gateStatus: presentation.approvalArtifactPreview.references.approvalGatePreviewReference.gateStatus,
+          gateReasonCode: presentation.approvalArtifactPreview.references.approvalGatePreviewReference.gateReasonCode,
+          noActionStatus: presentation.approvalArtifactPreview.references.approvalGatePreviewReference.noActionStatus
+        },
+        evidenceBindingSummary: {
+          detailLines: {
+            total: presentation.approvalArtifactPreview.references.evidenceBindingSummary.detailLines.total,
+            bound: presentation.approvalArtifactPreview.references.evidenceBindingSummary.detailLines.bound,
+            noEvidence: presentation.approvalArtifactPreview.references.evidenceBindingSummary.detailLines.noEvidence
+          },
+          warnings: {
+            total: presentation.approvalArtifactPreview.references.evidenceBindingSummary.warnings.total,
+            bound: presentation.approvalArtifactPreview.references.evidenceBindingSummary.warnings.bound,
+            noEvidence: presentation.approvalArtifactPreview.references.evidenceBindingSummary.warnings.noEvidence
+          }
+        }
+      },
+      futureArtifactPolicy: {
+        generation: presentation.approvalArtifactPreview.futureArtifactPolicy.generation,
+        bindings: [...presentation.approvalArtifactPreview.futureArtifactPolicy.bindings]
+      },
+      noActionStatus: presentation.approvalArtifactPreview.noActionStatus,
+      authoritySnapshot: {
+        mutationAllowed: presentation.approvalArtifactPreview.authoritySnapshot.mutationAllowed,
+        implementationAllowed: presentation.approvalArtifactPreview.authoritySnapshot.implementationAllowed,
+        executionAllowed: presentation.approvalArtifactPreview.authoritySnapshot.executionAllowed
+      },
+      timestampPolicy: {
+        mode: presentation.approvalArtifactPreview.timestampPolicy.mode,
+        previewedAt: presentation.approvalArtifactPreview.timestampPolicy.previewedAt
       }
     },
     summary: presentation.summary,

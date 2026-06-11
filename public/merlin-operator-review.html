@@ -206,6 +206,15 @@
           <li class="muted">Loading approval gate preview...</li>
         </ul>
       </section>
+
+      <section class="panel">
+        <h3>Approval Artifact Preview</h3>
+        <p class="muted">Required future artifact metadata only. No approval artifact is created here.</p>
+        <p class="muted">Required marker: <span class="mono">required_not_created</span>.</p>
+        <ul id="approval-artifact-preview" class="mono">
+          <li class="muted">Loading approval artifact preview...</li>
+        </ul>
+      </section>
     </div>
 
     <script>
@@ -353,6 +362,30 @@
             'Approval gate preview unavailable.',
             'mono'
           );
+
+          const approvalArtifactPreview = parsed.approvalArtifactPreview || {};
+          renderList(
+            document.getElementById('approval-artifact-preview'),
+            [
+              `kind: ${approvalArtifactPreview.kind || 'operator_review_approval_artifact_preview'}`,
+              `presentationId: ${approvalArtifactPreview.presentationId || 'unavailable'}`,
+              `packetId: ${approvalArtifactPreview.packetId || 'unavailable'}`,
+              `summaryId: ${approvalArtifactPreview.summaryId || 'unavailable'}`,
+              `artifactStatus: ${approvalArtifactPreview.artifactStatus || 'blocked_by_gate'}`,
+              `artifactReasonCode: ${approvalArtifactPreview.artifactReasonCode || 'approval_gate_preview_missing'}`,
+              `requiredFields: ${(approvalArtifactPreview.requiredFields || []).join(' | ') || 'unavailable'}`,
+              `missingFields: ${(approvalArtifactPreview.missingFields || []).join(' | ') || 'unavailable'}`,
+              `decisionLedgerPreviewReference: kind=${approvalArtifactPreview.references?.decisionLedgerPreviewReference?.kind || 'unavailable'} noActionStatus=${approvalArtifactPreview.references?.decisionLedgerPreviewReference?.noActionStatus || 'unavailable'}`,
+              `approvalGatePreviewReference: kind=${approvalArtifactPreview.references?.approvalGatePreviewReference?.kind || 'unavailable'} gateStatus=${approvalArtifactPreview.references?.approvalGatePreviewReference?.gateStatus || 'unavailable'} gateReasonCode=${approvalArtifactPreview.references?.approvalGatePreviewReference?.gateReasonCode || 'unavailable'}`,
+              `futureArtifactPolicy.generation: ${approvalArtifactPreview.futureArtifactPolicy?.generation || 'unavailable'}`,
+              `futureArtifactPolicy.bindings: ${(approvalArtifactPreview.futureArtifactPolicy?.bindings || []).join(' | ') || 'unavailable'}`,
+              `noActionStatus: ${approvalArtifactPreview.noActionStatus || 'preview_only_no_mutation'}`,
+              `authoritySnapshot: mutation=${approvalArtifactPreview.authoritySnapshot?.mutationAllowed} implementation=${approvalArtifactPreview.authoritySnapshot?.implementationAllowed} execution=${approvalArtifactPreview.authoritySnapshot?.executionAllowed}`,
+              `timestampPolicy: ${approvalArtifactPreview.timestampPolicy?.mode || 'deterministic_static'} @ ${approvalArtifactPreview.timestampPolicy?.previewedAt || 'unavailable'}`
+            ],
+            'Approval artifact preview unavailable.',
+            'mono'
+          );
         } catch (error) {
           document.getElementById('title').textContent = 'Operator review payload unavailable';
           document.getElementById('subtitle').textContent = error instanceof Error ? error.message : 'Unknown error';
@@ -363,6 +396,7 @@
           renderEvidence(document.getElementById('evidence-warnings'), [], 'warning');
           renderList(document.getElementById('ledger-preview'), [], 'Decision ledger preview unavailable.', 'muted');
           renderList(document.getElementById('approval-gate-preview'), [], 'Approval gate preview unavailable.', 'muted');
+          renderList(document.getElementById('approval-artifact-preview'), [], 'Approval artifact preview unavailable.', 'muted');
         }
       }
 

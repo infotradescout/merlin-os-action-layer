@@ -163,6 +163,7 @@ test('presentation serialization is deterministic', () => {
     'evidenceBindings',
     'decisionLedgerPreview',
     'approvalGatePreview',
+    'approvalArtifactPreview',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -241,6 +242,63 @@ test('presentation includes evidence binding for detail lines and warnings', () 
     presentation.approvalGatePreview.evidenceBindingStatus.warnings.total,
     presentation.evidenceBindings.warnings.length
   );
+
+  assert.equal(presentation.approvalArtifactPreview.kind, 'operator_review_approval_artifact_preview');
+  assert.equal(presentation.approvalArtifactPreview.presentationId, 'presentation-evidence');
+  assert.equal(presentation.approvalArtifactPreview.packetId, presentation.packetId);
+  assert.equal(presentation.approvalArtifactPreview.summaryId, presentation.summaryId);
+  assert.equal(presentation.approvalArtifactPreview.artifactStatus, 'required_not_created');
+  assert.equal(
+    presentation.approvalArtifactPreview.artifactReasonCode,
+    'required_future_approval_artifact_not_created'
+  );
+  assert.deepEqual(presentation.approvalArtifactPreview.requiredFields, [
+    'operatorIdentity',
+    'approvalDecision',
+    'approvalTimestamp',
+    'evidenceBindingSummary',
+    'decisionLedgerPreviewReference',
+    'approvalGatePreviewReference',
+    'authoritySnapshot'
+  ]);
+  assert.deepEqual(presentation.approvalArtifactPreview.missingFields, [
+    'operatorIdentity',
+    'approvalDecision',
+    'approvalTimestamp'
+  ]);
+  assert.equal(
+    presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.kind,
+    'operator_review_decision_ledger_preview'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.approvalGatePreviewReference.kind,
+    'operator_review_approval_gate_preview'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.approvalGatePreviewReference.gateStatus,
+    'eligible_preview_only'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.evidenceBindingSummary.detailLines.total,
+    presentation.decisionLedgerPreview.evidenceSummary.detailLines.total
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.futureArtifactPolicy.generation,
+    'must_be_generated_only_by_explicit_future_approval_action'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.futureArtifactPolicy.bindings.includes('must_bind_operator_identity'),
+    true
+  );
+  assert.equal(presentation.approvalArtifactPreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.approvalArtifactPreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
 });
 
 test('approval gate preview is fail-closed and reason-coded when presentation id is missing', () => {
@@ -251,6 +309,9 @@ test('approval gate preview is fail-closed and reason-coded when presentation id
 
   assert.equal(presentation.approvalGatePreview.gateStatus, 'blocked');
   assert.equal(presentation.approvalGatePreview.gateReasonCode, 'missing_required_references');
+  assert.equal(presentation.approvalArtifactPreview.artifactStatus, 'blocked_by_gate');
+  assert.equal(presentation.approvalArtifactPreview.artifactReasonCode, 'approval_gate_blocked');
+  assert.equal(presentation.approvalArtifactPreview.noActionStatus, 'preview_only_no_mutation');
 });
 
 test('presentation builder is side-effect free for summary input', () => {

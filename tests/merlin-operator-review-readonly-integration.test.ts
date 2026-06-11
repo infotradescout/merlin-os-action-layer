@@ -83,6 +83,11 @@ test('read-only API returns serialized operator review presentation payload', as
       gateStatus: string;
       noActionStatus: string;
     };
+    approvalArtifactPreview: {
+      kind: string;
+      artifactStatus: string;
+      noActionStatus: string;
+    };
     mutationAllowed: boolean;
     implementationAllowed: boolean;
     executionAllowed: boolean;
@@ -97,6 +102,9 @@ test('read-only API returns serialized operator review presentation payload', as
   assert.equal(response.body.approvalGatePreview.kind, 'operator_review_approval_gate_preview');
   assert.equal(response.body.approvalGatePreview.gateStatus, 'eligible_preview_only');
   assert.equal(response.body.approvalGatePreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(response.body.approvalArtifactPreview.kind, 'operator_review_approval_artifact_preview');
+  assert.equal(response.body.approvalArtifactPreview.artifactStatus, 'required_not_created');
+  assert.equal(response.body.approvalArtifactPreview.noActionStatus, 'preview_only_no_mutation');
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.implementationAllowed, false);
   assert.equal(response.body.executionAllowed, false);
@@ -165,6 +173,49 @@ test('read-only API returns serialized operator review presentation payload', as
       noActionStatus: string;
       noActionReasonCode: string;
       futureArtifactRequirements: string[];
+      timestampPolicy: {
+        mode: string;
+        previewedAt: string;
+      };
+    };
+    approvalArtifactPreview: {
+      kind: string;
+      presentationId: string;
+      packetId: string;
+      summaryId: string;
+      artifactStatus: string;
+      artifactReasonCode: string;
+      requiredFields: string[];
+      missingFields: string[];
+      references: {
+        decisionLedgerPreviewReference: {
+          kind: string;
+          presentationId: string;
+          packetId: string;
+          summaryId: string;
+          noActionStatus: string;
+        };
+        approvalGatePreviewReference: {
+          kind?: string;
+          gateStatus?: string;
+          gateReasonCode?: string;
+          noActionStatus?: string;
+        };
+        evidenceBindingSummary: {
+          detailLines: { total: number; bound: number; noEvidence: number };
+          warnings: { total: number; bound: number; noEvidence: number };
+        };
+      };
+      futureArtifactPolicy: {
+        generation: string;
+        bindings: string[];
+      };
+      noActionStatus: string;
+      authoritySnapshot: {
+        mutationAllowed: boolean;
+        implementationAllowed: boolean;
+        executionAllowed: boolean;
+      };
       timestampPolicy: {
         mode: string;
         previewedAt: string;
@@ -261,6 +312,54 @@ test('read-only API returns serialized operator review presentation payload', as
     presentation.approvalGatePreview.timestampPolicy.previewedAt,
     '2026-06-10T00:00:00.000Z'
   );
+  assert.equal(presentation.approvalArtifactPreview.kind, 'operator_review_approval_artifact_preview');
+  assert.equal(presentation.approvalArtifactPreview.artifactStatus, 'required_not_created');
+  assert.equal(
+    presentation.approvalArtifactPreview.artifactReasonCode,
+    'required_future_approval_artifact_not_created'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.requiredFields.includes('operatorIdentity'),
+    true
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.requiredFields.includes('decisionLedgerPreviewReference'),
+    true
+  );
+  assert.deepEqual(presentation.approvalArtifactPreview.missingFields, [
+    'operatorIdentity',
+    'approvalDecision',
+    'approvalTimestamp'
+  ]);
+  assert.equal(
+    presentation.approvalArtifactPreview.references.decisionLedgerPreviewReference.kind,
+    'operator_review_decision_ledger_preview'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.approvalGatePreviewReference.kind,
+    'operator_review_approval_gate_preview'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.approvalGatePreviewReference.gateStatus,
+    'eligible_preview_only'
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.references.evidenceBindingSummary.detailLines.total,
+    presentation.evidenceBindings.detailLines.length
+  );
+  assert.equal(
+    presentation.approvalArtifactPreview.futureArtifactPolicy.generation,
+    'must_be_generated_only_by_explicit_future_approval_action'
+  );
+  assert.equal(presentation.approvalArtifactPreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.approvalArtifactPreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.approvalArtifactPreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
   assert.equal(presentation.mutationAllowed, false);
   assert.equal(presentation.implementationAllowed, false);
   assert.equal(presentation.executionAllowed, false);
@@ -289,11 +388,23 @@ test('integration gate has no apply or execute API routes', async () => {
     method: 'POST',
     body: '{}'
   });
+  const actionRoute = await requestJson<{ error: string }>('/api/merlin/operator-review/action', {
+    method: 'POST',
+    body: '{}'
+  });
+  const mutationRoute = await requestJson<{ error: string }>('/api/merlin/operator-review/mutation', {
+    method: 'POST',
+    body: '{}'
+  });
 
   assert.equal(approveRoute.status, 404);
   assert.equal(rejectRoute.status, 404);
+  assert.equal(actionRoute.status, 404);
+  assert.equal(mutationRoute.status, 404);
   assert.equal(approveRoute.body.error, 'Not found');
   assert.equal(rejectRoute.body.error, 'Not found');
+  assert.equal(actionRoute.body.error, 'Not found');
+  assert.equal(mutationRoute.body.error, 'Not found');
 });
 
 test('operator review admin view exposes read-only details without action buttons', async () => {
@@ -314,6 +425,11 @@ test('operator review admin view exposes read-only details without action button
   assert.ok(response.body.includes('Approval Gate Preview'));
   assert.ok(response.body.includes('gateStatus'));
   assert.ok(response.body.includes('eligible_preview_only'));
+  assert.ok(response.body.includes('Approval Artifact Preview'));
+  assert.ok(response.body.includes('artifactStatus'));
+  assert.ok(response.body.includes('required_not_created'));
+  assert.ok(response.body.includes('artifactReasonCode'));
+  assert.ok(response.body.includes('missingFields'));
   assert.ok(response.body.includes('Authority Flags'));
   assert.ok(response.body.includes('Authority Reference'));
   assert.ok(response.body.includes('docs/merlin/MERLIN_OPERATOR_REVIEW_PRESENTATION_CLOSEOUT.md'));

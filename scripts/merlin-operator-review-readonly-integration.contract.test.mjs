@@ -28,6 +28,7 @@ includesAll(
     'serializedPresentation',
     'decisionLedgerPreview',
     'approvalGatePreview',
+    'approvalArtifactPreview',
     'mutationAllowed: false',
     'implementationAllowed: false',
     'executionAllowed: false',
@@ -44,8 +45,11 @@ includesAll(
     'warning evidence',
     'decision ledger preview',
     'approval gate preview',
+    'approval artifact preview',
     'gatestatus',
+    'artifactstatus',
     'eligible_preview_only',
+    'required_not_created',
     'would-record event type',
     'preview_only_no_mutation',
     'no_evidence:not_applicable'
@@ -68,7 +72,9 @@ const forbiddenRoutePhrases = [
   '/api/merlin/operator-review/apply',
   '/api/merlin/operator-review/execute',
   '/api/merlin/operator-review/approve',
-  '/api/merlin/operator-review/reject'
+  '/api/merlin/operator-review/reject',
+  '/api/merlin/operator-review/action',
+  '/api/merlin/operator-review/mutation'
 ];
 for (const phrase of forbiddenRoutePhrases) {
   assert.equal(routeSource.includes(phrase), false, `operator review route must not define forbidden endpoint: ${phrase}`);

@@ -362,6 +362,63 @@ export type HeldRoutingOperatorReviewPresentation = {
       previewedAt: string;
     };
   };
+  approvalArtifactPreview: {
+    kind: 'operator_review_approval_artifact_preview';
+    presentationId: string;
+    packetId: string;
+    summaryId: string;
+    artifactStatus: 'required_not_created' | 'blocked_by_gate';
+    artifactReasonCode:
+      | 'required_future_approval_artifact_not_created'
+      | 'approval_gate_preview_missing'
+      | 'approval_gate_blocked'
+      | 'authority_flags_not_hard_false';
+    requiredFields: Array<
+      | 'operatorIdentity'
+      | 'approvalDecision'
+      | 'approvalTimestamp'
+      | 'evidenceBindingSummary'
+      | 'decisionLedgerPreviewReference'
+      | 'approvalGatePreviewReference'
+      | 'authoritySnapshot'
+    >;
+    missingFields: Array<'operatorIdentity' | 'approvalDecision' | 'approvalTimestamp'>;
+    references: {
+      decisionLedgerPreviewReference: {
+        kind: 'operator_review_decision_ledger_preview';
+        presentationId: string;
+        packetId: string;
+        summaryId: string;
+        noActionStatus: 'preview_only_no_mutation';
+      };
+      approvalGatePreviewReference: {
+        kind?: 'operator_review_approval_gate_preview';
+        gateStatus?: 'eligible_preview_only' | 'blocked';
+        gateReasonCode?: HeldRoutingOperatorReviewPresentation['approvalGatePreview']['gateReasonCode'];
+        noActionStatus?: 'preview_only_no_mutation';
+      };
+      evidenceBindingSummary: HeldRoutingOperatorReviewPresentation['decisionLedgerPreview']['evidenceSummary'];
+    };
+    futureArtifactPolicy: {
+      generation: 'must_be_generated_only_by_explicit_future_approval_action';
+      bindings: Array<
+        | 'must_bind_evidence_hash_or_summary'
+        | 'must_bind_decision_ledger_preview'
+        | 'must_bind_approval_gate_preview'
+        | 'must_bind_operator_identity'
+      >;
+    };
+    noActionStatus: 'preview_only_no_mutation';
+    authoritySnapshot: {
+      mutationAllowed: false;
+      implementationAllowed: false;
+      executionAllowed: false;
+    };
+    timestampPolicy: {
+      mode: 'deterministic_static';
+      previewedAt: string;
+    };
+  };
   summary: HeldRoutingOperatorReviewSummary;
   mutationAllowed: false;
   implementationAllowed: false;
