@@ -185,6 +185,7 @@ import { handleMerlinIntakeRoute } from './merlin/routes/merlinIntakeRoutes.js';
 import { handleMerlinEntityMemoryRoute } from './merlin/routes/merlinEntityMemoryRoutes.js';
 import { handleMerlinOutcomeRoute } from './merlin/routes/merlinOutcomeRoutes.js';
 import { handleMerlinOperatorConsoleRoute } from './merlin/routes/merlinOperatorConsoleRoutes.js';
+import { handleMerlinOperatorReviewPresentationRoute } from './merlin/routes/merlinOperatorReviewPresentationRoutes.js';
 import { handleMerlinApprovalRoute } from './merlin/routes/merlinApprovalRoutes.js';
 import { handleMerlinExecutionPlanRoute } from './merlin/routes/merlinExecutionPlanRoutes.js';
 import { handleMerlinConnectorAdapterRoute } from './merlin/routes/merlinConnectorAdapterRoutes.js';
@@ -1670,6 +1671,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const handled = await handleMerlinOperatorConsoleRoute(req, res, pathname);
     if (handled) return;
   }
+  if (pathname.startsWith('/api/merlin/operator-review')) {
+    const handled = await handleMerlinOperatorReviewPresentationRoute(req, res, pathname);
+    if (handled) return;
+  }
   if (pathname.startsWith('/api/merlin/scoreboard')) {
     const handled = await handleMerlinScoreboardRoute(req, res, pathname);
     if (handled) return;
@@ -2141,6 +2146,12 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const served = servePublicFile(res, 'mealscout-review-queue.html');
     if (served) return;
     return responseJson(res, { error: 'MealScout review queue panel not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/admin/merlin-operator-review') {
+    const served = servePublicFile(res, 'merlin-operator-review.html');
+    if (served) return;
+    return responseJson(res, { error: 'Merlin operator review panel not found' }, 404);
   }
 
   if (method === 'GET' && pathname === '/api/drive/review-queue') {

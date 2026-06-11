@@ -117,6 +117,14 @@ Out of scope until gate approval:
 - backend endpoints that trigger state mutation
 - wiring from presentation payloads to executor runtime
 
+## G1 Read-Only Integration Surface
+
+The G1 integration surface is intentionally narrow and read-only:
+- API: `/api/merlin/operator-review/presentation`
+- UI: `/admin/merlin-operator-review`
+
+Both surfaces must treat this closeout document as the authority reference and must not add apply/execute controls.
+
 ## Operator Guidance
 
 Operator review presentation should be interpreted as decision support only.
@@ -129,3 +137,4 @@ All operational execution remains separate and outside this chain.
 - P9 introduced read-only presentation adapter contract.
 - P10 introduced deterministic dashboard fixture and fixture contract guards.
 - P11 documents closeout and defines the first future integration gate.
+- G1 exposes one read-only API payload and one minimal read-only operator view without execution authority.
