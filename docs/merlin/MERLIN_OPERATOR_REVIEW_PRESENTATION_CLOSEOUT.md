@@ -17,6 +17,54 @@ Implemented chain artifacts:
 - src/merlin/intake/operatorReviewPresentation.ts
 - src/merlin/intake/operatorReviewPresentationFixture.ts
 
+## Major Wins
+
+### P7
+
+Added `HeldRoutingOperatorReviewSummary` as a deterministic read-only review chain base.
+
+Commit:
+- 78a0144
+
+### P8
+
+Hardening commit:
+- dba2b41
+
+Added hardening behavior:
+- non-empty ID validation
+- reason validation
+- status validation
+- deterministic serialization
+- blocked-over-ready precedence
+
+### P9
+
+Added `OperatorReviewPresentation`.
+
+Commit:
+- 84524b2
+
+Created separation:
+- Summary -> Presentation -> Future UI
+
+### P10
+
+Added `OperatorReviewPresentationFixture`.
+
+Commit:
+- 4dcf615
+
+Read-only dashboard fixture guarantees:
+- no authority
+- no execution
+
+## Current Status
+
+- held-routing chain: stable
+- presentation layer: stable
+- ready for future UI/API work
+
 Coverage artifacts:
 - tests/merlin-intake-operator-review-summary.test.ts
 - tests/merlin-intake-operator-review-presentation.test.ts
@@ -76,6 +124,8 @@ All operational execution remains separate and outside this chain.
 
 ## Change Log
 
+- P7 introduced held-routing review summary baseline.
+- P8 hardened summary validation and deterministic serialization behavior.
 - P9 introduced read-only presentation adapter contract.
 - P10 introduced deterministic dashboard fixture and fixture contract guards.
 - P11 documents closeout and defines the first future integration gate.
