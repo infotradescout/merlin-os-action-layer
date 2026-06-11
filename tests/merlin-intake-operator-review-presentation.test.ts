@@ -162,6 +162,7 @@ test('presentation serialization is deterministic', () => {
     'display',
     'evidenceBindings',
     'decisionLedgerPreview',
+    'approvalGatePreview',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -211,6 +212,45 @@ test('presentation includes evidence binding for detail lines and warnings', () 
     presentation.decisionLedgerPreview.timestampPolicy.previewedAt,
     '2026-06-10T00:00:00.000Z'
   );
+
+  assert.equal(presentation.approvalGatePreview.kind, 'operator_review_approval_gate_preview');
+  assert.equal(presentation.approvalGatePreview.gateStatus, 'eligible_preview_only');
+  assert.equal(
+    presentation.approvalGatePreview.gateReasonCode,
+    'eligible_preview_only_read_only_prereqs_met'
+  );
+  assert.equal(
+    presentation.approvalGatePreview.decisionLedgerPreviewStatus.kind,
+    'operator_review_decision_ledger_preview'
+  );
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.approvalGatePreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(presentation.approvalGatePreview.noActionReasonCode, 'approval_gate_preview_only');
+  assert.equal(presentation.approvalGatePreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.approvalGatePreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
+  assert.equal(
+    presentation.approvalGatePreview.evidenceBindingStatus.detailLines.total,
+    presentation.evidenceBindings.detailLines.length
+  );
+  assert.equal(
+    presentation.approvalGatePreview.evidenceBindingStatus.warnings.total,
+    presentation.evidenceBindings.warnings.length
+  );
+});
+
+test('approval gate preview is fail-closed and reason-coded when presentation id is missing', () => {
+  const summary = buildSummary();
+  const presentation = createHeldRoutingOperatorReviewPresentation(summary, {
+    presentationId: ' '
+  });
+
+  assert.equal(presentation.approvalGatePreview.gateStatus, 'blocked');
+  assert.equal(presentation.approvalGatePreview.gateReasonCode, 'missing_required_references');
 });
 
 test('presentation builder is side-effect free for summary input', () => {

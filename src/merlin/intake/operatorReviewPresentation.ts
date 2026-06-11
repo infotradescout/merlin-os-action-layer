@@ -8,6 +8,7 @@ type HeldRoutingOperatorReviewPresentationInput = {
 };
 
 const LEDGER_PREVIEW_STATIC_TIMESTAMP = '2026-06-10T00:00:00.000Z';
+const APPROVAL_GATE_PREVIEW_STATIC_TIMESTAMP = '2026-06-10T00:00:00.000Z';
 
 type PresentationEvidenceItem = {
   sourceReferences: string[];
@@ -162,6 +163,128 @@ function noActionReasonCodeFor(summary: HeldRoutingOperatorReviewSummary):
   return 'current_status_incomplete_no_action_surface';
 }
 
+function isValidNoEvidenceReason(value: unknown): value is 'not_applicable' | 'source_unavailable' {
+  return value === 'not_applicable' || value === 'source_unavailable';
+}
+
+function determineApprovalGatePreview(input: {
+  presentationId: string;
+  packetId: string;
+  summaryId: string;
+  evidenceBindings: HeldRoutingOperatorReviewPresentation['evidenceBindings'];
+  decisionLedgerPreview: HeldRoutingOperatorReviewPresentation['decisionLedgerPreview'];
+  mutationAllowed: boolean;
+  implementationAllowed: boolean;
+  executionAllowed: boolean;
+}): HeldRoutingOperatorReviewPresentation['approvalGatePreview'] {
+  const detailMalformed = input.evidenceBindings.detailLines.filter((entry) => {
+    if (entry.evidenceState !== 'bound' && entry.evidenceState !== 'no_evidence') return true;
+    if (entry.evidenceState === 'bound' && entry.sourceReferences.length === 0) return true;
+    if (entry.evidenceState === 'no_evidence' && !isValidNoEvidenceReason(entry.noEvidenceReason)) return true;
+    return false;
+  }).length;
+
+  const warningMalformed = input.evidenceBindings.warnings.filter((entry) => {
+    if (entry.evidenceState !== 'bound' && entry.evidenceState !== 'no_evidence') return true;
+    if (entry.evidenceState === 'bound' && entry.sourceReferences.length === 0) return true;
+    if (entry.evidenceState === 'no_evidence' && !isValidNoEvidenceReason(entry.noEvidenceReason)) return true;
+    return false;
+  }).length;
+
+  const referencesMissing =
+    !input.presentationId.trim() ||
+    !input.packetId.trim() ||
+    !input.summaryId.trim();
+
+  const evidenceMissing =
+    input.evidenceBindings.detailLines.length === 0 ||
+    input.evidenceBindings.warnings.length === 0;
+
+  const authorityContaminated =
+    input.mutationAllowed ||
+    input.implementationAllowed ||
+    input.executionAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.mutationAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.implementationAllowed ||
+    input.decisionLedgerPreview.authoritySnapshot.executionAllowed;
+
+  const ledgerMissing =
+    !input.decisionLedgerPreview.kind ||
+    !input.decisionLedgerPreview.presentationId.trim() ||
+    !input.decisionLedgerPreview.packetId.trim() ||
+    !input.decisionLedgerPreview.summaryId.trim();
+
+  let gateStatus: 'eligible_preview_only' | 'blocked' = 'eligible_preview_only';
+  let gateReasonCode:
+    | 'eligible_preview_only_read_only_prereqs_met'
+    | 'missing_required_references'
+    | 'missing_evidence_bindings'
+    | 'missing_decision_ledger_preview'
+    | 'authority_flags_not_hard_false'
+    | 'malformed_evidence_binding_state' = 'eligible_preview_only_read_only_prereqs_met';
+
+  if (referencesMissing) {
+    gateStatus = 'blocked';
+    gateReasonCode = 'missing_required_references';
+  } else if (evidenceMissing) {
+    gateStatus = 'blocked';
+    gateReasonCode = 'missing_evidence_bindings';
+  } else if (ledgerMissing) {
+    gateStatus = 'blocked';
+    gateReasonCode = 'missing_decision_ledger_preview';
+  } else if (authorityContaminated) {
+    gateStatus = 'blocked';
+    gateReasonCode = 'authority_flags_not_hard_false';
+  } else if (detailMalformed > 0 || warningMalformed > 0) {
+    gateStatus = 'blocked';
+    gateReasonCode = 'malformed_evidence_binding_state';
+  }
+
+  return {
+    kind: 'operator_review_approval_gate_preview',
+    presentationId: input.presentationId,
+    packetId: input.packetId,
+    summaryId: input.summaryId,
+    gateStatus,
+    gateReasonCode,
+    evidenceBindingStatus: {
+      detailLines: {
+        total: input.evidenceBindings.detailLines.length,
+        bound: input.evidenceBindings.detailLines.filter((entry) => entry.evidenceState === 'bound').length,
+        noEvidence: input.evidenceBindings.detailLines.filter((entry) => entry.evidenceState === 'no_evidence').length,
+        malformed: detailMalformed
+      },
+      warnings: {
+        total: input.evidenceBindings.warnings.length,
+        bound: input.evidenceBindings.warnings.filter((entry) => entry.evidenceState === 'bound').length,
+        noEvidence: input.evidenceBindings.warnings.filter((entry) => entry.evidenceState === 'no_evidence').length,
+        malformed: warningMalformed
+      }
+    },
+    decisionLedgerPreviewStatus: {
+      present: !ledgerMissing,
+      kind: input.decisionLedgerPreview.kind,
+      noActionStatus: input.decisionLedgerPreview.noActionStatus
+    },
+    authoritySnapshot: {
+      mutationAllowed: false,
+      implementationAllowed: false,
+      executionAllowed: false
+    },
+    noActionStatus: 'preview_only_no_mutation',
+    noActionReasonCode: 'approval_gate_preview_only',
+    futureArtifactRequirements: [
+      'approval_artifact_record_required',
+      'operator_identity_attestation_required',
+      'approval_timestamp_attestation_required'
+    ],
+    timestampPolicy: {
+      mode: 'deterministic_static',
+      previewedAt: APPROVAL_GATE_PREVIEW_STATIC_TIMESTAMP
+    }
+  };
+}
+
 export function createHeldRoutingOperatorReviewPresentation(
   summary: HeldRoutingOperatorReviewSummary,
   input: HeldRoutingOperatorReviewPresentationInput
@@ -209,6 +332,59 @@ export function createHeldRoutingOperatorReviewPresentation(
     .filter((entry) => entry.evidenceState === 'bound').length;
   const warningBoundCount = warningEvidenceRows.filter((entry) => entry.evidenceState === 'bound').length;
 
+  const decisionLedgerPreview: HeldRoutingOperatorReviewPresentation['decisionLedgerPreview'] = {
+    kind: 'operator_review_decision_ledger_preview',
+    presentationId,
+    packetId: normalizedSummary.packetId,
+    summaryId: normalizedSummary.summaryId,
+    wouldRecordEventType: 'held_routing_operator_review_decision_preview',
+    noActionStatus: 'preview_only_no_mutation',
+    noActionReasonCode: noActionReasonCodeFor(normalizedSummary),
+    evidenceSummary: {
+      detailLines: {
+        total: detailLines.length,
+        bound: detailBoundCount,
+        noEvidence: detailLines.length - detailBoundCount
+      },
+      warnings: {
+        total: warningEvidenceRows.length,
+        bound: warningBoundCount,
+        noEvidence: warningEvidenceRows.length - warningBoundCount
+      }
+    },
+    authoritySnapshot: {
+      mutationAllowed: false,
+      implementationAllowed: false,
+      executionAllowed: false
+    },
+    timestampPolicy: {
+      mode: 'deterministic_static',
+      previewedAt: LEDGER_PREVIEW_STATIC_TIMESTAMP
+    }
+  };
+
+  const approvalGatePreview = determineApprovalGatePreview({
+    presentationId,
+    packetId: normalizedSummary.packetId,
+    summaryId: normalizedSummary.summaryId,
+    evidenceBindings: {
+      detailLines: detailLines.map((line) => {
+        const evidence = detailEvidenceFor(normalizedSummary, line);
+        return {
+          line,
+          sourceReferences: [...evidence.sourceReferences],
+          evidenceState: evidence.evidenceState,
+          noEvidenceReason: evidence.noEvidenceReason
+        };
+      }),
+      warnings: warningEvidenceRows
+    },
+    decisionLedgerPreview,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    executionAllowed: false
+  });
+
   return {
     presentationId,
     status: 'ok',
@@ -236,36 +412,8 @@ export function createHeldRoutingOperatorReviewPresentation(
       }),
       warnings: warningEvidenceRows
     },
-    decisionLedgerPreview: {
-      kind: 'operator_review_decision_ledger_preview',
-      presentationId,
-      packetId: normalizedSummary.packetId,
-      summaryId: normalizedSummary.summaryId,
-      wouldRecordEventType: 'held_routing_operator_review_decision_preview',
-      noActionStatus: 'preview_only_no_mutation',
-      noActionReasonCode: noActionReasonCodeFor(normalizedSummary),
-      evidenceSummary: {
-        detailLines: {
-          total: detailLines.length,
-          bound: detailBoundCount,
-          noEvidence: detailLines.length - detailBoundCount
-        },
-        warnings: {
-          total: warningEvidenceRows.length,
-          bound: warningBoundCount,
-          noEvidence: warningEvidenceRows.length - warningBoundCount
-        }
-      },
-      authoritySnapshot: {
-        mutationAllowed: false,
-        implementationAllowed: false,
-        executionAllowed: false
-      },
-      timestampPolicy: {
-        mode: 'deterministic_static',
-        previewedAt: LEDGER_PREVIEW_STATIC_TIMESTAMP
-      }
-    },
+    decisionLedgerPreview,
+    approvalGatePreview,
     summary: normalizedSummary,
     mutationAllowed: false,
     implementationAllowed: false,
@@ -331,6 +479,45 @@ export function serializeHeldRoutingOperatorReviewPresentation(presentation: Hel
       timestampPolicy: {
         mode: presentation.decisionLedgerPreview.timestampPolicy.mode,
         previewedAt: presentation.decisionLedgerPreview.timestampPolicy.previewedAt
+      }
+    },
+    approvalGatePreview: {
+      kind: presentation.approvalGatePreview.kind,
+      presentationId: presentation.approvalGatePreview.presentationId,
+      packetId: presentation.approvalGatePreview.packetId,
+      summaryId: presentation.approvalGatePreview.summaryId,
+      gateStatus: presentation.approvalGatePreview.gateStatus,
+      gateReasonCode: presentation.approvalGatePreview.gateReasonCode,
+      evidenceBindingStatus: {
+        detailLines: {
+          total: presentation.approvalGatePreview.evidenceBindingStatus.detailLines.total,
+          bound: presentation.approvalGatePreview.evidenceBindingStatus.detailLines.bound,
+          noEvidence: presentation.approvalGatePreview.evidenceBindingStatus.detailLines.noEvidence,
+          malformed: presentation.approvalGatePreview.evidenceBindingStatus.detailLines.malformed
+        },
+        warnings: {
+          total: presentation.approvalGatePreview.evidenceBindingStatus.warnings.total,
+          bound: presentation.approvalGatePreview.evidenceBindingStatus.warnings.bound,
+          noEvidence: presentation.approvalGatePreview.evidenceBindingStatus.warnings.noEvidence,
+          malformed: presentation.approvalGatePreview.evidenceBindingStatus.warnings.malformed
+        }
+      },
+      decisionLedgerPreviewStatus: {
+        present: presentation.approvalGatePreview.decisionLedgerPreviewStatus.present,
+        kind: presentation.approvalGatePreview.decisionLedgerPreviewStatus.kind,
+        noActionStatus: presentation.approvalGatePreview.decisionLedgerPreviewStatus.noActionStatus
+      },
+      authoritySnapshot: {
+        mutationAllowed: presentation.approvalGatePreview.authoritySnapshot.mutationAllowed,
+        implementationAllowed: presentation.approvalGatePreview.authoritySnapshot.implementationAllowed,
+        executionAllowed: presentation.approvalGatePreview.authoritySnapshot.executionAllowed
+      },
+      noActionStatus: presentation.approvalGatePreview.noActionStatus,
+      noActionReasonCode: presentation.approvalGatePreview.noActionReasonCode,
+      futureArtifactRequirements: [...presentation.approvalGatePreview.futureArtifactRequirements],
+      timestampPolicy: {
+        mode: presentation.approvalGatePreview.timestampPolicy.mode,
+        previewedAt: presentation.approvalGatePreview.timestampPolicy.previewedAt
       }
     },
     summary: presentation.summary,

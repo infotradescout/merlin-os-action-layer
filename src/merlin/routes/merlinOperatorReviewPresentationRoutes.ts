@@ -24,6 +24,7 @@ export async function handleMerlinOperatorReviewPresentationRoute(
   const fixture = createHeldRoutingOperatorReviewDashboardFixture();
   const parsedPresentation = JSON.parse(fixture.serializedPresentation) as {
     decisionLedgerPreview?: unknown;
+    approvalGatePreview?: unknown;
   };
 
   responseJson(res, {
@@ -34,6 +35,7 @@ export async function handleMerlinOperatorReviewPresentationRoute(
     generatedAt: fixture.generatedAt,
     serializedPresentation: fixture.serializedPresentation,
     decisionLedgerPreview: parsedPresentation.decisionLedgerPreview,
+    approvalGatePreview: parsedPresentation.approvalGatePreview,
     mutationAllowed: false,
     implementationAllowed: false,
     executionAllowed: false

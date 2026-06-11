@@ -317,6 +317,51 @@ export type HeldRoutingOperatorReviewPresentation = {
       previewedAt: string;
     };
   };
+  approvalGatePreview: {
+    kind: 'operator_review_approval_gate_preview';
+    presentationId: string;
+    packetId: string;
+    summaryId: string;
+    gateStatus: 'eligible_preview_only' | 'blocked';
+    gateReasonCode:
+      | 'eligible_preview_only_read_only_prereqs_met'
+      | 'missing_required_references'
+      | 'missing_evidence_bindings'
+      | 'missing_decision_ledger_preview'
+      | 'authority_flags_not_hard_false'
+      | 'malformed_evidence_binding_state';
+    evidenceBindingStatus: {
+      detailLines: {
+        total: number;
+        bound: number;
+        noEvidence: number;
+        malformed: number;
+      };
+      warnings: {
+        total: number;
+        bound: number;
+        noEvidence: number;
+        malformed: number;
+      };
+    };
+    decisionLedgerPreviewStatus: {
+      present: boolean;
+      kind?: 'operator_review_decision_ledger_preview';
+      noActionStatus?: 'preview_only_no_mutation';
+    };
+    authoritySnapshot: {
+      mutationAllowed: false;
+      implementationAllowed: false;
+      executionAllowed: false;
+    };
+    noActionStatus: 'preview_only_no_mutation';
+    noActionReasonCode: 'approval_gate_preview_only';
+    futureArtifactRequirements: string[];
+    timestampPolicy: {
+      mode: 'deterministic_static';
+      previewedAt: string;
+    };
+  };
   summary: HeldRoutingOperatorReviewSummary;
   mutationAllowed: false;
   implementationAllowed: false;

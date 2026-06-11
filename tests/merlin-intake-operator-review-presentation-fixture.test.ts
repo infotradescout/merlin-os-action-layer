@@ -27,6 +27,7 @@ test('dashboard fixture is deterministic and serializer-backed', () => {
     'display',
     'evidenceBindings',
     'decisionLedgerPreview',
+    'approvalGatePreview',
     'summary',
     'mutationAllowed',
     'implementationAllowed',
@@ -69,6 +70,9 @@ test('dashboard fixture cannot execute or mutate', () => {
   assert.equal(Object.isFrozen(fixture.presentation.decisionLedgerPreview), true);
   assert.equal(Object.isFrozen(fixture.presentation.decisionLedgerPreview.evidenceSummary), true);
   assert.equal(Object.isFrozen(fixture.presentation.decisionLedgerPreview.authoritySnapshot), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview.evidenceBindingStatus), true);
+  assert.equal(Object.isFrozen(fixture.presentation.approvalGatePreview.authoritySnapshot), true);
 
   assert.equal('execute' in (fixture as Record<string, unknown>), false);
   assert.equal('apply' in (fixture as Record<string, unknown>), false);
@@ -94,5 +98,8 @@ test('dashboard fixture cannot execute or mutate', () => {
   }, TypeError);
   assert.throws(() => {
     fixture.presentation.decisionLedgerPreview.timestampPolicy.previewedAt = '2026-06-11T00:00:00.000Z';
+  }, TypeError);
+  assert.throws(() => {
+    fixture.presentation.approvalGatePreview.gateStatus = 'eligible_preview_only';
   }, TypeError);
 });

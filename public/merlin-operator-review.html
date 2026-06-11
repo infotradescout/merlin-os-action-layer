@@ -197,6 +197,15 @@
           <li class="muted">Loading decision ledger preview...</li>
         </ul>
       </section>
+
+      <section class="panel">
+        <h3>Approval Gate Preview</h3>
+        <p class="muted">Eligibility metadata only. No approval, rejection, mutation, apply, or execute action is available.</p>
+        <p class="muted">Eligible marker: <span class="mono">eligible_preview_only</span>.</p>
+        <ul id="approval-gate-preview" class="mono">
+          <li class="muted">Loading approval gate preview...</li>
+        </ul>
+      </section>
     </div>
 
     <script>
@@ -321,6 +330,29 @@
             'Decision ledger preview unavailable.',
             'mono'
           );
+
+          const approvalGatePreview = parsed.approvalGatePreview || {};
+          renderList(
+            document.getElementById('approval-gate-preview'),
+            [
+              `kind: ${approvalGatePreview.kind || 'operator_review_approval_gate_preview'}`,
+              `presentationId: ${approvalGatePreview.presentationId || 'unavailable'}`,
+              `packetId: ${approvalGatePreview.packetId || 'unavailable'}`,
+              `summaryId: ${approvalGatePreview.summaryId || 'unavailable'}`,
+              `gateStatus: ${approvalGatePreview.gateStatus || 'blocked'}`,
+              `gateReasonCode: ${approvalGatePreview.gateReasonCode || 'missing_required_references'}`,
+              `evidenceBindingStatus.detailLines: total=${approvalGatePreview.evidenceBindingStatus?.detailLines?.total ?? 0} bound=${approvalGatePreview.evidenceBindingStatus?.detailLines?.bound ?? 0} noEvidence=${approvalGatePreview.evidenceBindingStatus?.detailLines?.noEvidence ?? 0} malformed=${approvalGatePreview.evidenceBindingStatus?.detailLines?.malformed ?? 0}`,
+              `evidenceBindingStatus.warnings: total=${approvalGatePreview.evidenceBindingStatus?.warnings?.total ?? 0} bound=${approvalGatePreview.evidenceBindingStatus?.warnings?.bound ?? 0} noEvidence=${approvalGatePreview.evidenceBindingStatus?.warnings?.noEvidence ?? 0} malformed=${approvalGatePreview.evidenceBindingStatus?.warnings?.malformed ?? 0}`,
+              `decisionLedgerPreviewStatus: present=${approvalGatePreview.decisionLedgerPreviewStatus?.present} kind=${approvalGatePreview.decisionLedgerPreviewStatus?.kind || 'unavailable'} noActionStatus=${approvalGatePreview.decisionLedgerPreviewStatus?.noActionStatus || 'unavailable'}`,
+              `authoritySnapshot: mutation=${approvalGatePreview.authoritySnapshot?.mutationAllowed} implementation=${approvalGatePreview.authoritySnapshot?.implementationAllowed} execution=${approvalGatePreview.authoritySnapshot?.executionAllowed}`,
+              `noActionStatus: ${approvalGatePreview.noActionStatus || 'preview_only_no_mutation'}`,
+              `noActionReasonCode: ${approvalGatePreview.noActionReasonCode || 'approval_gate_preview_only'}`,
+              `futureArtifactRequirements: ${(approvalGatePreview.futureArtifactRequirements || []).join(' | ') || 'unavailable'}`,
+              `timestampPolicy: ${approvalGatePreview.timestampPolicy?.mode || 'deterministic_static'} @ ${approvalGatePreview.timestampPolicy?.previewedAt || 'unavailable'}`
+            ],
+            'Approval gate preview unavailable.',
+            'mono'
+          );
         } catch (error) {
           document.getElementById('title').textContent = 'Operator review payload unavailable';
           document.getElementById('subtitle').textContent = error instanceof Error ? error.message : 'Unknown error';
@@ -330,6 +362,7 @@
           renderEvidence(document.getElementById('evidence-details'), [], 'line');
           renderEvidence(document.getElementById('evidence-warnings'), [], 'warning');
           renderList(document.getElementById('ledger-preview'), [], 'Decision ledger preview unavailable.', 'muted');
+          renderList(document.getElementById('approval-gate-preview'), [], 'Approval gate preview unavailable.', 'muted');
         }
       }
 

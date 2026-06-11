@@ -78,6 +78,11 @@ test('read-only API returns serialized operator review presentation payload', as
       kind: string;
       noActionStatus: string;
     };
+    approvalGatePreview: {
+      kind: string;
+      gateStatus: string;
+      noActionStatus: string;
+    };
     mutationAllowed: boolean;
     implementationAllowed: boolean;
     executionAllowed: boolean;
@@ -89,6 +94,9 @@ test('read-only API returns serialized operator review presentation payload', as
   assert.equal(response.body.advisoryOnly, true);
   assert.equal(response.body.decisionLedgerPreview.kind, 'operator_review_decision_ledger_preview');
   assert.equal(response.body.decisionLedgerPreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(response.body.approvalGatePreview.kind, 'operator_review_approval_gate_preview');
+  assert.equal(response.body.approvalGatePreview.gateStatus, 'eligible_preview_only');
+  assert.equal(response.body.approvalGatePreview.noActionStatus, 'preview_only_no_mutation');
   assert.equal(response.body.mutationAllowed, false);
   assert.equal(response.body.implementationAllowed, false);
   assert.equal(response.body.executionAllowed, false);
@@ -131,6 +139,32 @@ test('read-only API returns serialized operator review presentation payload', as
         implementationAllowed: boolean;
         executionAllowed: boolean;
       };
+      timestampPolicy: {
+        mode: string;
+        previewedAt: string;
+      };
+    };
+    approvalGatePreview: {
+      kind: string;
+      gateStatus: string;
+      gateReasonCode: string;
+      evidenceBindingStatus: {
+        detailLines: { total: number; bound: number; noEvidence: number; malformed: number };
+        warnings: { total: number; bound: number; noEvidence: number; malformed: number };
+      };
+      decisionLedgerPreviewStatus: {
+        present: boolean;
+        kind?: string;
+        noActionStatus?: string;
+      };
+      authoritySnapshot: {
+        mutationAllowed: boolean;
+        implementationAllowed: boolean;
+        executionAllowed: boolean;
+      };
+      noActionStatus: string;
+      noActionReasonCode: string;
+      futureArtifactRequirements: string[];
       timestampPolicy: {
         mode: string;
         previewedAt: string;
@@ -198,6 +232,35 @@ test('read-only API returns serialized operator review presentation payload', as
     presentation.decisionLedgerPreview.evidenceSummary.warnings.total,
     presentation.evidenceBindings.warnings.length
   );
+  assert.equal(presentation.approvalGatePreview.kind, 'operator_review_approval_gate_preview');
+  assert.equal(presentation.approvalGatePreview.gateStatus, 'eligible_preview_only');
+  assert.equal(
+    presentation.approvalGatePreview.gateReasonCode,
+    'eligible_preview_only_read_only_prereqs_met'
+  );
+  assert.equal(presentation.approvalGatePreview.decisionLedgerPreviewStatus.present, true);
+  assert.equal(
+    presentation.approvalGatePreview.decisionLedgerPreviewStatus.kind,
+    'operator_review_decision_ledger_preview'
+  );
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.mutationAllowed, false);
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.implementationAllowed, false);
+  assert.equal(presentation.approvalGatePreview.authoritySnapshot.executionAllowed, false);
+  assert.equal(presentation.approvalGatePreview.noActionStatus, 'preview_only_no_mutation');
+  assert.equal(presentation.approvalGatePreview.noActionReasonCode, 'approval_gate_preview_only');
+  assert.equal(
+    presentation.approvalGatePreview.evidenceBindingStatus.detailLines.total,
+    presentation.evidenceBindings.detailLines.length
+  );
+  assert.equal(
+    presentation.approvalGatePreview.evidenceBindingStatus.warnings.total,
+    presentation.evidenceBindings.warnings.length
+  );
+  assert.equal(presentation.approvalGatePreview.timestampPolicy.mode, 'deterministic_static');
+  assert.equal(
+    presentation.approvalGatePreview.timestampPolicy.previewedAt,
+    '2026-06-10T00:00:00.000Z'
+  );
   assert.equal(presentation.mutationAllowed, false);
   assert.equal(presentation.implementationAllowed, false);
   assert.equal(presentation.executionAllowed, false);
@@ -217,6 +280,20 @@ test('integration gate has no apply or execute API routes', async () => {
   assert.equal(executeRoute.status, 404);
   assert.equal(applyRoute.body.error, 'Not found');
   assert.equal(executeRoute.body.error, 'Not found');
+
+  const approveRoute = await requestJson<{ error: string }>('/api/merlin/operator-review/approve', {
+    method: 'POST',
+    body: '{}'
+  });
+  const rejectRoute = await requestJson<{ error: string }>('/api/merlin/operator-review/reject', {
+    method: 'POST',
+    body: '{}'
+  });
+
+  assert.equal(approveRoute.status, 404);
+  assert.equal(rejectRoute.status, 404);
+  assert.equal(approveRoute.body.error, 'Not found');
+  assert.equal(rejectRoute.body.error, 'Not found');
 });
 
 test('operator review admin view exposes read-only details without action buttons', async () => {
@@ -234,6 +311,9 @@ test('operator review admin view exposes read-only details without action button
   assert.ok(response.body.includes('Decision Ledger Preview'));
   assert.ok(response.body.includes('would-record event type'));
   assert.ok(response.body.includes('preview_only_no_mutation'));
+  assert.ok(response.body.includes('Approval Gate Preview'));
+  assert.ok(response.body.includes('gateStatus'));
+  assert.ok(response.body.includes('eligible_preview_only'));
   assert.ok(response.body.includes('Authority Flags'));
   assert.ok(response.body.includes('Authority Reference'));
   assert.ok(response.body.includes('docs/merlin/MERLIN_OPERATOR_REVIEW_PRESENTATION_CLOSEOUT.md'));

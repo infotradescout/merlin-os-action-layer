@@ -170,6 +170,36 @@ Relationship to future gates:
 - G3 provides preview-only audit shape
 - future approval gate may consume the shape later, but write behavior remains out of scope here
 
+## G4 Approval Gate Preview (Read-Only)
+
+G4 adds a deterministic approval gate preview model that evaluates whether the current read-only packet state would be eligible for a future approval artifact.
+
+Purpose:
+- prove approval readiness logic before any approval action control exists
+- keep governance chain explicit: presentation -> evidence binding -> decision ledger preview -> approval gate preview
+
+Fail-closed prerequisites:
+- block when required references are missing (presentationId, packetId, summaryId)
+- block when evidence bindings are missing
+- block when decision ledger preview is missing
+- block when authority flags are not hard-false
+- block when evidence binding states are malformed
+- only emit `eligible_preview_only` when all read-only prerequisites are satisfied
+
+Read-only boundary:
+- no approval route
+- no rejection route
+- no mutation route
+- no apply route
+- no execute route
+- no implementation route
+- no action buttons
+- no persistence/database write path
+
+Relationship to future approval artifact:
+- G4 exposes preview-only future artifact requirements as metadata
+- no artifact creation occurs in this slice
+
 ## Operator Guidance
 
 Operator review presentation should be interpreted as decision support only.
@@ -185,3 +215,4 @@ All operational execution remains separate and outside this chain.
 - G1 exposes one read-only API payload and one minimal read-only operator view without execution authority.
 - G2 adds read-only evidence/source bindings with explicit no-evidence states while preserving zero-execution authority.
 - G3 adds deterministic read-only decision ledger preview metadata without persistence or action authority.
+- G4 adds deterministic fail-closed approval gate preview metadata without approval/rejection actions or persistence.
