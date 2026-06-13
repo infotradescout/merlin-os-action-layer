@@ -33,6 +33,7 @@ Webhook delivery:
 ```text
 ROUNDTABLE_DISCORD_WEBHOOK_URL
 ROUNDTABLE_DISCORD_WEBHOOK_TOKEN optional
+ROUNDTABLE_DISCORD_DISPATCH_TOKEN
 ```
 
 Interaction verification:
@@ -53,9 +54,45 @@ roundtable_discord_webhook_not_configured
 
 The system must not simulate or mark Discord delivery as sent.
 
+`POST /api/roundtable/discord/dispatch` is disabled unless `ROUNDTABLE_DISCORD_DISPATCH_TOKEN` is configured. Callers must provide either:
+
+```text
+Authorization: Bearer <token>
+```
+
+or:
+
+```text
+X-RoundTable-Dispatch-Token: <token>
+```
+
+Missing token configuration returns:
+
+```text
+roundtable_discord_dispatch_token_not_configured
+```
+
+Invalid caller token returns:
+
+```text
+roundtable_discord_dispatch_token_invalid
+```
+
 ## Packet Delivery
 
 `dispatchRoundTableDiscordPacket` stores the RoundTable packet, builds a Discord webhook payload, attempts delivery only through configured webhook transport, records the attempt, and returns a RoundTable evidence packet.
+
+Packet existence is verified from Merlin SQLite table:
+
+```text
+roundtable_discord_packets
+```
+
+Delivery attempts are stored in Merlin SQLite table:
+
+```text
+roundtable_discord_delivery_attempts
+```
 
 Delivery evidence includes:
 
@@ -81,6 +118,12 @@ Delivery does not create approval authority.
 - Requested action scope is present in that packet's `approvedActionScopes`.
 
 Only after those checks pass does Merlin write a `verifiedApprovalRecord`.
+
+Verified approval records are stored in Merlin SQLite table:
+
+```text
+roundtable_discord_verified_approvals
+```
 
 The verified record is evidence for RoundTable. It does not execute the approved action.
 

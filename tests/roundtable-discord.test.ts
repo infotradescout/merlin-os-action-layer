@@ -22,6 +22,7 @@ const {
   verifyAndWriteDiscordApproval,
   verifyDiscordInteractionSignature
 } = await import('../src/roundtableDiscord.ts');
+const { createMerlinServer } = await import('../src/server.ts');
 
 const originalEnv = { ...process.env };
 
@@ -33,11 +34,25 @@ function resetEnv(): void {
     'ROUNDTABLE_DISCORD_APPROVER_USER_IDS',
     'ROUNDTABLE_DISCORD_GUILD_ID',
     'ROUNDTABLE_DISCORD_APPROVAL_CHANNEL_IDS',
-    'ROUNDTABLE_DISCORD_APPROVER_ROLE_IDS'
+    'ROUNDTABLE_DISCORD_APPROVER_ROLE_IDS',
+    'ROUNDTABLE_DISCORD_DISPATCH_TOKEN'
   ]) {
     if (originalEnv[key] === undefined) delete process.env[key];
     else process.env[key] = originalEnv[key];
   }
+}
+
+async function withMerlinServer() {
+  const server = createMerlinServer();
+  await new Promise<void>((resolveStart, reject) => {
+    server.listen(0, () => resolveStart());
+    server.on('error', reject);
+  });
+  const address = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => new Promise<void>((resolveStop) => server.close(() => resolveStop()))
+  };
 }
 
 beforeEach(() => {
@@ -173,6 +188,46 @@ test('configured Discord webhook records packet delivery attempt', async () => {
     assert.equal(webhook.received[0].headers.authorization, 'Bearer discord-token');
   } finally {
     await webhook.close();
+  }
+});
+
+test('HTTP dispatch route is disabled until server-side dispatch token is configured', async () => {
+  delete process.env.ROUNDTABLE_DISCORD_DISPATCH_TOKEN;
+  const server = await withMerlinServer();
+  try {
+    const response = await fetch(`${server.url}/api/roundtable/discord/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(packet)
+    });
+    const body = await response.json() as { reason?: string; noExecutionPerformed?: boolean };
+
+    assert.equal(response.status, 503);
+    assert.equal(body.reason, 'roundtable_discord_dispatch_token_not_configured');
+    assert.equal(body.noExecutionPerformed, true);
+  } finally {
+    await server.close();
+  }
+});
+
+test('HTTP dispatch route rejects invalid dispatch token before delivery attempt', async () => {
+  process.env.ROUNDTABLE_DISCORD_DISPATCH_TOKEN = 'correct-token';
+  process.env.ROUNDTABLE_DISCORD_WEBHOOK_URL = 'http://127.0.0.1:1/should-not-send';
+  const server = await withMerlinServer();
+  try {
+    const response = await fetch(`${server.url}/api/roundtable/discord/dispatch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer wrong-token' },
+      body: JSON.stringify(packet)
+    });
+    const body = await response.json() as { reason?: string; noExecutionPerformed?: boolean };
+
+    assert.equal(response.status, 403);
+    assert.equal(body.reason, 'roundtable_discord_dispatch_token_invalid');
+    assert.equal(body.noExecutionPerformed, true);
+    assert.equal(getRoundTableDiscordDeliveryAttempts(packet.packetId).length, 0);
+  } finally {
+    await server.close();
   }
 });
 

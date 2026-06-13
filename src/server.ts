@@ -1675,6 +1675,34 @@ function demoForbidden(res: ServerResponse): void {
   );
 }
 
+function verifyRoundTableDiscordDispatchAuth(req: IncomingMessage): { ok: true } | { ok: false; status: number; reason: string } {
+  const expectedToken = (process.env.ROUNDTABLE_DISCORD_DISPATCH_TOKEN || '').trim();
+  if (!expectedToken) {
+    return {
+      ok: false,
+      status: 503,
+      reason: 'roundtable_discord_dispatch_token_not_configured'
+    };
+  }
+
+  const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+  const bearerToken = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
+  const directToken = typeof req.headers['x-roundtable-dispatch-token'] === 'string' ? req.headers['x-roundtable-dispatch-token'].trim() : '';
+  if (bearerToken === expectedToken || directToken === expectedToken) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    status: 403,
+    reason: 'roundtable_discord_dispatch_token_invalid'
+  };
+}
+
+function isRoundTableDiscordDispatchRoute(pathname: string): boolean {
+  return pathname === '/api/roundtable/discord/dispatch';
+}
+
 export const createMerlinHandler = async (req: IncomingMessage, res: ServerResponse) => {
   if (!req.url || !req.method) {
     return responseJson(res, { error: 'Invalid request' }, 400);
@@ -1742,7 +1770,20 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     if (handled) return;
   }
 
-  if (method === 'POST' && pathname === '/api/roundtable/discord/dispatch') {
+  if (method === 'POST' && isRoundTableDiscordDispatchRoute(pathname)) {
+    const auth = verifyRoundTableDiscordDispatchAuth(req);
+    if (!auth.ok) {
+      return responseJson(
+        res,
+        {
+          error: 'RoundTable Discord dispatch unavailable',
+          reason: auth.reason,
+          noExecutionPerformed: true
+        },
+        auth.status
+      );
+    }
+
     const body = await parseBody(req);
     if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
       return responseJson(res, { error: 'Invalid JSON body' }, 400);
