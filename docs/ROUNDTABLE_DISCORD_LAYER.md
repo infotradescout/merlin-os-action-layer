@@ -1,99 +1,107 @@
-# RoundTable Discord Layer
+# RoundTable Discord Runtime Bridge
 
-Discord is the live human interaction layer for the RoundTable system.
+Discord is the live human layer for the RoundTable system.
 
-RoundTable defines Discord packet shape and authority rules. Merlin performs actual Discord delivery, webhook dispatch, state handling, and approval verification. Albion/AI Council governs authority, approval state, escalation rules, and human/Knight approval boundaries.
+RoundTable owns packet doctrine and the packet payload contract. Merlin owns live delivery, Discord interaction verification, delivery attempt evidence, and verified approval records. Albion/AI Council governs authority rules.
 
-Discord is not an authority source by itself. It carries approved packets to humans; it does not create approval.
+## Boundary
 
-## RoundTable Contract Scope
+Merlin must not treat text fields such as `approvalStatus`, `approvedBy`, or AI-written summaries as authority.
 
-`src/roundtableDiscord.ts` is a pure contract module in this branch.
+Merlin may:
 
-Allowed:
+- Deliver a RoundTable packet to Discord through a configured webhook.
+- Record delivery attempts.
+- Verify Discord interaction signatures.
+- Verify allowlisted user, role, guild, and channel.
+- Verify packet ID and approved action scope.
+- Write a `verifiedApprovalRecord`.
+- Return evidence packets back to RoundTable.
 
-- build Discord payload previews
-- validate whether a packet is eligible for delivery
-- preserve Merlin routing context
-- preserve Albion/AI Council authority context
-- expose verified approval record requirements
+Merlin must not:
 
-Forbidden:
+- Auto-merge.
+- Auto-deploy.
+- Auto-send external messages beyond the configured Discord packet delivery.
+- Auto-apply product changes.
+- Treat AI-generated approval text as authorization.
 
-- network calls
-- webhook dispatch
-- runtime environment reads
-- Discord delivery state
-- approval writing
-- approval verification
+## Environment
 
-RoundTable contract functions must not read webhook URL or token environment variables. Webhook configuration belongs to the future Merlin runtime child lane.
-
-## Authority Gate
-
-Discord delivery requires more than:
+Webhook delivery:
 
 ```text
-approvalStatus = approved
-approvedBy = non-empty reference
+ROUNDTABLE_DISCORD_WEBHOOK_URL
+ROUNDTABLE_DISCORD_WEBHOOK_TOKEN optional
 ```
 
-Those fields alone are not valid human approval because AI agents can forge them.
-
-Valid delivery eligibility requires:
+Interaction verification:
 
 ```text
-approvalStatus = approved
-verifiedApprovalRecordId = reference to a verified approval record
+ROUNDTABLE_DISCORD_PUBLIC_KEY
+ROUNDTABLE_DISCORD_APPROVER_USER_IDS
+ROUNDTABLE_DISCORD_GUILD_ID
+ROUNDTABLE_DISCORD_APPROVAL_CHANNEL_IDS
+ROUNDTABLE_DISCORD_APPROVER_ROLE_IDS optional
 ```
 
-The verified approval record must be produced by Merlin's hardened non-LLM approval writer or an equivalent approved authority-verification path. RoundTable may reference that record; RoundTable must not produce or verify it in this branch.
-
-## Required Message Context
-
-Every Discord payload must include:
-
-- Source
-- Routed by
-- Governed by
-- Approval status
-- Human review requirement
-- Approved by
-- Verified approval record
-- Escalation path
-- Source references
-
-This keeps the boundary visible:
-
-- RoundTable defines packet shape and routing record.
-- Merlin owns delivery runtime and hardened approval verification.
-- Albion/AI Council owns the authority frame.
-- Human Knights retain final authority where required.
-
-## Merlin Child Lane Required
-
-Actual Discord delivery must be implemented in Merlin, not RoundTable.
-
-Required child lane:
+If no webhook is configured, delivery fails safely with:
 
 ```text
-Repo: merlin-os-action-layer
-Branch: feature/merlin-discord-runtime-approval-writer
-Goal: implement Discord webhook delivery only after a hardened non-LLM approval writer produces a verified approval record.
-Required first action: inspect existing Merlin approval runtime, Discord contract payload, route/state stores, tests, and env handling before implementation.
-Must preserve: no forged approval fields, no delivery without verifiedApprovalRecordId, no Discord-as-authority, no fake sent status.
+roundtable_discord_webhook_not_configured
 ```
+
+The system must not simulate or mark Discord delivery as sent.
+
+## Packet Delivery
+
+`dispatchRoundTableDiscordPacket` stores the RoundTable packet, builds a Discord webhook payload, attempts delivery only through configured webhook transport, records the attempt, and returns a RoundTable evidence packet.
+
+Delivery evidence includes:
+
+- Packet ID
+- Delivery attempt ID
+- Webhook configured check
+- Sent/failed outcome
+- Payload preview
+- `noExecutionPerformed: true`
+
+Delivery does not create approval authority.
+
+## Verified Approval Writer
+
+`verifyAndWriteDiscordApproval` requires all checks:
+
+- Valid Discord Ed25519 interaction signature.
+- Discord user ID is allowlisted.
+- Discord guild matches configured guild.
+- Discord channel is allowlisted.
+- Discord role matches allowlisted role when roles are configured.
+- Interaction custom ID contains a known packet ID.
+- Requested action scope is present in that packet's `approvedActionScopes`.
+
+Only after those checks pass does Merlin write a `verifiedApprovalRecord`.
+
+The verified record is evidence for RoundTable. It does not execute the approved action.
+
+## HTTP Runtime Routes
+
+```text
+POST /api/roundtable/discord/dispatch
+POST /api/roundtable/discord/interactions
+```
+
+The interactions route reads the raw request body so Discord signature verification uses the exact signed bytes.
 
 ## First Use Case
 
-RoundTable alignment corrections, such as:
+RoundTable alignment correction:
 
 ```text
 Recipient: Levon / Lancelot
 Issue: Project name mismatch
 Current name: Autobott
 Canonical Thomas project name: AutoBott
+Approved action scope: project.rename:Autobott->AutoBott
 Required action: Rename Autobott to AutoBott. Do not create a duplicate.
 ```
-
-This may be delivered only after Merlin verifies the approval record through the hardened approval path.

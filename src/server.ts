@@ -193,6 +193,12 @@ import { handleMerlinDryRunExecutorRoute } from './merlin/routes/merlinDryRunExe
 import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveExecutionGateRoutes.js';
 import { handleMerlinWorkspaceRoute } from './merlin/routes/merlinWorkspaceRoutes.js';
 import { handleMerlinScoreboardRoute } from './merlin/routes/merlinScoreboardRoutes.js';
+import {
+  dispatchRoundTableDiscordPacket,
+  verifyAndWriteDiscordApproval,
+  verifyDiscordInteractionSignature,
+  type RoundTableDiscordPacket
+} from './roundtableDiscord.js';
 
 loadEnvFromDotFile();
 
@@ -1157,6 +1163,18 @@ function parseBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
+function parseRawBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolveRead) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    req.on('end', () => {
+      resolveRead(Buffer.concat(chunks).toString('utf8'));
+    });
+  });
+}
+
 export function responseJson(res: ServerResponse, payload: unknown, status = 200): void {
   const body = JSON.stringify(payload);
   res.statusCode = status;
@@ -1722,6 +1740,46 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   if (pathname.startsWith('/api/merlin/action-cards')) {
     const handled = await handleMerlinActionCardRoute(req, res, pathname);
     if (handled) return;
+  }
+
+  if (method === 'POST' && pathname === '/api/roundtable/discord/dispatch') {
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body' }, 400);
+    }
+    try {
+      const result = await dispatchRoundTableDiscordPacket(body as RoundTableDiscordPacket);
+      return responseJson(res, result, result.status === 'sent' ? 200 : 503);
+    } catch (error) {
+      return responseJson(
+        res,
+        {
+          error: error instanceof Error ? error.message : 'RoundTable Discord dispatch failed',
+          noExecutionPerformed: true
+        },
+        400
+      );
+    }
+  }
+
+  if (method === 'POST' && pathname === '/api/roundtable/discord/interactions') {
+    const rawBody = await parseRawBody(req);
+    const signature = typeof req.headers['x-signature-ed25519'] === 'string' ? req.headers['x-signature-ed25519'] : '';
+    const timestamp = typeof req.headers['x-signature-timestamp'] === 'string' ? req.headers['x-signature-timestamp'] : '';
+
+    if (verifyDiscordInteractionSignature({ rawBody, signature, timestamp })) {
+      try {
+        const parsed = JSON.parse(rawBody) as { type?: number };
+        if (parsed.type === 1) {
+          return responseJson(res, { type: 1 });
+        }
+      } catch {
+        return responseJson(res, { error: 'Invalid JSON body', noExecutionPerformed: true }, 400);
+      }
+    }
+
+    const result = verifyAndWriteDiscordApproval({ rawBody, signature, timestamp });
+    return responseJson(res, result, result.status === 'verified' ? 200 : 403);
   }
 
   if (method === 'GET' && pathname === '/api/health') {
