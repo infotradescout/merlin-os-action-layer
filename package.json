@@ -21,6 +21,7 @@
     "screenshots:copy": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=copy",
     "mealscout:draft-packets": "tsx scripts/mealscout-draft-profile-packet-generator.ts",
     "mealscout:thomas-review-queue": "tsx scripts/mealscout-thomas-review-queue-generator.ts",
+    "mealscout:thomas-clean-sweep": "tsx scripts/mealscout-thomas-clean-candidate-approval-sweep-generator.ts",
     "test:browser": "playwright test",
     "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },
