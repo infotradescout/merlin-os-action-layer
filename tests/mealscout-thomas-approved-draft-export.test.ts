@@ -83,13 +83,15 @@ test('Thomas approved draft export preserves source evidence and visible facts',
   assert.equal(approved.nonProductionWarning.includes('review-only'), true);
 });
 
-test('Thomas approved draft export defaults to recommendation when explicit Thomas decision is absent', () => {
+test('Thomas approved draft export refuses to use recommendation without explicit Thomas decision input', () => {
   const sweep = readApprovalSweep();
-  const exportPacket = buildThomasApprovedDraftExport({
-    approvalSweep: sweep,
-    generatedAt: '2026-06-14T00:00:00.000Z'
-  });
 
-  assert.equal(exportPacket.summary.approvedDraftCount, 65);
-  assert.equal(exportPacket.summary.excludedCount, 0);
+  assert.throws(
+    () =>
+      buildThomasApprovedDraftExport({
+        approvalSweep: sweep,
+        generatedAt: '2026-06-14T00:00:00.000Z'
+      }),
+    /explicit_thomas_decision_required/
+  );
 });

@@ -58,7 +58,11 @@ const NON_PRODUCTION_WARNING =
   'Approved draft export is review-only; mutationAllowed=false and productionApplied=false. It does not create, publish, or apply live MealScout data.';
 
 function resolveThomasDecision(item: ThomasAnnotatedApprovalSweepItem): ThomasFinalDecision {
-  return item.thomasDecision || item.thomasApprovalDecision || item.finalThomasDecision || item.decision || item.recommendedDecision;
+  const decision = item.thomasDecision || item.thomasApprovalDecision || item.finalThomasDecision || item.decision;
+  if (!decision) {
+    throw new Error(`explicit_thomas_decision_required:${item.draftPacketId}`);
+  }
+  return decision;
 }
 
 function initialExcludedCounts(): Record<Exclude<ThomasFinalDecision, 'approve_draft'>, number> {
