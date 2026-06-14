@@ -1,0 +1,163 @@
+{
+  "auditType": "mealscout_screenshot_to_draft_profile_top_down_audit",
+  "mode": "audit_only",
+  "repo": "Merlin / merlin-os-action-layer",
+  "branch": "mealscout-screenshot-profile-completion",
+  "baselineSha": "e046deadbbf1acb93474213bff104f2b25e7d8c2",
+  "observedHeadShaAtAuditStart": "ec74a7bac55bff503b52ed8006d5395275eb5f91",
+  "auditVerdict": "PASS WITH CONDITIONS",
+  "condition": "The requested baseline is an ancestor, but the branch already contains a later approved-draft export commit. This audit did not create or advance any approval/export/apply work and treats the approved-export artifact as out of scope for readiness.",
+  "repoIntegrity": {
+    "branchCleanAndTrackingOrigin": true,
+    "baselineIsAncestor": true,
+    "postBaselineCommitObserved": "ec74a7b feat: export thomas approved mealscout drafts",
+    "unrelatedRepoEditsFound": false,
+    "roundTableAlbionDiscordEditedInThisAudit": false
+  },
+  "artifactChainConsistency": {
+    "result": "PASS",
+    "draftPacketsJsonCount": 100,
+    "manifestDraftPacketsCreated": 100,
+    "manifestEvidenceRowsRead": 896,
+    "manifestNonFoodQuarantined": 181,
+    "manifestUnknownHeld": 224,
+    "reviewQueueDraftPacketsReviewed": 100,
+    "reviewQueueCleanDraftCandidates": 65,
+    "reviewQueueBlockedByConflict": 7,
+    "reviewQueueOwnerConfirmationRequired": 35,
+    "reviewQueueOwnerConfirmationBucket": 28,
+    "reviewQueueLowConfidenceOrVisualReview": 0,
+    "approvalSweepCleanCandidatesIncluded": 65,
+    "approvalSweepExcludedBlockedConflicts": 7,
+    "approvalSweepExcludedOwnerConfirmationRecords": 28,
+    "approvalSweepExcludedUnknownHeld": 224,
+    "approvalSweepExcludedNonFoodQuarantine": 181
+  },
+  "bucketMath": {
+    "result": "PASS",
+    "draftPackets": 100,
+    "bucketedDraftPacketRows": 100,
+    "uniqueBucketedDraftPackets": 100,
+    "duplicateBucketAssignments": 0,
+    "missingFromReviewBuckets": 0,
+    "extraReviewBucketIds": 0,
+    "cleanBlockedOverlap": 0,
+    "cleanOwnerOverlap": 0,
+    "cleanLowConfidenceOverlap": 0,
+    "approvalSweepBlockedOverlap": 0,
+    "approvalSweepOwnerOverlap": 0,
+    "approvalSweepUnknownEvidenceOverlap": 0,
+    "approvalSweepNonFoodEvidenceOverlap": 0
+  },
+  "evidenceLinkage": {
+    "result": "PASS",
+    "cleanCandidatesChecked": 65,
+    "cleanEvidenceIssueCount": 0,
+    "unsupportedFactIssueCount": 0,
+    "sourceEvidenceIdsPresent": true,
+    "sourceFilenamesPresent": true,
+    "extractedVisibleFactsPresent": true,
+    "missingFactsExplicit": true,
+    "confidencePresent": true,
+    "note": "Audit verifies clean candidate facts are carried only from OCR-backed draft packet fields and source evidence references; it does not visually re-OCR the screenshots."
+  },
+  "conflictHandling": {
+    "result": "PASS",
+    "conflictPackets": 7,
+    "conflictsFound": 9,
+    "allConflictPacketsBlocked": true,
+    "allConflictPacketsExcludedFromClean": true,
+    "conflictFields": [
+      {
+        "packetId": "ms-draft-packet-49768d4e5dcd3954",
+        "businessName": "ares Food Truck",
+        "fields": ["businessName", "instagram"]
+      },
+      {
+        "packetId": "ms-draft-packet-9140f308e08cd09c",
+        "businessName": "Cafe",
+        "fields": ["businessName"]
+      },
+      {
+        "packetId": "ms-draft-packet-b68f91e47f3c97d7",
+        "businessName": "Food truck Bi-Bip",
+        "fields": ["businessName"]
+      },
+      {
+        "packetId": "ms-draft-packet-8a276504564af9a0",
+        "businessName": "Latin Grill Rinconcito Catrac... ++ Q0",
+        "fields": ["businessName"]
+      },
+      {
+        "packetId": "ms-draft-packet-8f9f34ac03f69262",
+        "businessName": "TRACI S CHERISHED CREATIONS",
+        "fields": ["businessName"]
+      },
+      {
+        "packetId": "ms-draft-packet-5ac14b9e381812de",
+        "businessName": "Viva Chile Café",
+        "fields": ["businessName", "locationAddress"]
+      },
+      {
+        "packetId": "ms-draft-packet-e8edbca4a36f8588",
+        "businessName": "Yezz Ma'amz Good Eatz",
+        "fields": ["locationAddress"]
+      }
+    ]
+  },
+  "ownerConfirmationHandling": {
+    "result": "PASS",
+    "ownerConfirmationRequiredPackets": 35,
+    "ownerConfirmationBucketEntries": 28,
+    "ownerConfirmationConflictPackets": 7,
+    "explanation": "All 35 owner-confirmation-required packets remain blocked from the clean approval sweep. Seven also have conflicts, so they are prioritized in blocked_by_conflict instead of duplicated in owner_confirmation_required. The remaining 28 non-conflict owner-confirmation packets form the owner-confirmation bucket."
+  },
+  "quarantineSafety": {
+    "result": "PASS",
+    "nonFoodQuarantineRows": 181,
+    "unknownHeldRows": 224,
+    "nonFoodRowsRemainQuarantined": true,
+    "unknownRowsRemainHeld": true,
+    "cleanCandidateNonFoodOverlap": 0,
+    "cleanCandidateUnknownOverlap": 0
+  },
+  "mutationSafety": {
+    "result": "PASS",
+    "draftPacketsMutationAllowedFalse": true,
+    "draftPacketsProductionAppliedFalse": true,
+    "reviewQueueLiveMealScoutMutationFalse": true,
+    "approvalSweepLiveMealScoutMutationFalse": true,
+    "liveMealScoutProfileMutationFound": false,
+    "profileMenuScheduleLogoApplyFoundInAuditChain": false,
+    "productionClaimsFound": false,
+    "note": "Repo contains older Merlin/MealScout apply and publish code outside this artifact chain; the audited chain is export-only and mutation-safe."
+  },
+  "testAdequacy": {
+    "result": "PASS WITH CONDITIONS",
+    "targetedTests": [
+      "tests/mealscout-draft-packet-generation.test.ts proves visible OCR facts, quarantine/unknown handling, conflict blocking, filename non-inference, and tracker-row packet boundaries.",
+      "tests/mealscout-thomas-review-queue.test.ts proves all 100 packets are bucketed, conflicts are excluded from clean candidates, owner confirmations bucket correctly, held/quarantine outputs are preserved, and production/apply flags are absent.",
+      "tests/mealscout-thomas-approval-sweep.test.ts proves exactly 65 clean candidates are included, blocked/owner/unknown/non-food records are excluded, evidence/facts are present, and production/apply flags are absent."
+    ],
+    "remainingUntestedRisks": [
+      "OCR quality is not visually revalidated against source screenshots in these tests.",
+      "Some clean candidates have suspicious social/contact OCR normalization that may need Thomas visual review.",
+      "The approval sweep is Markdown/JSON artifact review, not an interactive UI with decision capture.",
+      "Future Thomas annotations need a separate audit before any approved export or apply lane."
+    ]
+  },
+  "thomasReviewUsability": {
+    "result": "PASS WITH CONDITIONS",
+    "canReviewWithoutRawJson": true,
+    "markdownCandidateSections": 65,
+    "perCandidateReviewFieldsPresent": true,
+    "recommendedImprovements": [
+      "Add a short checkbox line per candidate for approve_draft / hold_for_more_evidence / wrong_business_name / duplicate_existing_profile / quarantine.",
+      "Add a compact red-flag column for suspicious OCR values such as social handles parsed from email domains.",
+      "Add source screenshot hyperlinks where Drive URLs are available, not only file IDs.",
+      "Add a one-page first-pass summary sorted by confidence and missing-fact count."
+    ]
+  },
+  "safeForThomasToStartReviewing65CleanCandidates": true,
+  "safeToApplyToMealScout": false
+}
