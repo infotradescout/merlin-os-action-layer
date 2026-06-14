@@ -19,6 +19,7 @@ export interface DriveFileInfo {
   folder_id: string;
   web_url: string;
   modified_time?: string;
+  size?: string;
   entity_id?: string;
   raw_metadata?: Record<string, unknown>;
 }
@@ -30,6 +31,7 @@ export interface DriveClient {
   downloadFileContent(fileId: string): Promise<string | undefined>;
   downloadFileBinary?(fileId: string): Promise<Buffer | undefined>;
   copyFileToFolder?(fileId: string, targetFolderId: string): Promise<DriveFileInfo>;
+  renameFile?(fileId: string, newName: string): Promise<DriveFileInfo>;
   moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean>;
   trashFile?(fileId: string): Promise<boolean>;
   findFolderByName(name: string, parentFolderId: string): Promise<DriveFolderInfo | undefined>;
@@ -70,20 +72,27 @@ class GoogleDriveClient implements DriveClient {
     const response = await this.drive.files.get({
       fileId,
       supportsAllDrives: true,
-      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents'
+      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents,size'
     });
     const file = response.data as drive_v3.Schema$File;
     return mapDriveFileInfo(file);
   }
 
   async listFilesInFolder(folderId: string): Promise<DriveFileInfo[]> {
-    const response = await this.drive.files.list({
-      q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
-      fields: 'files(id,name,mimeType,modifiedTime,webViewLink,parents)',
-      pageSize: 200,
-      pageToken: undefined
-    });
-    const files = (response.data.files ?? []) as drive_v3.Schema$File[];
+    const files: drive_v3.Schema$File[] = [];
+    let pageToken: string | undefined;
+    do {
+      const response = await this.drive.files.list({
+        q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
+        fields: 'nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink,parents,size)',
+        pageSize: 1000,
+        pageToken,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
+      });
+      files.push(...((response.data.files ?? []) as drive_v3.Schema$File[]));
+      pageToken = response.data.nextPageToken || undefined;
+    } while (pageToken);
     return files
       .filter((file) => Boolean(file.id) && Boolean(file.name))
       .map(mapDriveFileInfo);
@@ -93,7 +102,9 @@ class GoogleDriveClient implements DriveClient {
     const response = await this.drive.files.list({
       q: `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
       fields: 'files(id,name)',
-      pageSize: 200
+      pageSize: 1000,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true
     });
     const folders = (response.data.files ?? []) as drive_v3.Schema$File[];
     return folders
@@ -158,7 +169,20 @@ class GoogleDriveClient implements DriveClient {
       requestBody: {
         parents: [targetFolderId]
       },
-      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents',
+      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents,size',
+      supportsAllDrives: true
+    });
+    const file = response.data as drive_v3.Schema$File;
+    return mapDriveFileInfo(file);
+  }
+
+  async renameFile(fileId: string, newName: string): Promise<DriveFileInfo> {
+    const response = await this.drive.files.update({
+      fileId,
+      requestBody: {
+        name: newName
+      },
+      fields: 'id,name,mimeType,modifiedTime,webViewLink,parents,size',
       supportsAllDrives: true
     });
     const file = response.data as drive_v3.Schema$File;
@@ -266,6 +290,7 @@ function mapDriveFileInfo(file: drive_v3.Schema$File): DriveFileInfo {
   const folderId = (file.parents?.[0] || '').trim();
   const webUrl = file.webViewLink || '';
   const modifiedTime = file.modifiedTime || undefined;
+  const size = file.size || undefined;
 
   return {
     drive_file_id: id,
@@ -274,6 +299,7 @@ function mapDriveFileInfo(file: drive_v3.Schema$File): DriveFileInfo {
     folder_id: folderId,
     web_url: webUrl,
     modified_time: modifiedTime,
+    size,
     raw_metadata: undefined
   };
 }
