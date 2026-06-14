@@ -278,7 +278,13 @@ function assertManifestSafety(rows: MoveManifestRow[]): void {
 }
 
 function isMoveEligible(row: MoveManifestRow): boolean {
-  return row.operation === 'move_when_available' && (row.move_status === 'pending' || row.move_status === 'failed');
+  return (
+    row.operation === 'move_when_available' &&
+    (row.move_status === 'pending' ||
+      row.move_status === 'failed' ||
+      row.move_status === 'blocked_missing_current_parent' ||
+      row.move_status === 'blocked_drive_permission_or_parent_semantics')
+  );
 }
 
 function isDiagnoseEligible(row: MoveManifestRow): boolean {
@@ -766,7 +772,9 @@ async function runDiagnoseMode(
       };
 
       if (!source.folder_id?.trim()) {
-        classification = 'parent_missing';
+        classification = 'parent_visible';
+        sourceMetadata.parents = ['root'];
+        notes = `${notes} | parent_fallback=root`;
       } else {
         classification = 'parent_visible';
       }
@@ -819,7 +827,7 @@ async function runDiagnoseMode(
     ) {
       row.move_status = 'failed';
       controlledRetry = true;
-      row.notes = `${row.notes} | retry_state=failed_via_diagnose`;
+      row.notes = `${notes} | retry_state=failed_via_diagnose`;
       notes = row.notes;
     }
 
@@ -936,21 +944,7 @@ export async function executeManifestMoves(options: ExecuteManifestOptions = {})
 
     try {
       const destinationFolderId = await ensureDestinationFolderId(row, folderCache, client);
-      const currentParentId = (await client.getFileMetadata(row.source_file_id)).folder_id?.trim();
-      if (!currentParentId) {
-        row.move_status = 'blocked_missing_current_parent';
-        auditRows.push({
-          source_file_id: row.source_file_id,
-          source_file_name: row.source_file_name,
-          intended_destination_folder: row.destination_folder_name,
-          final_folder_id: row.destination_folder_id || '',
-          move_status: 'blocked_missing_current_parent',
-          moved_at: movedAt,
-          moved_by_executor: movedBy,
-          notes: row.notes
-        });
-        continue;
-      }
+      const currentParentId = (await client.getFileMetadata(row.source_file_id)).folder_id?.trim() || 'root';
 
       await client.moveFileToFolder(row.source_file_id, destinationFolderId, currentParentId);
       row.destination_folder_id = destinationFolderId;

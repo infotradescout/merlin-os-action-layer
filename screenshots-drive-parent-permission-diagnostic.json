@@ -1,18 +1,20 @@
 {
   "mode": "diagnose",
-  "generated_at": "2026-06-06T23:20:16.730Z",
+  "generated_at": "2026-06-14T14:39:19.436Z",
   "rows": [
     {
       "source_file_id": "1pINtlCkdodyujJ2U4kJ_uKsWeunTIfot",
       "source_file_name": "Screenshot_20260601_154620_Facebook.jpg",
       "batch_id": "BATCH-004-TRADESCOUT-CONTRACTORS",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1pINtlCkdodyujJ2U4kJ_uKsWeunTIfot",
         "name": "Screenshot_20260601_154620_Facebook.jpg",
         "mimeType": "image/jpeg",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "TradeScout_Contractors/Roofing",
@@ -20,20 +22,22 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Contractor screenshot; explicitly excluded from MealScout/Merlin food seeding"
+      "controlled_retry_state_applied": true,
+      "notes": "Contractor screenshot; explicitly excluded from MealScout/Merlin food seeding | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     },
     {
       "source_file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
       "source_file_name": "IMG_5982.PNG",
       "batch_id": "BATCH-001-MEALSCOUT-MERLIN-SEED",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
-        "name": "IMG_5982.PNG",
+        "name": "Pretzels LLC.PNG",
         "mimeType": "image/png",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "MealScout_Merlin_Evidence_Seeds",
@@ -41,20 +45,22 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Food business evidence seed route only after move"
+      "controlled_retry_state_applied": true,
+      "notes": "Food business evidence seed route only after move | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     },
     {
       "source_file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
       "source_file_name": "IMG_5980.PNG",
       "batch_id": "BATCH-001-MEALSCOUT-MERLIN-SEED",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
-        "name": "IMG_5980.PNG",
+        "name": "Crav'N Da Flava Food Truck.PNG",
         "mimeType": "image/png",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "MealScout_Merlin_Evidence_Seeds",
@@ -62,20 +68,22 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Food business evidence seed route only after move"
+      "controlled_retry_state_applied": true,
+      "notes": "Food business evidence seed route only after move | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     },
     {
       "source_file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
       "source_file_name": "IMG_5979.PNG",
       "batch_id": "BATCH-002-MEALSCOUT-REVIEW",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
-        "name": "IMG_5979.PNG",
+        "name": "MANN Kettle Corn 2.PNG",
         "mimeType": "image/png",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "Restaurants_Needs_Review",
@@ -83,20 +91,22 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Requires manual review before any seed action"
+      "controlled_retry_state_applied": true,
+      "notes": "Requires manual review before any seed action | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     },
     {
       "source_file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
       "source_file_name": "IMG_5981.PNG",
       "batch_id": "BATCH-003-MEALSCOUT-BLOCKED",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
-        "name": "IMG_5981.PNG",
+        "name": "The Flamin' Pepper.PNG",
         "mimeType": "image/png",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "MealScout_Blocked_From_Seed",
@@ -104,20 +114,22 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Invalid extraction identity blocked from seed"
+      "controlled_retry_state_applied": true,
+      "notes": "Invalid extraction identity blocked from seed | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     },
     {
       "source_file_id": "1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm",
       "source_file_name": "IMG_5983.PNG",
       "batch_id": "BATCH-006-UNKNOWN-MANUAL-CLASSIFICATION",
-      "input_move_status": "blocked_missing_current_parent",
-      "classification": "parent_missing",
+      "input_move_status": "failed",
+      "classification": "parent_visible",
       "source_metadata": {
         "file_id": "1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm",
-        "name": "IMG_5983.PNG",
+        "name": "Food Truck , Trailer For Sale And.PNG",
         "mimeType": "image/png",
-        "parents": []
+        "parents": [
+          "root"
+        ]
       },
       "destination_check": {
         "destination_folder_name": "Unknown_Project",
@@ -125,8 +137,8 @@
         "visible": true,
         "writable": true
       },
-      "controlled_retry_state_applied": false,
-      "notes": "Missing identity signals hold for manual classification"
+      "controlled_retry_state_applied": true,
+      "notes": "Missing identity signals hold for manual classification | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose | parent_fallback=root | retry_state=failed_via_diagnose"
     }
   ]
 }

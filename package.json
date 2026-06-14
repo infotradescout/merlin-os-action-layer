@@ -19,6 +19,7 @@
     "screenshots:move": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=execute",
     "screenshots:diagnose": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=diagnose",
     "screenshots:copy": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=copy",
+    "mealscout:draft-packets": "tsx scripts/mealscout-draft-profile-packet-generator.ts",
     "test:browser": "playwright test",
     "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },

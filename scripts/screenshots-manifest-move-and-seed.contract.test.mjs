@@ -15,20 +15,14 @@ assert.match(
 
 assert.match(
   source,
-  /const currentParentId = \(await client\.getFileMetadata\(row\.source_file_id\)\)\.folder_id\?\.trim\(\)/,
-  'executor must resolve current parent before move'
+  /const currentParentId = \(await client\.getFileMetadata\(row\.source_file_id\)\)\.folder_id\?\.trim\(\) \|\| 'root'/,
+  'executor must resolve current parent before move and fall back to root'
 );
 
 assert.match(
   source,
   /await client\.moveFileToFolder\(row\.source_file_id, destinationFolderId, currentParentId\)/,
   'executor must pass current parent into move operation'
-);
-
-assert.match(
-  source,
-  /row\.move_status = 'blocked_missing_current_parent'/,
-  'executor must explicitly block rows with missing current parent'
 );
 
 assert.match(

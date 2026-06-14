@@ -69,6 +69,7 @@ class GoogleDriveClient implements DriveClient {
   async getFileMetadata(fileId: string): Promise<DriveFileInfo> {
     const response = await this.drive.files.get({
       fileId,
+      supportsAllDrives: true,
       fields: 'id,name,mimeType,modifiedTime,webViewLink,parents'
     });
     const file = response.data as drive_v3.Schema$File;
@@ -121,6 +122,7 @@ class GoogleDriveClient implements DriveClient {
     const response = await this.drive.files.get(
       {
         fileId,
+        supportsAllDrives: true,
         alt: 'media'
       },
       { responseType: 'arraybuffer' }
@@ -141,6 +143,7 @@ class GoogleDriveClient implements DriveClient {
     const response = await this.drive.files.get(
       {
         fileId,
+        supportsAllDrives: true,
         alt: 'media'
       },
       { responseType: 'arraybuffer' }
@@ -164,21 +167,23 @@ class GoogleDriveClient implements DriveClient {
 
   async moveFileToFolder(fileId: string, targetFolderId: string, currentParentId?: string): Promise<boolean> {
     const resolvedCurrentParent = (currentParentId || '').trim();
-    if (!resolvedCurrentParent) {
-      throw new Error('blocked_missing_current_parent');
-    }
     if (resolvedCurrentParent === targetFolderId) {
       return true;
     }
 
-    await this.drive.files.update({
+    const updateParams: drive_v3.Params$Resource$Files$Update = {
       fileId,
       addParents: targetFolderId,
-      removeParents: resolvedCurrentParent,
       fields: 'id, parents',
       supportsAllDrives: true,
       enforceSingleParent: true
-    });
+    };
+
+    if (resolvedCurrentParent) {
+      updateParams.removeParents = resolvedCurrentParent;
+    }
+
+    await this.drive.files.update(updateParams);
     return true;
   }
 

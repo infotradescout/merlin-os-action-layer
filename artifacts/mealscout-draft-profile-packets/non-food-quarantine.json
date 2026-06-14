@@ -1,0 +1,2397 @@
+[
+  {
+    "driveFileId": "157RwyOxslx7qC25duO8KmCs8wriutDsX",
+    "sourceRowNumber": 5,
+    "finalFilename": "a neighborly company.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "12Roue-JN1UMFBGWExuenUtPyCVLhYcOB",
+    "sourceRowNumber": 7,
+    "finalFilename": "A Red Door Property, LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1M3pvYz4vYRV2Zt4tU6kGtRmmZW9AVDtT",
+    "sourceRowNumber": 12,
+    "finalFilename": "Pace, FL and servicing surrounding areas..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1KxgheP5U4sEKffEV-1e_P2Ty17Dj6n9f",
+    "sourceRowNumber": 20,
+    "finalFilename": "UNRESOLVED - 1KxgheP5U4.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1PrdinPkoYOfYvaxxsj80QL2s1UQGU4Ok",
+    "sourceRowNumber": 26,
+    "finalFilename": "Weeks Family Fencing&Gu... - Qn.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1qAMeyfXYGckyXjiUMbLEl-xv8dAgh0ab",
+    "sourceRowNumber": 34,
+    "finalFilename": "UNRESOLVED - 1qAMeyfXYG.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "166bTP1Egn-rIUvXvP3El_r_h6GCzQ8tM",
+    "sourceRowNumber": 41,
+    "finalFilename": "Professional Service.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1ih5JHRthy4rNdy7GBQiBaKROIfvzBlxl",
+    "sourceRowNumber": 43,
+    "finalFilename": "Rhino Roofing NWFL.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "17QQY2PdWR4Ih9YsJ4q0nD53-9w9_EKnp",
+    "sourceRowNumber": 44,
+    "finalFilename": "Pensacola Gutter Pros.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1LlThquEkagUjVBEu7Fa3TdTzwpSFL-KG",
+    "sourceRowNumber": 58,
+    "finalFilename": "Best Pensacola Painters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1cFXzaCAtGWv5lqjyjo2nszYkztHKMbvn",
+    "sourceRowNumber": 60,
+    "finalFilename": "Fencing.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1RR6cZw_hdTXqNSWInOs4i3rRUcKwRivn",
+    "sourceRowNumber": 67,
+    "finalFilename": "@W Landscape Company.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1n-sKfVw_k5rwfMq0X5s-HV6SG82gHZ_g",
+    "sourceRowNumber": 70,
+    "finalFilename": "Qa Oo.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1xuh2_81yb8GFpnMbMWxHLCVdvI3RtDBz",
+    "sourceRowNumber": 84,
+    "finalFilename": "Campbell Contracting.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "contact_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1xtflLvq7MGPvbtwZKWgZkF0e84Pz9pH7",
+    "sourceRowNumber": 104,
+    "finalFilename": "food. food. E.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1KzhJ-6mzSZ249Ea6ozaKZrf3ZXQ5Biaa",
+    "sourceRowNumber": 106,
+    "finalFilename": "Commanding Comfort, Controlling Climate.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1mu0M3J6HTo6Q2AiVFnvByAazoYSEBBOa",
+    "sourceRowNumber": 107,
+    "finalFilename": "JJW Roofing Company provides residual and.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1oQ9PUpSKiM1NCtXXnoyIIxYKoUEufbIY",
+    "sourceRowNumber": 108,
+    "finalFilename": "Tree Cutting Service Athlete Busi.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1oDsvFeA3EzD3WoDCg4BDgOdByAjNadD-",
+    "sourceRowNumber": 111,
+    "finalFilename": "Jonathan's Constructionan... + Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1GDqjEKhF70oGe6UIiJ7HzLKdW706Tttk",
+    "sourceRowNumber": 116,
+    "finalFilename": "LLC.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1mOjUikR8z1nDp4pIOm9crKxEr9q6ZFXs",
+    "sourceRowNumber": 136,
+    "finalFilename": "DanClark Concrete &Reno... + Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1xHyzOWVRustGVRpqKq0cSpzqcfBl_W2k",
+    "sourceRowNumber": 138,
+    "finalFilename": "PENSACOLA Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "post_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1aiRNO1KjEmm4e_790l0KJqrc1DFcZXmp",
+    "sourceRowNumber": 139,
+    "finalFilename": "oe = wh iwewwies.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1aK4FThtTYG9yCf2x1ciOOuzoFf4RY3jN",
+    "sourceRowNumber": 148,
+    "finalFilename": "@ Plumbing Service.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1qw1tYKfPJ0lukJo6w5R6DGrk2n3i0aWB",
+    "sourceRowNumber": 150,
+    "finalFilename": "Drywall Installation Co. LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1orvXNET2-Ekfa13-tevFTstI2BjVhkUN",
+    "sourceRowNumber": 151,
+    "finalFilename": "Drywall King LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1MolGw-Yu98oXhQuYoidcubfRmaD_db77",
+    "sourceRowNumber": 164,
+    "finalFilename": "Electric.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1u3RhTEoAXoDTeRf9gsOiZCqOf2KbPVz8",
+    "sourceRowNumber": 165,
+    "finalFilename": "Dunewey Dunaway Electrical.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1kQW8rf2la0QpPrfRwGdm3W8C33nFXbtg",
+    "sourceRowNumber": 170,
+    "finalFilename": "Extraordinaires.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1ty1RvZkCfvn0Q7hk3vSF9Qb9koi3vtVf",
+    "sourceRowNumber": 175,
+    "finalFilename": "ESCAMBIA GUTTER COMPANY.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1_P4wU1GQVjloxKgdPAJwSJWz1GaSTe2G",
+    "sourceRowNumber": 179,
+    "finalFilename": "Seamless Gutters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1YFhsYg4-sqlZ4f9bJ2HnNcDWn0XA29O7",
+    "sourceRowNumber": 180,
+    "finalFilename": "Experienced roofing contractor specializing in.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1TxKg-ZHm0tcaUj62yrnIhv1NtLwKU0UA",
+    "sourceRowNumber": 184,
+    "finalFilename": "Roofing Service.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1eIt8J9opK6fDIOGgL4VoaUiSyBKP3osi",
+    "sourceRowNumber": 192,
+    "finalFilename": "Felix drywall installation Ilc.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1bU1ga_kAzXatP9HzNsFs_Fuqjtwk69nk",
+    "sourceRowNumber": 193,
+    "finalFilename": "Gutters - Pensacola, FL.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1jElKVZsbiCENBhAxfmsh8BPnw2Q_Q2eU",
+    "sourceRowNumber": 194,
+    "finalFilename": "GARAGE DOORS.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1u1_120vVYCseVrMp-ON23wFJ_ZKiDi5x",
+    "sourceRowNumber": 195,
+    "finalFilename": "Five Star Drywall And Finish... + Qo.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1qaUW2g5wBk937vHNdupoo5l21RMqsjyj",
+    "sourceRowNumber": 196,
+    "finalFilename": "Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1O_99iAc00yBlexeAxeLMq7t6xo7SJZtP",
+    "sourceRowNumber": 198,
+    "finalFilename": "FLK Drywall Painting LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1X54eaMcOM534xJOVetFZ_zEi5P1D8Rrq",
+    "sourceRowNumber": 237,
+    "finalFilename": "v Gibson Pro Painting.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1UW1qcL5LfN8_WTI3BZglr6gIbevtkTTA",
+    "sourceRowNumber": 247,
+    "finalFilename": "Great Gutters of NWFL.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1zSdeQah_dPDzT4XKZvI2whajRQi5YZLd",
+    "sourceRowNumber": 249,
+    "finalFilename": "Groundworks.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1xj7eYBNq8zQif8uTZUuf4l-36wD36TJQ",
+    "sourceRowNumber": 252,
+    "finalFilename": "GUTTER CLEANING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1NGYIUCM6eYI3FXJs4wjD2piisN6SO1ni",
+    "sourceRowNumber": 253,
+    "finalFilename": "Guy Brothers Roofing & Sidi... + Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1eEvB0hQ8-S5dXycGthuaOnHytmrkfdi5",
+    "sourceRowNumber": 254,
+    "finalFilename": "Siding Inc.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1STu1hxdUa7uLTtml63nMcgKNA-n9mnOD",
+    "sourceRowNumber": 255,
+    "finalFilename": "Local business.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1kK1rDFcBubXid36DG8GqVTYVb0QX2YHu",
+    "sourceRowNumber": 257,
+    "finalFilename": "ELECTRIC.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1g5rWolvCTLaMZ3SCc947Mo97KW161HtN",
+    "sourceRowNumber": 261,
+    "finalFilename": "yj, US Air Corps HVAC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1M06Ui5fojsn7bNpo2ZlDvca8Daq30n4h",
+    "sourceRowNumber": 262,
+    "finalFilename": "Kool Breeze of Northwe.. Q ).jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1WanR86XUG93jSCxZgFK1HtofEwSTL2WB",
+    "sourceRowNumber": 263,
+    "finalFilename": "experience & most affordable HVAC company in.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1bEidI51Hc6oR4Qjf_D5Ycgbeu-EsBK_8",
+    "sourceRowNumber": 264,
+    "finalFilename": "2 eagleacandheatinginc.org.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1voJ4c8oKMF7Cb9ar4toJ4RgI4MFzGv3T",
+    "sourceRowNumber": 265,
+    "finalFilename": "Taylor Air Conditioninga.. Q. ).jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1vyAaCkTx1CZMjRcy8BJV6eMiCrj48y97",
+    "sourceRowNumber": 266,
+    "finalFilename": "boggscooling@bellsouth.net.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1BGmWR7zPcgWseOK2ylqBlisa3ModItVn",
+    "sourceRowNumber": 267,
+    "finalFilename": "Kadeco, Inc.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1B_lP4ulyLSAJ_DqkL6GG7FHEypVFpQrM",
+    "sourceRowNumber": 268,
+    "finalFilename": "Jordan Valley Downtown.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1SiC1iHG_HSswwb9axNPceb_uzkTzsxKb",
+    "sourceRowNumber": 280,
+    "finalFilename": "Hual Electric, Inc.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1Hn6MNxNQemfr_6kWdHbTPz0n0PKE0sh7",
+    "sourceRowNumber": 281,
+    "finalFilename": "service Pensacola and surrounding areas since 1995!.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1xCzt-pAcJ0fYJmYjgjQz5Wve4aIcp1iV",
+    "sourceRowNumber": 284,
+    "finalFilename": "Plumbing & Electrical.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1MYWt0o5NDQikjBXp7_yyAYm_o6OnF6YF",
+    "sourceRowNumber": 289,
+    "finalFilename": "Iconic Painting LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1MNxTuK4nfTen4vqT1_HiWPKPzA9TGXtd",
+    "sourceRowNumber": 291,
+    "finalFilename": "py A Insulation and Water.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1wGc1T8OZjcBuDhnKA7Akaz0tQrA2bZ0E",
+    "sourceRowNumber": 293,
+    "finalFilename": "terior Renovatic.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "menu",
+    "detectedSignals": [
+      "price_signal",
+      "food_terms",
+      "menu_heading",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "menu"
+    ]
+  },
+  {
+    "driveFileId": "1GH8BktJ9yWKiqmdmNnnF0Ldmf4LQa8WL",
+    "sourceRowNumber": 294,
+    "finalFilename": "Company's Lissy &Asociad... + Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "menu"
+    ]
+  },
+  {
+    "driveFileId": "1cNHtlJce8hhBt5hSIka5qyHb0K3PgQeR",
+    "sourceRowNumber": 295,
+    "finalFilename": "FL - Escambia County, FL.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1y0EyHl_eAHd474emGD0drd3R7zir8vCM",
+    "sourceRowNumber": 296,
+    "finalFilename": "INSULATION LLC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1eh80_8RKGoqYNyB7utWfSasDn7heZor-",
+    "sourceRowNumber": 297,
+    "finalFilename": "KEKS.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1py9xkztipjo6jGITBtnGJFZzL0TU21Mu",
+    "sourceRowNumber": 303,
+    "finalFilename": "JM Roofing - Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1gekK078M8v7WsvwmQxP6iEz0bhHe7qWp",
+    "sourceRowNumber": 304,
+    "finalFilename": "I JM Roofing - Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "14HtxPeeT_RapzYXPFr-hL9ZZDML4FC0v",
+    "sourceRowNumber": 309,
+    "finalFilename": "Vea LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1mS49GGl4IIp4Hn3-hNfibKmtDEvljmll",
+    "sourceRowNumber": 322,
+    "finalFilename": "Into-Gutters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1OZkFfnrF3IrMikkDjWH9T2xrsOsCsXdk",
+    "sourceRowNumber": 325,
+    "finalFilename": "Licensed and Insured Santa Rosa County.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1n5pD5_O0e_iGujjOGsnCW8h3OWZdrqI2",
+    "sourceRowNumber": 326,
+    "finalFilename": "Electric Ladyland LLC.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1VnS3zBj_SHFSFWAxHGdI1UU_q-F5JfhU",
+    "sourceRowNumber": 327,
+    "finalFilename": "LLC Concrete Division.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "14FHgG7V-DcBzdFAH1L8SzHIEOOEubQT0",
+    "sourceRowNumber": 328,
+    "finalFilename": "Patriot Roofing &.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1RLjXFqywt724tr7DWKmtV-l38hWt-MuP",
+    "sourceRowNumber": 342,
+    "finalFilename": "of INC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1f6fImpHum2ppyGqXVD96D9Fxr-dJFVWa",
+    "sourceRowNumber": 349,
+    "finalFilename": "Master Insulation, Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1F231gzKZAVf1k2sIsALynID-kN6qRBDp",
+    "sourceRowNumber": 353,
+    "finalFilename": "30776-364 LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1uaY2eXmb97WqonyhxktGEUM-ioF7_BVQ",
+    "sourceRowNumber": 354,
+    "finalFilename": "HVAC SERVICESLLC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1YvOgxgE_5-BZuBU3Cp_ZTOTE86Bqhklx",
+    "sourceRowNumber": 357,
+    "finalFilename": "LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1hY3vB76LUCSTF9E2T4ZieOMUXLs5TSTo",
+    "sourceRowNumber": 379,
+    "finalFilename": "MYPENSACOLA.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1wBAb_oMZhKkkpzb_PoiuTfkYheKNoGDk",
+    "sourceRowNumber": 385,
+    "finalFilename": "Finishing LLC LP.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1PR5cT4StKu0Ax2NVPgMcENqYFL_iCXWp",
+    "sourceRowNumber": 387,
+    "finalFilename": "snviteiyamn, gervice of Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1pINtlCkdodyujJ2U4kJ_uKsWeunTIfot",
+    "sourceRowNumber": 388,
+    "finalFilename": "Lexi Raspberry Roofing.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1BCkWnYMkEt-yay-RBXm6QPtGlPH8W20g",
+    "sourceRowNumber": 389,
+    "finalFilename": "Lexi Raspberry Roofing.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1VaZfHmO7Lb8I-PUM-Az7GjTIwbSbXFHM",
+    "sourceRowNumber": 390,
+    "finalFilename": "Lexi Raspberry Roofing.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1uhFrVpvkMgReH3B06yZgkAuUJ9FBIZ7V",
+    "sourceRowNumber": 391,
+    "finalFilename": "Joey Brazwell.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1pdBcoNLIfGEX3E0ru9P3E30tEN9ir8UJ",
+    "sourceRowNumber": 392,
+    "finalFilename": "Air Marshall Cooling He.. Qo ).jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1O5a3x6YV84x9m8nm9jTIFIkHoiC3J93I",
+    "sourceRowNumber": 393,
+    "finalFilename": "JJW ROOFING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1BYrflqF366Nlo1CypEaCu6kNHT5NH8uK",
+    "sourceRowNumber": 395,
+    "finalFilename": "LAS.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1loIx4sV5t1AeyTwdr9_RSAm9--1xNFH9",
+    "sourceRowNumber": 400,
+    "finalFilename": "@W Landscape Company.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1UXDEA1w7Af4EoobDL8yhlv-LPLQxT4o_",
+    "sourceRowNumber": 418,
+    "finalFilename": "MaintenanceMen.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1p8pNsYj8pz7ANpDr7ffUzxa4rL-jLTCD",
+    "sourceRowNumber": 419,
+    "finalFilename": "Restoration.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1PJqf925mkPJBVZa2YbeZC6qNbxg9MgV9",
+    "sourceRowNumber": 442,
+    "finalFilename": "III O.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1PJoey3ObzYrXS7dkh_Mxbdj68XX4ZYmG",
+    "sourceRowNumber": 443,
+    "finalFilename": "Boggs Cooling &.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1QiF0J7V0YapW00-Rm4kNX_owGdWW_bPK",
+    "sourceRowNumber": 444,
+    "finalFilename": "Air Marshall Cooling.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1IggNd4ZHgwgzPrtyUyq8CXcrABxlIwvG",
+    "sourceRowNumber": 445,
+    "finalFilename": "O Cooling.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1uSD0nh6Qlw89k5m8EB5_zTelm1hsPGTt",
+    "sourceRowNumber": 446,
+    "finalFilename": "LY 1 Review.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "11d15qDga60P_VSsJx50JRvY5zevmlT2H",
+    "sourceRowNumber": 448,
+    "finalFilename": "Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1Qq6WeTXxdPxleuxlb0ohZIHVLBtSgrUw",
+    "sourceRowNumber": 449,
+    "finalFilename": "Painting, Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1fJZ5UbJESxwxZJgceClxfU_CXqaWpO2U",
+    "sourceRowNumber": 453,
+    "finalFilename": "neni te.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1vvpAIhwK0FZY0EO6zbyHwyogOMuW1wRM",
+    "sourceRowNumber": 456,
+    "finalFilename": "Rhino Roofing NWFL.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1f9Z0o0FwyuFrkGGGYbyigCHSeEZPJlXq",
+    "sourceRowNumber": 458,
+    "finalFilename": "Pensacola Gutter Cleaning.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1di_K7tzFfLDJcb3IJ4zVAzn9ici3RU-G",
+    "sourceRowNumber": 459,
+    "finalFilename": "Message or Call us for a quote!.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1l1r7wlZ_iztdiUXRcczyEz7TZdxVPTH5",
+    "sourceRowNumber": 460,
+    "finalFilename": "LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "10YLqVdXlVhMsFupXPNJXGhqtzMiixUU9",
+    "sourceRowNumber": 462,
+    "finalFilename": "Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1MIXauQBogeXkVxoh_FWQm70HP129ttZ8",
+    "sourceRowNumber": 463,
+    "finalFilename": "3 May 19-@.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1qpI01ql_Z7ThumMNj7L-D7plqe-zHqoU",
+    "sourceRowNumber": 464,
+    "finalFilename": "& Operator.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1IaD1pEVllz4ukZKlvm0e9EDPWQOdiWfk",
+    "sourceRowNumber": 465,
+    "finalFilename": "Pensacola Roofing and Fence'.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1vTUCbFXD9ABmdWkzKM-OUQfftbTdUzcs",
+    "sourceRowNumber": 466,
+    "finalFilename": "Follow (8 Book now.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1qr5nluBWbWWlcRB6EkPeKP1W3D01qfTz",
+    "sourceRowNumber": 470,
+    "finalFilename": "FENCING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1fw1vNNBk7gfGd0wwYsuLyA5VD5Mc2W1x",
+    "sourceRowNumber": 472,
+    "finalFilename": "pegs pande _ Sugar Sands Painting.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1O5CTktI9iGiNZzg0fdQcgYBROnn8pS7n",
+    "sourceRowNumber": 478,
+    "finalFilename": "Peterson Precision Painting... °.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1lSW8ERED6tsHH89w07psM4dlc-EhzwqF",
+    "sourceRowNumber": 482,
+    "finalFilename": "Pittman Electric NWF.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1DuawnlilgMLz_tKBtAuCRGtdK-aQDLvE",
+    "sourceRowNumber": 483,
+    "finalFilename": "Pittman Electric NWF Q &.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1lb9YhaVw7D4Xm2Bws2TPYNou_i--FSRY",
+    "sourceRowNumber": 486,
+    "finalFilename": "Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1cvtEgPja4XgD4dVoqWyDOpAZcT92FnjQ",
+    "sourceRowNumber": 488,
+    "finalFilename": "Sand &Sons Fence Compan... + Qn.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1_SX1a9wPKIBLJ-0Ls1XaMFKj4_Yr4M0C",
+    "sourceRowNumber": 491,
+    "finalFilename": "Precision Garage Door Serv... + Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1eg1KTXxRgbWIJqlX3VErHrafI4X5vxVi",
+    "sourceRowNumber": 493,
+    "finalFilename": "HANDYMANI.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1mlh8eUvGizAzD4b8P9J-KW3-McK5groQ",
+    "sourceRowNumber": 494,
+    "finalFilename": "Prestige Insulation Solutions LLC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1jgS1uQKfbAmHnbfm7QOcOo7K9xUfMNRi",
+    "sourceRowNumber": 501,
+    "finalFilename": "Chain link, and Custom Fencing.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1KExZc_aFSNYdKUP-bwutiM06GakUHRCV",
+    "sourceRowNumber": 502,
+    "finalFilename": "MOUSS QUICKIy GNU UU IU Price. PHYQhy.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1zMbxZgKU9X8Ta9MHiu4p597izx2vfM_0",
+    "sourceRowNumber": 505,
+    "finalFilename": "- QOLrKn ZE4 F0eE0O57 7.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1yAiIyi0vr4IyH51mQmM-d2Wimkq-K3zg",
+    "sourceRowNumber": 509,
+    "finalFilename": "eaaee Quality Roofing.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "19zMHJgmFHh3a_gKGDz_ZqxHay3uOSJJK",
+    "sourceRowNumber": 510,
+    "finalFilename": "ROOFING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1SB55YsCSqWXxROpSgVHHJq1osWDZqjF-",
+    "sourceRowNumber": 512,
+    "finalFilename": "reerine Panhandle.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1Jx7KkxlQr0xucwnQfww7D3xtKvo7RGUt",
+    "sourceRowNumber": 517,
+    "finalFilename": "ReliaPro Electric.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1hY5h_Z1RIpEY7q3MEEKB35khhCFOamct",
+    "sourceRowNumber": 518,
+    "finalFilename": "Renovations, LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1zIAoF1Srx3H-6C7tMkeTVwP8vVgVgiyK",
+    "sourceRowNumber": 521,
+    "finalFilename": "Reservations - Online booking.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1uXdTygvcRHWAxmWYqSCCiHKfIIg6ydpm",
+    "sourceRowNumber": 525,
+    "finalFilename": "Pensacola Roofing and Fence.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1_febxZi-7Cc8qyvqfDzmjJzwdMRQoulx",
+    "sourceRowNumber": 526,
+    "finalFilename": "AUTHORIZED DEALER.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1zd63KbW1JhyqpCUzVma_UUzs9_Ea2G2p",
+    "sourceRowNumber": 528,
+    "finalFilename": "A Insulation and Water.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "contact_signal",
+      "menu"
+    ]
+  },
+  {
+    "driveFileId": "1jpGC7sJkgQBakuxXxi4fpaClRQQ7usm8",
+    "sourceRowNumber": 530,
+    "finalFilename": "Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "11twjbS2p8P4LOppXcZqMumeG708NUzwy",
+    "sourceRowNumber": 532,
+    "finalFilename": "Right Now Roofing &Solar-... Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1v_cwkRotwqpgHDYMHHEzVB0UZUD4GEKM",
+    "sourceRowNumber": 533,
+    "finalFilename": "Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1d7tNRN0gaohfsslgBzCs9S02ZiLW7A32",
+    "sourceRowNumber": 534,
+    "finalFilename": "_ Riviera Roofing LLC Q &.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1qXjMgzjnTMH9cUqYYJUgyObu-DBLXoSL",
+    "sourceRowNumber": 536,
+    "finalFilename": "ROGERS ELECTRICAL CONTRACTORS, INC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "menu",
+    "detectedSignals": [
+      "price_signal",
+      "menu"
+    ]
+  },
+  {
+    "driveFileId": "1QioGTsF8KJwXvRnTnD34fPmu2THQbDSL",
+    "sourceRowNumber": 537,
+    "finalFilename": "Contractors.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1lpay74jY0hqErSjR8jNhT35Ue2miDJa6",
+    "sourceRowNumber": 538,
+    "finalFilename": "+ BUILT WITH FAITH.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1hJi3eeW1G7g6P9rsLl-k0FwxD34EOIBn",
+    "sourceRowNumber": 539,
+    "finalFilename": "Roofing Contractors.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1YK0B7ezpm4Ukctg0tG8vGVF5He8sMF16",
+    "sourceRowNumber": 540,
+    "finalFilename": "ROOFING & FENCING. COMPANY..JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1Drq8xNFUDH96lvF4-g_vQkJp5myLClXX",
+    "sourceRowNumber": 541,
+    "finalFilename": "#NAME?",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1s4N3p4fpLbAzEETlqf4IzUWMNO9sQKBI",
+    "sourceRowNumber": 542,
+    "finalFilename": "ROOFING & SIDING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1ydt4ittivlxCcNdpQGkYs10GnHcRr6TH",
+    "sourceRowNumber": 543,
+    "finalFilename": "ROOFING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "146wxOlM9JV1pmvxBRatBJLw58q1QnC4H",
+    "sourceRowNumber": 544,
+    "finalFilename": "ROOFING.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "19pKskr5xSr4ysDN0SkRo_auyd9RmtjpM",
+    "sourceRowNumber": 547,
+    "finalFilename": "GARAGE DOORS.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1IYdXR98o-ydvtDxVs5cDAMuJTRJ8F1_x",
+    "sourceRowNumber": 553,
+    "finalFilename": "Saltmarsh Concrete LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "10wrXGAB9jnG-0c_gCFZY8RSxlWue00hY",
+    "sourceRowNumber": 558,
+    "finalFilename": "Sanders Brothers Electric, Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1-RUs6M0shTKsMN8DBZkhhLLivAEs0kzk",
+    "sourceRowNumber": 563,
+    "finalFilename": "Into-Gutters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1NGyYO4YwYWblwk7LhoYbeDxC3BYAugKg",
+    "sourceRowNumber": 605,
+    "finalFilename": "SERVICE LLC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1MDNSNw8C6zgIqPDyOWSyOgn_gpNCdOeW",
+    "sourceRowNumber": 606,
+    "finalFilename": "Martin's Martin's Seamless Gutters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1g7w5OsJbZoZ-u7TCE1Ve7WwqXFECwMXH",
+    "sourceRowNumber": 607,
+    "finalFilename": "ACS HVAC.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "1czU9pbd95eF5ad2P-HfTE-KZgi3QRTvF",
+    "sourceRowNumber": 608,
+    "finalFilename": "ep Iconic Painting LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1DT0NDcNWLyBVNYMatrcSm5Qf0V1Ui8l8",
+    "sourceRowNumber": 609,
+    "finalFilename": "jem Chuck's Concrete Pumping.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1bspTMDFVd_WbUCPlKGW9AkSutGdwcNay",
+    "sourceRowNumber": 610,
+    "finalFilename": "Company's Lissy &Asociados.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1QfMtm8SDen-T0cqNq4Lj3rJMR2uSzZuE",
+    "sourceRowNumber": 611,
+    "finalFilename": "Saltmarsh Concrete LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1don61DiEedXriPLsmfx7emlsxTjh66hI",
+    "sourceRowNumber": 619,
+    "finalFilename": "Follow & Call now.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "12Ta0CcANl1pX7bSg_WKhmwW3dQn4oDFM",
+    "sourceRowNumber": 620,
+    "finalFilename": "SF Roofing Pensacola.JPG",
+    "reason": "non_food_scope",
+    "artifactType": "unknown",
+    "detectedSignals": [
+      "unknown"
+    ]
+  },
+  {
+    "driveFileId": "10Ih1hh150KQg-8Kg1vpIvayzS-cOQCI2",
+    "sourceRowNumber": 621,
+    "finalFilename": "SFB Fence Company.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1GnmLMg7SFv_qwPPz4gbuPq3V5a3BcRmk",
+    "sourceRowNumber": 622,
+    "finalFilename": "Sho's Insulation LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1r29r3l0FRFj8JJTzyfmqbRGfmBV_XjX2",
+    "sourceRowNumber": 623,
+    "finalFilename": "Sho's Insulation LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "15r2OmAhCo9eaNV4YdxnSsxuZX919Bjm7",
+    "sourceRowNumber": 624,
+    "finalFilename": "Prestige Insulation Solution... + Qn.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1HW8T13F7xPxrEC38EBvwZT6GqiVsJfJg",
+    "sourceRowNumber": 631,
+    "finalFilename": "Solutions LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1fOCkE69V5KM2v5Zk7sWYQ-kf8wT9KYEi",
+    "sourceRowNumber": 636,
+    "finalFilename": "1 Time Concrete and Fencing.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "10ixIO2kuyC9CroUMwXjmbVigrvzgl96J",
+    "sourceRowNumber": 638,
+    "finalFilename": "LLC.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "post_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "18X9CYhsNbEH-niqYAhLJPTiEsrDsD8SU",
+    "sourceRowNumber": 641,
+    "finalFilename": "Spray Foam Insulation Pens... +.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "logo",
+    "detectedSignals": [
+      "profile_page",
+      "logo_signal",
+      "contact_signal",
+      "review_signal",
+      "logo"
+    ]
+  },
+  {
+    "driveFileId": "10SpfOwlmPUslRlt4aqp6uPo7Jx-Mqsgv",
+    "sourceRowNumber": 651,
+    "finalFilename": "Sugar Sands Painting.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "11uoCxOSUwf3U3Sj3P6O6RrnTjLfllg74",
+    "sourceRowNumber": 656,
+    "finalFilename": "Plumber.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1pIFztKbZ2JJV6Jyg_AH7dkRIf2Hqh3vY",
+    "sourceRowNumber": 685,
+    "finalFilename": "utter pros.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1HZWoALXlXnz0NdJf63RQQrlVFH3x612z",
+    "sourceRowNumber": 706,
+    "finalFilename": "Superior Fence & Rail of Pe... +.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1_8CPOLnInyQZbVZCUs2PBENWvqDZrfLn",
+    "sourceRowNumber": 850,
+    "finalFilename": "Inc..PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1r3D8TF766maQQGOJ_kYJxJIn6h6d1cLu",
+    "sourceRowNumber": 851,
+    "finalFilename": "and Flooring.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1ivaytYyQUkKcO27VTWNQspa1UEk4GxuI",
+    "sourceRowNumber": 860,
+    "finalFilename": "Next Level Roofing And Restora.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "13W2viHYomIQMIW3evto_JRbGwI3vM1id",
+    "sourceRowNumber": 862,
+    "finalFilename": "Follow WhatsApp.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1UX0W7esfGNAPOqBYlEQb8BYJ1tlZ5Key",
+    "sourceRowNumber": 863,
+    "finalFilename": "Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "post_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1RMc9Y6fZJ8odOKGIbOlveC4bhE5boy6i",
+    "sourceRowNumber": 868,
+    "finalFilename": "for commercial and residential customers in NW.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1zmCdW1cnmOoPp5wDrBvnxjFfr0RO8CZz",
+    "sourceRowNumber": 876,
+    "finalFilename": "- Fencing&Gutters.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1GvcitPyCeQQrucTcNe7YFfFMZ2zydraX",
+    "sourceRowNumber": 877,
+    "finalFilename": "Paradise Electric.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1XaF6Uzv7pno0l0FbHgKEF05nouwGxLt2",
+    "sourceRowNumber": 881,
+    "finalFilename": "Meredith Fence Company, L... Q0.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "1F8nrhrvFNb129TLiPK2qTpHS_x0hpPHx",
+    "sourceRowNumber": 883,
+    "finalFilename": "Wo Best Roofing Pensacola.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "logo",
+    "detectedSignals": [
+      "profile_page",
+      "logo_signal",
+      "contact_signal",
+      "review_signal",
+      "logo"
+    ]
+  },
+  {
+    "driveFileId": "1zEUVUjixbBEgSwRKYZIIbkn3qvWhbxJ2",
+    "sourceRowNumber": 884,
+    "finalFilename": "GUTTER CLEANING.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "profile"
+    ]
+  },
+  {
+    "driveFileId": "15tD09U4TJtytqG7JeRfPE35-EefbQIGo",
+    "sourceRowNumber": 885,
+    "finalFilename": "Lexi Raspberry Roofing.jpg",
+    "reason": "non_food_scope",
+    "artifactType": "possible_menu",
+    "detectedSignals": [
+      "price_signal",
+      "profile_page",
+      "schedule_location_hours",
+      "contact_signal",
+      "review_signal",
+      "possible_menu"
+    ]
+  },
+  {
+    "driveFileId": "1y-jPDwomLfdYlC-NmM9e0N_mwLvv17G-",
+    "sourceRowNumber": 887,
+    "finalFilename": "UNRESOLVED - 1y-jPDwomL.PNG",
+    "reason": "non_food_scope",
+    "artifactType": "profile",
+    "detectedSignals": [
+      "profile_page",
+      "post_signal",
+      "contact_signal",
+      "profile"
+    ]
+  }
+]
