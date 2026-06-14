@@ -22,6 +22,7 @@
     "mealscout:draft-packets": "tsx scripts/mealscout-draft-profile-packet-generator.ts",
     "mealscout:thomas-review-queue": "tsx scripts/mealscout-thomas-review-queue-generator.ts",
     "mealscout:thomas-clean-sweep": "tsx scripts/mealscout-thomas-clean-candidate-approval-sweep-generator.ts",
+    "mealscout:thomas-approved-export": "tsx scripts/mealscout-thomas-approved-draft-export-generator.ts",
     "test:browser": "playwright test",
     "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },
