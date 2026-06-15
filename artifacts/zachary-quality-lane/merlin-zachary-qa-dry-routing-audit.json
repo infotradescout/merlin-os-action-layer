@@ -1,0 +1,113 @@
+{
+  "repo": "Merlin / merlin-os-action-layer",
+  "branch": "mealscout-screenshot-profile-completion",
+  "baselineSha": "08be95027fc4bfa0af7acd8533a440e10b5a84b2",
+  "lane": "Zachary QA/DRY routing audit for this repo",
+  "verdict": "PASS_FOR_ROUTING_WITH_REPO_LOCAL_SCOPE",
+  "scope": {
+    "merlinOnly": true,
+    "roundTableEdited": false,
+    "albionEdited": false,
+    "discordEdited": false,
+    "mealScoutProductionEdited": false,
+    "screenshotExtractionContinued": false,
+    "approvedDraftExportChanged": false
+  },
+  "zacharyNamedFilesChecked": [
+    {
+      "path": "admin-dashboard.tsx",
+      "presentInRepo": false
+    },
+    {
+      "path": "parking-pass.tsx",
+      "presentInRepo": false
+    },
+    {
+      "path": "shared/schema/legacy.ts",
+      "presentInRepo": false
+    },
+    {
+      "path": "server/storage.ts",
+      "presentInRepo": false
+    }
+  ],
+  "repoLocalFindings": {
+    "rawFetchCalls": {
+      "srcPublicScripts": 6,
+      "tests": 52,
+      "assessment": "Low in production code for this repo; most raw fetch calls are test helpers."
+    },
+    "tryCatchBlocks": {
+      "srcPublicScripts": 105,
+      "tests": 23,
+      "assessment": "Worth addressing in server routes and review UI surfaces with shared error wrappers."
+    },
+    "largePublicSurfaces": [
+      {
+        "path": "public/mealscout-review-queue.html",
+        "sizeBytes": 69943,
+        "risk": "Large static review surface with repeated client-state and error handling logic."
+      },
+      {
+        "path": "public/index.html",
+        "sizeBytes": 34047,
+        "risk": "Large operator surface with inline behavior and repeated UI state logic."
+      },
+      {
+        "path": "public/drive-review-queue.html",
+        "sizeBytes": 20806,
+        "risk": "Drive review UI has repeated loading/error/success patterns."
+      },
+      {
+        "path": "public/merlin-operator-review.html",
+        "sizeBytes": 18422,
+        "risk": "Operator review UI should be included in real-user QA flow inventory."
+      }
+    ],
+    "routeHotspots": [
+      {
+        "path": "src/server.ts",
+        "tryCatchBlocks": 25,
+        "risk": "Broad server route file with repeated request error handling."
+      },
+      {
+        "path": "src/merlin/routes/merlinWorkspaceRoutes.ts",
+        "tryCatchBlocks": 4,
+        "risk": "Candidate for shared route handler wrapper after server.ts."
+      },
+      {
+        "path": "src/merlin/routes/merlinApprovalRoutes.ts",
+        "tryCatchBlocks": 4,
+        "risk": "Approval routes should keep mutation-safety errors consistent."
+      }
+    ]
+  },
+  "recommendedNextSlices": [
+    {
+      "order": 1,
+      "slice": "Create Merlin QA evidence checklist artifact schema",
+      "reason": "Matches Merlin ownership: QA evidence intake and review packets."
+    },
+    {
+      "order": 2,
+      "slice": "Inventory public review screens with real-user states",
+      "reason": "Targets visible Merlin review surfaces before refactoring."
+    },
+    {
+      "order": 3,
+      "slice": "Extract shared route error wrapper for Merlin route modules",
+      "reason": "Addresses repeated try/catch without changing behavior."
+    },
+    {
+      "order": 4,
+      "slice": "Normalize browser API helpers in public review clients",
+      "reason": "Keeps loading, empty, error, and success handling consistent."
+    }
+  ],
+  "blockedOrDeferred": [
+    "Do not perform MealScout live apply work.",
+    "Do not continue screenshot extraction in this lane.",
+    "Do not modify app files that are not present in this repo.",
+    "Do not move Zachary doctrine to RoundTable from this repo-local pass."
+  ]
+}
