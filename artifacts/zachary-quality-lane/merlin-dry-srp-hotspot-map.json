@@ -1,0 +1,139 @@
+{
+  "repo": "Merlin / merlin-os-action-layer",
+  "branch": "mealscout-screenshot-profile-completion",
+  "baselineSha": "798dab5f22b05ee9946eb93825b230ec6e65064e",
+  "auditType": "merlin_dry_srp_hotspot_map",
+  "verdict": "REFRACTOR_NOT_STARTED_PARITY_EVIDENCE_REQUIRED",
+  "summary": {
+    "productionCodeRawFetchCalls": 6,
+    "testRawFetchCalls": 52,
+    "srcPublicScriptsTryCatchBlocks": 105,
+    "testTryCatchBlocks": 23,
+    "largestFileLines": 4597,
+    "largestFile": "src/server.ts"
+  },
+  "hotspots": [
+    {
+      "path": "src/server.ts",
+      "lines": 4597,
+      "tryCatchBlocks": 25,
+      "risk": "critical_srp_hotspot",
+      "reason": "Large route aggregator with repeated request parsing, response shaping, route dispatch, and error handling.",
+      "safeNextStep": "Add route-group parity tests before extracting shared route response/error helpers."
+    },
+    {
+      "path": "public/mealscout-review-queue.html",
+      "lines": 1289,
+      "risk": "high_operator_ui_hotspot",
+      "reason": "Large static UI mixing markup, state, event behavior, local review state, and API calls.",
+      "safeNextStep": "Inventory real-user states and add browser coverage before extracting client helpers."
+    },
+    {
+      "path": "src/lisa.ts",
+      "lines": 1555,
+      "tryCatchBlocks": 5,
+      "risk": "high_mixed_responsibility_hotspot",
+      "reason": "Large core file likely combining data access, coordination, and transformation responsibilities.",
+      "safeNextStep": "Map exported responsibilities and add characterization tests before splitting."
+    },
+    {
+      "path": "src/merlin/affiliateScreenshotFolderProcessing.ts",
+      "lines": 1053,
+      "tryCatchBlocks": 2,
+      "risk": "high_flow_orchestration_hotspot",
+      "reason": "Drive discovery, affiliate attribution, screenshot selection, and handoff output concerns are concentrated.",
+      "safeNextStep": "Separate preflight, selection, attribution, and artifact rendering after tests pin current behavior."
+    },
+    {
+      "path": "scripts/screenshots-manifest-move-and-seed.ts",
+      "lines": 956,
+      "tryCatchBlocks": 4,
+      "artifactIoPatternCount": 14,
+      "risk": "high_script_orchestration_hotspot",
+      "reason": "Drive movement, copy/diagnose/execute modes, reporting, and artifact writing share one script.",
+      "safeNextStep": "Extract artifact IO and mode planning helpers after contract tests cover each mode."
+    },
+    {
+      "path": "src/merlin/intake/actionCardQueue.ts",
+      "lines": 851,
+      "artifactIoPatternCount": 27,
+      "risk": "high_persistence_and_queue_hotspot",
+      "reason": "Queue persistence, action card state, decisions, reload behavior, and JSON persistence logic are dense.",
+      "safeNextStep": "Create storage adapter parity tests before extracting persistence utilities."
+    },
+    {
+      "path": "src/merlin/intake/reviewPackets.ts",
+      "lines": 833,
+      "risk": "medium_packet_builder_hotspot",
+      "reason": "Review packet construction is large enough to hide repeated formatting and validation concerns.",
+      "safeNextStep": "Add golden packet tests before splitting builder helpers."
+    },
+    {
+      "path": "public/index.html",
+      "lines": 762,
+      "tryCatchBlocks": 7,
+      "risk": "medium_operator_ui_hotspot",
+      "reason": "Inline operator UI behavior and state handling should be audited before shared helper extraction.",
+      "safeNextStep": "Add browser state inventory for loading, empty, error, success, and responsive states."
+    },
+    {
+      "path": "src/roundtableDiscord.ts",
+      "lines": 567,
+      "tryCatchBlocks": 5,
+      "artifactIoPatternCount": 13,
+      "risk": "medium_bridge_boundary_hotspot",
+      "reason": "Discord payload, signature/allowlist checks, and record-writing concerns share a bridge module.",
+      "safeNextStep": "Keep behavior pinned by existing tests and split only bridge-internal helpers."
+    }
+  ],
+  "duplicatedPatterns": [
+    {
+      "pattern": "artifact JSON/markdown writing",
+      "evidence": [
+        "scripts/mealscout-draft-profile-packet-generator.ts",
+        "scripts/mealscout-thomas-review-queue-generator.ts",
+        "scripts/mealscout-thomas-clean-candidate-approval-sweep-generator.ts",
+        "scripts/mealscout-thomas-approved-draft-export-generator.ts",
+        "scripts/drive-folder-sequential-rename-inventory.ts"
+      ],
+      "risk": "Inconsistent summary, safety flag, and markdown rendering behavior across artifacts.",
+      "refactorPrerequisite": "Golden-file or schema tests for each generated artifact."
+    },
+    {
+      "pattern": "route try/catch response shaping",
+      "evidence": [
+        "src/server.ts",
+        "src/merlin/routes/merlinApprovalRoutes.ts",
+        "src/merlin/routes/merlinWorkspaceRoutes.ts",
+        "src/merlin/routes/merlinIntakeRoutes.ts"
+      ],
+      "risk": "Inconsistent status codes, error names, and mutationAllowed envelopes.",
+      "refactorPrerequisite": "Route parity tests for success, validation error, missing record, auth block, and unexpected exception."
+    },
+    {
+      "pattern": "browser loading/error/success state handling",
+      "evidence": [
+        "public/mealscout-review-queue.html",
+        "public/drive-review-queue.html",
+        "public/index.html",
+        "public/merlin-operator-review.html"
+      ],
+      "risk": "Operator pages may diverge in user-facing failure behavior.",
+      "refactorPrerequisite": "Playwright or browser-state screenshots for each public operator surface."
+    },
+    {
+      "pattern": "test requestJson/fetch helpers",
+      "evidence": [
+        "52 raw fetch calls in tests"
+      ],
+      "risk": "Test harness behavior can drift and hide inconsistent API envelopes.",
+      "refactorPrerequisite": "Shared test client with no changes to assertions."
+    }
+  ],
+  "doNotRefactorYet": [
+    "Do not split src/server.ts before route parity coverage is explicit.",
+    "Do not extract public UI helpers before a real-user state inventory exists.",
+    "Do not alter approved export, publish execution, or mutation gates in a cleanup pass.",
+    "Do not collapse screenshot artifact scripts until generated artifact snapshots are covered."
+  ]
+}
