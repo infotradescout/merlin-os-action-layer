@@ -194,6 +194,8 @@ import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveEx
 import { handleMerlinWorkspaceRoute } from './merlin/routes/merlinWorkspaceRoutes.js';
 import { handleMerlinScoreboardRoute } from './merlin/routes/merlinScoreboardRoutes.js';
 import { handleMerlinSearchRoute } from './merlin/routes/merlinSearchRoutes.js';
+import { handleMealScoutActionCardRoute } from './merlin/routes/mealscoutActionCardRoutes.js';
+import { resetActionCardQueueForTest } from './merlin/intake/actionCardQueue.js';
 import { resetUploadIntentStoreForTest } from './merlin/intake/uploadIntentStore.js';
 import { resetEvidenceIndexForTest } from './merlin/index/evidenceIndex.js';
 import {
@@ -1651,6 +1653,7 @@ function resetDemoRuntimeState(): void {
   resetAffiliateTrackingLedgerForTest();
   resetMerlinProfileSeedRuntimeForTest();
   resetMealScoutAffiliateAttributionActionCardDecisionsForTest();
+  resetActionCardQueueForTest();
   resetUploadIntentStoreForTest();
   resetEvidenceIndexForTest();
 }
@@ -1777,6 +1780,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
   if (pathname.startsWith('/api/merlin/action-cards')) {
     const handled = await handleMerlinActionCardRoute(req, res, pathname);
+    if (handled) return;
+  }
+
+  if (
+    pathname === '/api/mealscout/intake/action-cards' ||
+    pathname.startsWith('/api/mealscout/intake/action-cards/') ||
+    pathname.match(/^\/api\/mealscout\/intake\/batches\/[^/]+\/action-cards$/) ||
+    pathname.match(/^\/api\/mealscout\/intake\/notifications\/[^/]+\/open$/)
+  ) {
+    const handled = await handleMealScoutActionCardRoute(req, res, pathname);
     if (handled) return;
   }
 
