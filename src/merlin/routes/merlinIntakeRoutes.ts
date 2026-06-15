@@ -11,6 +11,20 @@ import {
   type MerlinIntakeStatus,
   type MerlinSourceType
 } from '../intakeRuntime.js';
+import { mealscoutAdapter } from '../adapters/mealscoutAdapter.js';
+import { getMerlinIntakeFlags, isMerlinIntakeEnabled, isProductIntakeEnabled } from '../intake/intakeFeatureFlags.js';
+import type { MerlinActorScope, MerlinBrand, MerlinEntityType, UploadIntentFileRef } from '../intake/intakeTypes.js';
+import { getRegisteredActions, registerProductAdapter, validateIntentAgainstRegistry } from '../intake/intentRegistry.js';
+import {
+  attachFilesToUploadIntent,
+  createUploadIntentRecord,
+  getUploadIntentRecord,
+  setUploadIntentPreview,
+  setUploadIntentRouting
+} from '../intake/uploadIntentStore.js';
+import { routeUploadIntentFiles } from '../intake/router.js';
+import { buildPreviewPacket } from '../intake/previewBuilder.js';
+import { getEvidenceIdsForUpload, indexEvidenceForUpload } from '../index/evidenceIndex.js';
 
 async function parseBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve) => {
@@ -40,9 +54,166 @@ function asText(input: unknown): string {
 
 const ALLOWED_STATUSES = new Set<MerlinIntakeStatus>(['received', 'classified', 'needs_more_data', 'action_cards_generated', 'blocked', 'resolved', 'failed']);
 const ALLOWED_SOURCE_TYPES = new Set<MerlinSourceType>(['drive', 'gmail', 'calendar', 'github', 'app', 'manual', 'web', 'voice', 'upload']);
+const BRANDS = new Set<MerlinBrand>(['MEALSCOUT', 'TRADESCOUT', 'HOMEID', 'MERLIN']);
+const ACTOR_SCOPES = new Set<MerlinActorScope>(['owner', 'customer', 'homeowner', 'contractor', 'staff', 'admin', 'rep', 'system']);
+const ENTITY_TYPES = new Set<MerlinEntityType>(['food_truck', 'restaurant', 'home', 'contractor', 'host_location', 'event', 'unknown']);
+
+function ensureProductAdaptersRegistered(): void {
+  registerProductAdapter(mealscoutAdapter);
+}
+
+function asBrand(input: unknown): MerlinBrand | undefined {
+  const brand = asText(input).toUpperCase() as MerlinBrand;
+  return BRANDS.has(brand) ? brand : undefined;
+}
+
+function asActorScope(input: unknown): MerlinActorScope | undefined {
+  const actorScope = asText(input).toLowerCase() as MerlinActorScope;
+  return ACTOR_SCOPES.has(actorScope) ? actorScope : undefined;
+}
+
+function asEntityType(input: unknown): MerlinEntityType | undefined {
+  const entityType = asText(input).toLowerCase() as MerlinEntityType;
+  return ENTITY_TYPES.has(entityType) ? entityType : undefined;
+}
+
+function parseUploadIntentFiles(input: unknown): UploadIntentFileRef[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null)
+    .map((row) => ({
+      fileId: asText(row.fileId),
+      fileName: asText(row.fileName) || undefined,
+      mimeType: asText(row.mimeType) || undefined,
+      driveFolderId: asText(row.driveFolderId) || undefined,
+      extractedText: asText(row.extractedText) || undefined,
+      metadata: row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, unknown>) : undefined
+    }))
+    .filter((row) => row.fileId);
+}
 
 export async function handleMerlinIntakeRoute(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<boolean> {
   const method = (req.method || 'GET').toUpperCase();
+  ensureProductAdaptersRegistered();
+
+  if (method === 'GET' && pathname === '/api/merlin/intake/flags') {
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, flags: getMerlinIntakeFlags() });
+    return true;
+  }
+
+  if (method === 'GET' && pathname === '/api/merlin/intake/actions') {
+    const url = new URL(req.url || '', 'http://localhost');
+    const brand = asText(url.searchParams.get('brand')).toUpperCase();
+    const actions = getRegisteredActions().filter((row) => !brand || row.brand === brand);
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, actions });
+    return true;
+  }
+
+  if (method === 'POST' && pathname === '/api/merlin/intake/upload-intents') {
+    if (!isMerlinIntakeEnabled()) {
+      responseJson(res, { error: 'MERLIN_INTAKE_DISABLED', mutationAllowed: false, implementationAllowed: false }, 503);
+      return true;
+    }
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      responseJson(res, { error: 'INVALID_JSON', mutationAllowed: false, implementationAllowed: false }, 400);
+      return true;
+    }
+    const payload = (body || {}) as Record<string, unknown>;
+    const brand = asBrand(payload.brand);
+    const actorScope = asActorScope(payload.actorScope);
+    const entityType = asEntityType(payload.entityType);
+    const actionId = asText(payload.actionId);
+    if (!brand || !actorScope || !entityType || !actionId) {
+      responseJson(res, { error: 'INVALID_INTENT', mutationAllowed: false, implementationAllowed: false }, 400);
+      return true;
+    }
+    if (!isProductIntakeEnabled(brand)) {
+      responseJson(res, { error: 'PRODUCT_INTAKE_DISABLED', mutationAllowed: false, implementationAllowed: false }, 503);
+      return true;
+    }
+    const validation = validateIntentAgainstRegistry({
+      brand,
+      actionId,
+      actorScope,
+      entityType,
+      entityId: asText(payload.entityId) || undefined,
+      userHint: asText(payload.userHint) || undefined
+    });
+    if (!validation.ok) {
+      responseJson(res, { error: validation.code, reason: validation.message, mutationAllowed: false, implementationAllowed: false }, 400);
+      return true;
+    }
+    const intent = createUploadIntentRecord({
+      userId: asText(payload.userId),
+      accountId: asText(payload.accountId),
+      brand,
+      actorScope,
+      entityType,
+      entityId: asText(payload.entityId) || undefined,
+      actionId,
+      userHint: asText(payload.userHint) || undefined,
+      actionSnapshot: validation.action
+    });
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, intent }, 201);
+    return true;
+  }
+
+  const filesMatch = pathname.match(/^\/api\/merlin\/intake\/upload-intents\/([^/]+)\/files$/);
+  if (method === 'POST' && filesMatch) {
+    const uploadId = decodeURIComponent(filesMatch[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      responseJson(res, { error: 'INVALID_JSON', mutationAllowed: false, implementationAllowed: false }, 400);
+      return true;
+    }
+    const files = parseUploadIntentFiles((body as Record<string, unknown> | undefined)?.files);
+    const intent = attachFilesToUploadIntent(uploadId, files);
+    if (!intent) return responseJson(res, { error: 'upload_intent_not_found', mutationAllowed: false, implementationAllowed: false }, 404), true;
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, intent });
+    return true;
+  }
+
+  const routeMatch = pathname.match(/^\/api\/merlin\/intake\/upload-intents\/([^/]+)\/route$/);
+  if (method === 'POST' && routeMatch) {
+    const uploadId = decodeURIComponent(routeMatch[1]);
+    const intent = getUploadIntentRecord(uploadId);
+    if (!intent) return responseJson(res, { error: 'upload_intent_not_found', mutationAllowed: false, implementationAllowed: false }, 404), true;
+    const routingDecisions = routeUploadIntentFiles(intent);
+    const routedIntent = setUploadIntentRouting(uploadId, routingDecisions) || intent;
+    const evidenceRecords = indexEvidenceForUpload(routedIntent, routingDecisions);
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, intent: routedIntent, routingDecisions, evidenceRecords });
+    return true;
+  }
+
+  const previewMatch = pathname.match(/^\/api\/merlin\/intake\/upload-intents\/([^/]+)\/preview$/);
+  if (method === 'POST' && previewMatch) {
+    const uploadId = decodeURIComponent(previewMatch[1]);
+    const intent = getUploadIntentRecord(uploadId);
+    if (!intent) return responseJson(res, { error: 'upload_intent_not_found', mutationAllowed: false, implementationAllowed: false }, 404), true;
+    const routing = intent.routing.length ? intent.routing : routeUploadIntentFiles(intent);
+    if (!intent.routing.length) setUploadIntentRouting(uploadId, routing);
+    const linkedEvidenceIds = getEvidenceIdsForUpload(uploadId);
+    const preview = buildPreviewPacket(intent, routing, linkedEvidenceIds);
+    const previewed = setUploadIntentPreview(uploadId, preview);
+    if (!previewed) return responseJson(res, { error: 'upload_intent_not_found', mutationAllowed: false, implementationAllowed: false }, 404), true;
+    responseJson(res, {
+      mutationAllowed: false,
+      implementationAllowed: false,
+      applyEnabled: false,
+      cleanupEnabled: false,
+      intent: previewed
+    });
+    return true;
+  }
+
+  const uploadDetailMatch = pathname.match(/^\/api\/merlin\/intake\/upload-intents\/([^/]+)$/);
+  if (method === 'GET' && uploadDetailMatch) {
+    const intent = getUploadIntentRecord(decodeURIComponent(uploadDetailMatch[1]));
+    if (!intent) return responseJson(res, { error: 'upload_intent_not_found', mutationAllowed: false, implementationAllowed: false }, 404), true;
+    responseJson(res, { mutationAllowed: false, implementationAllowed: false, intent });
+    return true;
+  }
 
   if (method === 'POST' && pathname === '/api/merlin/intake') {
     const body = await parseBody(req);

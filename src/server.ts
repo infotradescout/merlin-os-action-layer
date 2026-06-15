@@ -193,6 +193,9 @@ import { handleMerlinDryRunExecutorRoute } from './merlin/routes/merlinDryRunExe
 import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveExecutionGateRoutes.js';
 import { handleMerlinWorkspaceRoute } from './merlin/routes/merlinWorkspaceRoutes.js';
 import { handleMerlinScoreboardRoute } from './merlin/routes/merlinScoreboardRoutes.js';
+import { handleMerlinSearchRoute } from './merlin/routes/merlinSearchRoutes.js';
+import { resetUploadIntentStoreForTest } from './merlin/intake/uploadIntentStore.js';
+import { resetEvidenceIndexForTest } from './merlin/index/evidenceIndex.js';
 import {
   dispatchRoundTableDiscordPacket,
   verifyAndWriteDiscordApproval,
@@ -1648,6 +1651,8 @@ function resetDemoRuntimeState(): void {
   resetAffiliateTrackingLedgerForTest();
   resetMerlinProfileSeedRuntimeForTest();
   resetMealScoutAffiliateAttributionActionCardDecisionsForTest();
+  resetUploadIntentStoreForTest();
+  resetEvidenceIndexForTest();
 }
 
 function createApprovalsForEntity(entityId: string): string[] {
@@ -1749,6 +1754,11 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
   if (pathname.startsWith('/api/merlin/workspaces') || pathname.startsWith('/api/merlin/role-policy-checks')) {
     const handled = await handleMerlinWorkspaceRoute(req, res, pathname);
+    if (handled) return;
+  }
+
+  if (pathname === '/api/merlin/search') {
+    const handled = await handleMerlinSearchRoute(req, res, pathname);
     if (handled) return;
   }
 
