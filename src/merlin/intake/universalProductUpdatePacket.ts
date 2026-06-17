@@ -44,11 +44,13 @@ export type MerlinRequiredVerificationStep =
   | 'no_fake_prices'
   | 'no_fake_schedules'
   | 'no_media_apply_without_review'
+  | 'no_inferred_recurring_schedule'
   | 'preview_before_apply'
   | 'exact_target_id_required_for_production_apply'
   | 'fail_closed_on_ambiguous_target'
   | 'owner_or_operator_must_verify_missing_prices'
   | 'recurring_schedule_must_be_explicit'
+  | 'timezone_must_be_explicit'
   | 'preserve_source_evidence';
 
 export type MerlinPacketSourceActor = {
@@ -99,19 +101,33 @@ export type MealScoutMenuUpdatePayload = {
 export type MealScoutScheduleUpdatePayload = {
   packetSubtype: 'MealScoutOwnerProfileUpdatePacket';
   updateType: 'schedule_update';
-  entries: Array<{
-    date?: string;
-    startTime?: string;
-    endTime?: string;
-    timezone?: string;
-    locationName?: string;
-    address?: string;
-    closed?: boolean;
-    recurrence: 'recurring' | 'current_week_only' | 'unknown';
-    mapEligible: boolean;
-    liveFeedEligible: boolean;
-    sourceEvidence: MerlinPacketEvidenceReference[];
-  }>;
+  entries: MealScoutScheduleEntry[];
+};
+
+export type MealScoutScheduleEntry = {
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  timezone?: string;
+  locationName?: string;
+  address?: string;
+  closed?: boolean;
+  recurrence: 'explicit_recurring' | 'current_week_only' | 'unknown';
+  mapEligible: boolean;
+  liveFeedEligible: boolean;
+  sourceEvidence: MerlinPacketEvidenceReference[];
+};
+
+export type MealScoutScheduleEntryInput = {
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  timezone?: string;
+  locationName?: string;
+  address?: string;
+  closed?: boolean;
+  recurrence?: MealScoutScheduleEntry['recurrence'];
+  sourceEvidence?: MerlinPacketEvidenceReference[];
 };
 
 export type MealScoutAssetUpdatePayload = {
@@ -196,7 +212,7 @@ export type CreateUniversalProductUpdatePacketInput = {
       sourceFileName?: string;
     }>;
   }>;
-  scheduleEntries?: MealScoutScheduleUpdatePayload['entries'];
+  scheduleEntries?: MealScoutScheduleEntryInput[];
   socialLinks?: Record<string, string>;
   correctedFields?: Record<string, string>;
 };
@@ -247,6 +263,10 @@ function stablePacketIdFromRecord(record: Record<string, unknown>): string {
 function normalizeConfidence(value: number | undefined): number {
   if (typeof value !== 'number' || Number.isNaN(value)) return 0.5;
   return Math.max(0, Math.min(1, Number(value.toFixed(2))));
+}
+
+function hasText(value: string | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function ownerSubmittedEquivalent(actorScope: MerlinActorScope): boolean {
@@ -332,6 +352,91 @@ function buildMenuPayload(input: CreateUniversalProductUpdatePacketInput): {
   };
 }
 
+function deriveSharedSourceFolderReference(
+  evidenceReferences: MerlinPacketEvidenceReference[]
+): string | undefined {
+  const folderReferences = Array.from(
+    new Set(evidenceReferences.map((reference) => reference.sourceFolderReference).filter(hasText))
+  );
+  return folderReferences.length === 1 ? folderReferences[0] : undefined;
+}
+
+function normalizeScheduleRecurrence(recurrence: MealScoutScheduleEntryInput['recurrence']): MealScoutScheduleEntry['recurrence'] {
+  if (recurrence === 'explicit_recurring') return 'explicit_recurring';
+  if (recurrence === 'current_week_only') return 'current_week_only';
+  return 'unknown';
+}
+
+function buildSchedulePayload(input: CreateUniversalProductUpdatePacketInput): {
+  extractedStructuredData: Record<string, unknown>;
+  missingFields: string[];
+  safetyFlags: string[];
+  requiredVerificationSteps: MerlinRequiredVerificationStep[];
+  productSpecificPayload: MealScoutScheduleUpdatePayload;
+} {
+  const entries = (input.scheduleEntries || []).map((entry) => {
+    const date = hasText(entry.date) ? entry.date?.trim() : undefined;
+    const startTime = hasText(entry.startTime) ? entry.startTime?.trim() : undefined;
+    const endTime = hasText(entry.endTime) ? entry.endTime?.trim() : undefined;
+    const timezone = hasText(entry.timezone) ? entry.timezone?.trim() : undefined;
+    const locationName = hasText(entry.locationName) ? entry.locationName?.trim() : undefined;
+    const address = hasText(entry.address) ? entry.address?.trim() : undefined;
+    const closed = entry.closed === true;
+    const recurrence = normalizeScheduleRecurrence(entry.recurrence);
+    const sourceEvidence = entry.sourceEvidence?.length ? entry.sourceEvidence : input.evidenceReferences;
+    const mapEligible = Boolean(address);
+    const liveFeedEligible = Boolean(address && date && startTime && endTime && timezone && !closed);
+
+    return {
+      date,
+      startTime,
+      endTime,
+      timezone,
+      locationName,
+      address,
+      closed,
+      recurrence,
+      mapEligible,
+      liveFeedEligible,
+      sourceEvidence
+    };
+  });
+
+  const missingFields = new Set<string>();
+  for (const entry of entries) {
+    if (!entry.date) missingFields.add('schedule.entries.date');
+    if (!entry.startTime && !entry.closed) missingFields.add('schedule.entries.startTime');
+    if (!entry.endTime && !entry.closed) missingFields.add('schedule.entries.endTime');
+    if (!entry.timezone) missingFields.add('schedule.entries.timezone');
+    if (!entry.address) missingFields.add('schedule.entries.address');
+  }
+
+  const safetyFlags = ['preserve_source_evidence', 'no_inferred_recurring_schedule'];
+  if (missingFields.size > 0) {
+    safetyFlags.push('missing_schedule_fields');
+  }
+
+  return {
+    extractedStructuredData: { schedule: entries },
+    missingFields: Array.from(missingFields),
+    safetyFlags,
+    requiredVerificationSteps: [
+      'no_fake_schedules',
+      'preview_before_apply',
+      'exact_target_id_required_for_production_apply',
+      'recurring_schedule_must_be_explicit',
+      'no_inferred_recurring_schedule',
+      'timezone_must_be_explicit',
+      'preserve_source_evidence'
+    ],
+    productSpecificPayload: {
+      packetSubtype: 'MealScoutOwnerProfileUpdatePacket',
+      updateType: 'schedule_update',
+      entries
+    }
+  };
+}
+
 function buildMealScoutPayload(input: CreateUniversalProductUpdatePacketInput): {
   extractedStructuredData: Record<string, unknown>;
   missingFields: string[];
@@ -344,23 +449,7 @@ function buildMealScoutPayload(input: CreateUniversalProductUpdatePacketInput): 
   }
 
   if (input.updateType === 'schedule_update') {
-    return {
-      extractedStructuredData: { schedule: input.scheduleEntries || [] },
-      missingFields: [],
-      safetyFlags: ['preserve_source_evidence'],
-      requiredVerificationSteps: [
-        'no_fake_schedules',
-        'preview_before_apply',
-        'exact_target_id_required_for_production_apply',
-        'recurring_schedule_must_be_explicit',
-        'preserve_source_evidence'
-      ],
-      productSpecificPayload: {
-        packetSubtype: 'MealScoutOwnerProfileUpdatePacket',
-        updateType: 'schedule_update',
-        entries: input.scheduleEntries || []
-      }
-    };
+    return buildSchedulePayload(input);
   }
 
   if (input.updateType === 'logo_update' || input.updateType === 'cover_update') {
@@ -452,7 +541,7 @@ export function createUniversalProductUpdatePacket(
     targetEntityId: input.targetProfileId || null,
     targetResolutionStatus,
     updateType: input.updateType,
-    sourceFolderReference: undefined,
+    sourceFolderReference: deriveSharedSourceFolderReference(input.evidenceReferences),
     evidenceReferences: input.evidenceReferences,
     extractedStructuredData: mealScoutPayload.extractedStructuredData,
     missingFields: mealScoutPayload.missingFields,
