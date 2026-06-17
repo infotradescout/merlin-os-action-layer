@@ -43,6 +43,7 @@ export type MerlinTargetResolutionStatus =
 export type MerlinRequiredVerificationStep =
   | 'no_fake_prices'
   | 'no_fake_schedules'
+  | 'no_media_apply_without_review'
   | 'preview_before_apply'
   | 'exact_target_id_required_for_production_apply'
   | 'fail_closed_on_ambiguous_target'
@@ -60,6 +61,7 @@ export type MerlinPacketEvidenceReference = {
   sourceFileName: string;
   sourceMimeType: string;
   sourceReference: string;
+  sourceFolderReference?: string;
   sourcePage?: number;
 };
 
@@ -132,12 +134,23 @@ export type MealScoutProfileCorrectionPayload = {
   sourceEvidence: MerlinPacketEvidenceReference[];
 };
 
+export type MealScoutMixedEvidenceProofPayload = {
+  packetSubtype: 'MealScoutOwnerProfileUpdatePacket';
+  updateType: 'proof_update';
+  sourceFolderReference: string;
+  menuUpdate: MealScoutMenuUpdatePayload;
+  logoUpdate: MealScoutAssetUpdatePayload & {
+    updateType: 'logo_update';
+  };
+};
+
 export type MerlinMealScoutProductSpecificPayload =
   | MealScoutMenuUpdatePayload
   | MealScoutScheduleUpdatePayload
   | MealScoutAssetUpdatePayload
   | MealScoutSocialLinkUpdatePayload
-  | MealScoutProfileCorrectionPayload;
+  | MealScoutProfileCorrectionPayload
+  | MealScoutMixedEvidenceProofPayload;
 
 export type MerlinUniversalProductUpdatePacket = {
   packetId: string;
@@ -147,6 +160,7 @@ export type MerlinUniversalProductUpdatePacket = {
   targetEntityId: string | null;
   targetResolutionStatus: MerlinTargetResolutionStatus;
   updateType: MerlinUniversalUpdateType;
+  sourceFolderReference?: string;
   evidenceReferences: MerlinPacketEvidenceReference[];
   extractedStructuredData: Record<string, unknown>;
   missingFields: string[];
@@ -187,6 +201,19 @@ export type CreateUniversalProductUpdatePacketInput = {
   correctedFields?: Record<string, string>;
 };
 
+export type CreateMealScoutMixedEvidenceProofPacketInput = {
+  sourceActor: MerlinPacketSourceActor;
+  targetProduct: 'MealScout';
+  targetBusinessName: string;
+  targetProfileId?: string;
+  targetResolutionStatus?: MerlinTargetResolutionStatus;
+  sourceFolderReference: string;
+  menuEvidenceReferences: MerlinPacketEvidenceReference[];
+  logoEvidenceReferences: MerlinPacketEvidenceReference[];
+  confidence?: number;
+  menuSections: NonNullable<CreateUniversalProductUpdatePacketInput['menuSections']>;
+};
+
 function stablePacketId(input: {
   targetProduct: MerlinTargetProduct;
   targetBusinessName: string;
@@ -204,6 +231,14 @@ function stablePacketId(input: {
         evidenceReferences: input.evidenceReferences
       })
     )
+    .digest('hex')
+    .slice(0, 16);
+  return `merlin-universal-product-update:${digest}`;
+}
+
+function stablePacketIdFromRecord(record: Record<string, unknown>): string {
+  const digest = createHash('sha1')
+    .update(JSON.stringify(record))
     .digest('hex')
     .slice(0, 16);
   return `merlin-universal-product-update:${digest}`;
@@ -417,6 +452,7 @@ export function createUniversalProductUpdatePacket(
     targetEntityId: input.targetProfileId || null,
     targetResolutionStatus,
     updateType: input.updateType,
+    sourceFolderReference: undefined,
     evidenceReferences: input.evidenceReferences,
     extractedStructuredData: mealScoutPayload.extractedStructuredData,
     missingFields: mealScoutPayload.missingFields,
@@ -429,5 +465,95 @@ export function createUniversalProductUpdatePacket(
     applyEligible: false,
     requiredVerificationSteps,
     productSpecificPayload: mealScoutPayload.productSpecificPayload
+  };
+}
+
+function hasAmbiguousMediaEvidence(evidenceReferences: MerlinPacketEvidenceReference[]): boolean {
+  return evidenceReferences.some((reference) => !reference.sourceMimeType.startsWith('image/'));
+}
+
+export function createMealScoutMixedEvidenceProofPacket(
+  input: CreateMealScoutMixedEvidenceProofPacketInput
+): MerlinUniversalProductUpdatePacket {
+  const targetResolutionStatus = input.targetResolutionStatus || 'resolved_exact_target_id';
+  const menuPacket = buildMenuPayload({
+    sourceActor: input.sourceActor,
+    targetProduct: 'MealScout',
+    targetBusinessName: input.targetBusinessName,
+    targetProfileId: input.targetProfileId,
+    targetResolutionStatus,
+    updateType: 'menu_update',
+    evidenceReferences: input.menuEvidenceReferences,
+    confidence: input.confidence,
+    menuSections: input.menuSections
+  });
+  const logoPacket = buildMealScoutPayload({
+    sourceActor: input.sourceActor,
+    targetProduct: 'MealScout',
+    targetBusinessName: input.targetBusinessName,
+    targetProfileId: input.targetProfileId,
+    targetResolutionStatus,
+    updateType: 'logo_update',
+    evidenceReferences: input.logoEvidenceReferences,
+    confidence: input.confidence
+  });
+
+  const evidenceReferences = [...input.menuEvidenceReferences, ...input.logoEvidenceReferences];
+  const missingFields = [...menuPacket.missingFields];
+  const safetyFlags = Array.from(new Set([...menuPacket.safetyFlags, ...logoPacket.safetyFlags]));
+  const requiredVerificationSteps = Array.from(
+    new Set([
+      ...menuPacket.requiredVerificationSteps,
+      ...logoPacket.requiredVerificationSteps,
+      'no_media_apply_without_review' as const
+    ])
+  );
+
+  if (hasAmbiguousMediaEvidence(input.logoEvidenceReferences)) {
+    missingFields.push('logo.sourceEvidence.mediaTypeReview');
+    safetyFlags.push('ambiguous_logo_media_type');
+  }
+
+  return {
+    packetId: stablePacketIdFromRecord({
+      targetProduct: input.targetProduct,
+      targetBusinessName: input.targetBusinessName,
+      targetProfileId: input.targetProfileId || null,
+      updateType: 'proof_update',
+      sourceFolderReference: input.sourceFolderReference,
+      menuEvidenceReferences: input.menuEvidenceReferences,
+      logoEvidenceReferences: input.logoEvidenceReferences,
+      menuSections: input.menuSections
+    }),
+    sourceActor: input.sourceActor,
+    targetProduct: input.targetProduct,
+    targetEntityName: input.targetBusinessName,
+    targetEntityId: input.targetProfileId || null,
+    targetResolutionStatus,
+    updateType: 'proof_update',
+    sourceFolderReference: input.sourceFolderReference,
+    evidenceReferences,
+    extractedStructuredData: {
+      menu: menuPacket.extractedStructuredData.menu,
+      logo: {
+        sourceEvidence: input.logoEvidenceReferences
+      }
+    },
+    missingFields: Array.from(new Set(missingFields)),
+    confidence: normalizeConfidence(input.confidence),
+    safetyFlags: Array.from(new Set(safetyFlags)),
+    ownerSubmittedEquivalent: ownerSubmittedEquivalent(input.sourceActor.actorScope),
+    productionApplied: false,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    applyEligible: false,
+    requiredVerificationSteps,
+    productSpecificPayload: {
+      packetSubtype: 'MealScoutOwnerProfileUpdatePacket',
+      updateType: 'proof_update',
+      sourceFolderReference: input.sourceFolderReference,
+      menuUpdate: menuPacket.productSpecificPayload as MealScoutMenuUpdatePayload,
+      logoUpdate: logoPacket.productSpecificPayload as MealScoutAssetUpdatePayload & { updateType: 'logo_update' }
+    }
   };
 }
