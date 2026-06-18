@@ -4,6 +4,10 @@ import type {
   MerlinUniversalProductUpdatePacket,
   MerlinUniversalUpdateType
 } from './universalProductUpdatePacket.js';
+import {
+  buildUniversalProductUpdatePacketPreviewReadability,
+  type MerlinUniversalPacketPreviewNextRequiredAction
+} from './universalProductUpdatePacketPreviewReadability.js';
 
 type SupportedMealScoutPreviewUpdateType = Extract<
   MerlinUniversalUpdateType,
@@ -14,42 +18,59 @@ type UnsupportedPreviewReason =
   | 'invalid_universal_product_update_packet'
   | 'unsupported_target_product_or_update_type';
 
+type SupportedPreviewBase = {
+  kind: 'universal_product_update_packet_preview';
+  status: 'supported';
+  targetProduct: 'MealScout';
+  targetBusinessName: string;
+  targetProfileId: string | null;
+  updateType: SupportedMealScoutPreviewUpdateType;
+  sourceEvidenceReferences: MerlinPacketEvidenceReference[];
+  sourceFolderReference?: string;
+  extractedStructuredData: Record<string, unknown>;
+  missingFields: string[];
+  confidence: number;
+  requiredVerificationSteps: MerlinRequiredVerificationStep[];
+  safetyFlags: string[];
+  ownerSubmittedEquivalent: boolean;
+  productionApplied: false;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  applyEligible: false;
+};
+
+type UnsupportedPreviewBase = {
+  kind: 'universal_product_update_packet_preview';
+  status: 'unsupported';
+  reason: UnsupportedPreviewReason;
+  targetProduct?: string;
+  targetBusinessName?: string;
+  targetProfileId?: string | null;
+  updateType?: string;
+  sourceEvidenceReferences: MerlinPacketEvidenceReference[];
+  sourceFolderReference?: string;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  applyEligible: false;
+  productionApplied: false;
+};
+
+type MerlinUniversalProductUpdatePacketPreviewReadability = {
+  displayTitle: string;
+  operatorSummary: string;
+  updateTypeLabel: string;
+  targetDisplay: string;
+  evidenceSummary: string;
+  missingFieldSummary: string;
+  verificationSummary: string;
+  safetySummary: string;
+  applyStatusLabel: 'Preview only — no production apply';
+  nextRequiredAction: MerlinUniversalPacketPreviewNextRequiredAction;
+};
+
 export type MerlinUniversalProductUpdatePacketPreview =
-  | {
-      kind: 'universal_product_update_packet_preview';
-      status: 'supported';
-      targetProduct: 'MealScout';
-      targetBusinessName: string;
-      targetProfileId: string | null;
-      updateType: SupportedMealScoutPreviewUpdateType;
-      sourceEvidenceReferences: MerlinPacketEvidenceReference[];
-      sourceFolderReference?: string;
-      extractedStructuredData: Record<string, unknown>;
-      missingFields: string[];
-      confidence: number;
-      requiredVerificationSteps: MerlinRequiredVerificationStep[];
-      safetyFlags: string[];
-      ownerSubmittedEquivalent: boolean;
-      productionApplied: false;
-      mutationAllowed: false;
-      implementationAllowed: false;
-      applyEligible: false;
-    }
-  | {
-      kind: 'universal_product_update_packet_preview';
-      status: 'unsupported';
-      reason: UnsupportedPreviewReason;
-      targetProduct?: string;
-      targetBusinessName?: string;
-      targetProfileId?: string | null;
-      updateType?: string;
-      sourceEvidenceReferences: MerlinPacketEvidenceReference[];
-      sourceFolderReference?: string;
-      mutationAllowed: false;
-      implementationAllowed: false;
-      applyEligible: false;
-      productionApplied: false;
-    };
+  | (SupportedPreviewBase & MerlinUniversalProductUpdatePacketPreviewReadability)
+  | (UnsupportedPreviewBase & MerlinUniversalProductUpdatePacketPreviewReadability);
 
 const SUPPORTED_MEALSCOUT_UPDATE_TYPES = new Set<SupportedMealScoutPreviewUpdateType>([
   'menu_update',
@@ -98,7 +119,7 @@ function buildUnsupportedPreview(
   reason: UnsupportedPreviewReason,
   packet?: Partial<MerlinUniversalProductUpdatePacket>
 ): MerlinUniversalProductUpdatePacketPreview {
-  return {
+  const previewBase: UnsupportedPreviewBase = {
     kind: 'universal_product_update_packet_preview',
     status: 'unsupported',
     reason,
@@ -112,6 +133,11 @@ function buildUnsupportedPreview(
     implementationAllowed: false,
     applyEligible: false,
     productionApplied: false
+  };
+
+  return {
+    ...previewBase,
+    ...buildUniversalProductUpdatePacketPreviewReadability(previewBase)
   };
 }
 
@@ -129,7 +155,7 @@ export function buildUniversalProductUpdatePacketPreview(
     return buildUnsupportedPreview('unsupported_target_product_or_update_type', packet);
   }
 
-  return {
+  const previewBase: SupportedPreviewBase = {
     kind: 'universal_product_update_packet_preview',
     status: 'supported',
     targetProduct: packet.targetProduct,
@@ -148,5 +174,10 @@ export function buildUniversalProductUpdatePacketPreview(
     mutationAllowed: packet.mutationAllowed,
     implementationAllowed: packet.implementationAllowed,
     applyEligible: packet.applyEligible
+  };
+
+  return {
+    ...previewBase,
+    ...buildUniversalProductUpdatePacketPreviewReadability(previewBase)
   };
 }
