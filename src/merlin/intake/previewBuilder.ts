@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PreviewPacket, RoutingDecision, UploadIntent } from './intakeTypes.js';
+import { buildUniversalProductUpdatePacketPreviewBridge } from './universalProductUpdatePacketPreviewBridge.js';
 
 function buildMealScoutDetectedChanges(intent: UploadIntent, actionable: RoutingDecision[]): Record<string, unknown> {
   const changes: Record<string, unknown> = {};
@@ -35,6 +36,10 @@ export function buildPreviewPacket(intent: UploadIntent, routing: RoutingDecisio
     ? Number((actionable.reduce((sum, row) => sum + row.confidence, 0) / actionable.length).toFixed(2))
     : 0;
   const detectedChanges = intent.brand === 'MEALSCOUT' ? buildMealScoutDetectedChanges(intent, actionable) : {};
+  const universalProductUpdatePacketPreview = buildUniversalProductUpdatePacketPreviewBridge({
+    brand: intent.brand,
+    files: intent.files
+  });
   return {
     draftId: `merlin-preview-${randomUUID()}`,
     uploadId: intent.uploadId,
@@ -48,6 +53,7 @@ export function buildPreviewPacket(intent: UploadIntent, routing: RoutingDecisio
     allowedFieldsApplied: intent.actionSnapshot.allowedFieldPaths,
     forbiddenFieldsIgnored: intent.actionSnapshot.forbiddenFieldPaths,
     holdReasons: held.map((row) => row.holdReason || 'ambiguous'),
+    universalProductUpdatePacketPreview,
     mutationAllowed: false,
     implementationAllowed: false
   };

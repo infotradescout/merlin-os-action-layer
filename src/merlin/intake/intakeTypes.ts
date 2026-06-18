@@ -1,3 +1,5 @@
+import type { MerlinUniversalProductUpdatePacketPreview } from './universalProductUpdatePacketPreview.js';
+
 export type MerlinBrand = 'MEALSCOUT' | 'HOMEID' | 'TRADESCOUT' | 'MERLIN';
 export type MerlinActorScope = 'owner' | 'customer' | 'homeowner' | 'contractor' | 'staff' | 'admin' | 'rep' | 'system';
 export type MerlinEntityType = 'food_truck' | 'restaurant' | 'home' | 'contractor' | 'host_location' | 'event' | 'unknown';
@@ -438,6 +440,7 @@ export type PreviewPacket = {
   allowedFieldsApplied: string[];
   forbiddenFieldsIgnored: string[];
   holdReasons: string[];
+  universalProductUpdatePacketPreview?: MerlinUniversalProductUpdatePacketPreview;
   mutationAllowed: false;
   implementationAllowed: false;
 };
