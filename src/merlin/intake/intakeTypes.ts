@@ -445,6 +445,25 @@ export type PreviewPacket = {
   implementationAllowed: false;
 };
 
+export type MealScoutAccountIntakeDetectedChange = {
+  kind: 'account_intake';
+  businessName: string;
+  accountType: 'food_truck' | 'restaurant' | 'host_location' | 'other';
+  contactSummary: string[];
+  locationSummary: string[];
+  sourceEvidenceReferences: string[];
+  sourceFolderReference?: string;
+  missingFields: string[];
+  requiredNextStep: string;
+  safetyFlags: string[];
+  ownerSubmittedEquivalent: boolean;
+  reviewMode: 'read_only';
+  productionApplied: false;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  applyEligible: false;
+};
+
 export type UploadIntent = {
   uploadId: string;
   userId: string;
