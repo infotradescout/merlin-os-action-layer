@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { z } from 'zod';
 import type { MerlinActorScope } from './intakeTypes.js';
 
 export type MerlinTargetProduct =
@@ -10,6 +11,7 @@ export type MerlinTargetProduct =
   | 'AutoBott';
 
 export type MerlinUniversalUpdateType =
+  | 'account_intake'
   | 'menu_update'
   | 'schedule_update'
   | 'logo_update'
@@ -160,7 +162,42 @@ export type MealScoutMixedEvidenceProofPayload = {
   };
 };
 
+export type MealScoutAccountIntakeType = 'food_truck' | 'restaurant' | 'host_location' | 'other';
+
+export type MealScoutAccountIntakeSocialLink = {
+  platform: string;
+  url: string;
+};
+
+export type MealScoutAccountIntakePayload = {
+  packetSubtype: 'MealScoutAccountIntakePacket';
+  updateType: 'account_intake';
+  businessName: string;
+  accountType: MealScoutAccountIntakeType;
+  cuisineType?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  socialLinks?: MealScoutAccountIntakeSocialLink[];
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  serviceArea?: string;
+  ownerSubmittedEquivalent: boolean;
+  sourceEvidenceReferences: MerlinPacketEvidenceReference[];
+  sourceFolderReference?: string;
+  missingFields: string[];
+  requiredNextStep: string;
+  safetyFlags: string[];
+  productionApplied: false;
+  mutationAllowed: false;
+  implementationAllowed: false;
+  applyEligible: false;
+};
+
 export type MerlinMealScoutProductSpecificPayload =
+  | MealScoutAccountIntakePayload
   | MealScoutMenuUpdatePayload
   | MealScoutScheduleUpdatePayload
   | MealScoutAssetUpdatePayload
@@ -200,6 +237,21 @@ export type CreateUniversalProductUpdatePacketInput = {
   updateType: MerlinMealScoutProductSpecificPayload['updateType'];
   evidenceReferences: MerlinPacketEvidenceReference[];
   confidence?: number;
+  accountIntake?: {
+    accountType: MealScoutAccountIntakeType;
+    cuisineType?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    socialLinks?: MealScoutAccountIntakeSocialLink[];
+    address?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    serviceArea?: string;
+    requiredNextStep: string;
+    safetyFlags?: string[];
+  };
   menuSections?: Array<{
     sectionName: string;
     items: Array<{
@@ -352,6 +404,92 @@ function buildMenuPayload(input: CreateUniversalProductUpdatePacketInput): {
   };
 }
 
+function pushMissingTextField(missingFields: string[], field: string, value: string | undefined): void {
+  if (!hasText(value)) {
+    missingFields.push(field);
+  }
+}
+
+function buildAccountIntakePayload(input: CreateUniversalProductUpdatePacketInput): {
+  extractedStructuredData: Record<string, unknown>;
+  missingFields: string[];
+  safetyFlags: string[];
+  requiredVerificationSteps: MerlinRequiredVerificationStep[];
+  productSpecificPayload: MealScoutAccountIntakePayload;
+} {
+  if (!input.accountIntake) {
+    throw new Error('accountIntake payload is required for account_intake updates');
+  }
+
+  const account = input.accountIntake;
+  const sourceFolderReference = deriveSharedSourceFolderReference(input.evidenceReferences);
+  const socialLinks = account.socialLinks?.filter(
+    (link): link is MealScoutAccountIntakeSocialLink => hasText(link.platform) && hasText(link.url)
+  );
+  const normalizedSocialLinks = socialLinks?.length ? socialLinks : undefined;
+  const missingFields: string[] = [];
+
+  pushMissingTextField(missingFields, 'accountIntake.businessName', input.targetBusinessName);
+  if (!account.phone && !account.email && !account.website && !normalizedSocialLinks?.length) {
+    missingFields.push('accountIntake.contact');
+  }
+  if (
+    !hasText(account.address) &&
+    !hasText(account.city) &&
+    !hasText(account.state) &&
+    !hasText(account.postalCode) &&
+    !hasText(account.serviceArea)
+  ) {
+    missingFields.push('accountIntake.location');
+  }
+
+  const safetyFlags = Array.from(new Set(['preserve_source_evidence', ...(account.safetyFlags || [])]));
+  if (missingFields.length > 0) {
+    safetyFlags.push('missing_account_intake_fields');
+  }
+
+  const productSpecificPayload: MealScoutAccountIntakePayload = {
+    packetSubtype: 'MealScoutAccountIntakePacket',
+    updateType: 'account_intake',
+    businessName: input.targetBusinessName,
+    accountType: account.accountType,
+    cuisineType: account.cuisineType,
+    phone: account.phone,
+    email: account.email,
+    website: account.website,
+    socialLinks: normalizedSocialLinks,
+    address: account.address,
+    city: account.city,
+    state: account.state,
+    postalCode: account.postalCode,
+    serviceArea: account.serviceArea,
+    ownerSubmittedEquivalent: ownerSubmittedEquivalent(input.sourceActor.actorScope),
+    sourceEvidenceReferences: input.evidenceReferences,
+    sourceFolderReference,
+    missingFields: [...missingFields],
+    requiredNextStep: account.requiredNextStep,
+    safetyFlags,
+    productionApplied: false,
+    mutationAllowed: false,
+    implementationAllowed: false,
+    applyEligible: false
+  };
+
+  return {
+    extractedStructuredData: {
+      accountIntake: productSpecificPayload
+    },
+    missingFields,
+    safetyFlags,
+    requiredVerificationSteps: [
+      'preview_before_apply',
+      'exact_target_id_required_for_production_apply',
+      'preserve_source_evidence'
+    ],
+    productSpecificPayload
+  };
+}
+
 function deriveSharedSourceFolderReference(
   evidenceReferences: MerlinPacketEvidenceReference[]
 ): string | undefined {
@@ -444,6 +582,10 @@ function buildMealScoutPayload(input: CreateUniversalProductUpdatePacketInput): 
   requiredVerificationSteps: MerlinRequiredVerificationStep[];
   productSpecificPayload: MerlinMealScoutProductSpecificPayload;
 } {
+  if (input.updateType === 'account_intake') {
+    return buildAccountIntakePayload(input);
+  }
+
   if (input.updateType === 'menu_update') {
     return buildMenuPayload(input);
   }
@@ -645,4 +787,106 @@ export function createMealScoutMixedEvidenceProofPacket(
       logoUpdate: logoPacket.productSpecificPayload as MealScoutAssetUpdatePayload & { updateType: 'logo_update' }
     }
   };
+}
+
+const evidenceReferenceSchema = z.object({
+  sourceFileName: z.string(),
+  sourceMimeType: z.string(),
+  sourceReference: z.string(),
+  sourceFolderReference: z.string().optional(),
+  sourcePage: z.number().optional()
+}).strict();
+
+const accountIntakeSocialLinkSchema = z.object({
+  platform: z.string(),
+  url: z.string()
+}).strict();
+
+const accountIntakePayloadSchema = z.object({
+  packetSubtype: z.literal('MealScoutAccountIntakePacket'),
+  updateType: z.literal('account_intake'),
+  businessName: z.string(),
+  accountType: z.enum(['food_truck', 'restaurant', 'host_location', 'other']),
+  cuisineType: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  website: z.string().optional(),
+  socialLinks: z.array(accountIntakeSocialLinkSchema).optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  serviceArea: z.string().optional(),
+  ownerSubmittedEquivalent: z.boolean(),
+  sourceEvidenceReferences: z.array(evidenceReferenceSchema),
+  sourceFolderReference: z.string().optional(),
+  missingFields: z.array(z.string()),
+  requiredNextStep: z.string(),
+  safetyFlags: z.array(z.string()),
+  productionApplied: z.literal(false),
+  mutationAllowed: z.literal(false),
+  implementationAllowed: z.literal(false),
+  applyEligible: z.literal(false)
+}).strict();
+
+const basePacketSchema = z.object({
+  packetId: z.string(),
+  sourceActor: z.object({
+    actorScope: z.string(),
+    actorId: z.string().optional(),
+    actorLabel: z.string().optional()
+  }).strict(),
+  targetProduct: z.literal('MealScout'),
+  targetEntityName: z.string(),
+  targetEntityId: z.string().nullable(),
+  targetResolutionStatus: z.enum([
+    'resolved_exact_target_id',
+    'resolved_name_only',
+    'ambiguous_target',
+    'unknown_target'
+  ]),
+  updateType: z.literal('account_intake'),
+  sourceFolderReference: z.string().optional(),
+  evidenceReferences: z.array(evidenceReferenceSchema),
+  extractedStructuredData: z.object({
+    accountIntake: accountIntakePayloadSchema
+  }).strict(),
+  missingFields: z.array(z.string()),
+  confidence: z.number(),
+  safetyFlags: z.array(z.string()),
+  ownerSubmittedEquivalent: z.boolean(),
+  productionApplied: z.literal(false),
+  mutationAllowed: z.literal(false),
+  implementationAllowed: z.literal(false),
+  applyEligible: z.literal(false),
+  requiredVerificationSteps: z.array(z.enum([
+    'no_fake_prices',
+    'no_fake_schedules',
+    'no_media_apply_without_review',
+    'no_inferred_recurring_schedule',
+    'preview_before_apply',
+    'exact_target_id_required_for_production_apply',
+    'fail_closed_on_ambiguous_target',
+    'owner_or_operator_must_verify_missing_prices',
+    'recurring_schedule_must_be_explicit',
+    'timezone_must_be_explicit',
+    'preserve_source_evidence'
+  ])),
+  productSpecificPayload: accountIntakePayloadSchema
+}).strict().superRefine((packet, ctx) => {
+  if (packet.targetEntityName !== packet.productSpecificPayload.businessName) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['productSpecificPayload', 'businessName'],
+      message: 'businessName must match targetEntityName'
+    });
+  }
+});
+
+export function parseMealScoutAccountIntakePacket(packet: unknown): MealScoutAccountIntakePayload {
+  return accountIntakePayloadSchema.parse(packet);
+}
+
+export function parseUniversalProductUpdatePacket(packet: unknown): MerlinUniversalProductUpdatePacket {
+  return basePacketSchema.parse(packet) as MerlinUniversalProductUpdatePacket;
 }

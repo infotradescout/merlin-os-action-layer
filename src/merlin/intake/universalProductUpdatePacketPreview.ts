@@ -11,7 +11,7 @@ import {
 
 type SupportedMealScoutPreviewUpdateType = Extract<
   MerlinUniversalUpdateType,
-  'menu_update' | 'logo_update' | 'schedule_update'
+  'account_intake' | 'menu_update' | 'logo_update' | 'schedule_update'
 >;
 
 type UnsupportedPreviewReason =
@@ -73,6 +73,7 @@ export type MerlinUniversalProductUpdatePacketPreview =
   | (UnsupportedPreviewBase & MerlinUniversalProductUpdatePacketPreviewReadability);
 
 const SUPPORTED_MEALSCOUT_UPDATE_TYPES = new Set<SupportedMealScoutPreviewUpdateType>([
+  'account_intake',
   'menu_update',
   'logo_update',
   'schedule_update'
@@ -141,6 +142,79 @@ function buildUnsupportedPreview(
   };
 }
 
+function humanizeAccountMissingField(field: string): string {
+  switch (field) {
+    case 'accountIntake.businessName':
+      return 'business name';
+    case 'accountIntake.contact':
+      return 'contact details';
+    case 'accountIntake.location':
+      return 'location or service area';
+    default:
+      return field;
+  }
+}
+
+function buildAccountIntakePreview(
+  packet: MerlinUniversalProductUpdatePacket & { updateType: 'account_intake' }
+): MerlinUniversalProductUpdatePacketPreview {
+  const previewBase: SupportedPreviewBase = {
+    kind: 'universal_product_update_packet_preview',
+    status: 'supported',
+    targetProduct: 'MealScout',
+    targetBusinessName: packet.targetEntityName,
+    targetProfileId: packet.targetEntityId,
+    updateType: 'account_intake',
+    sourceEvidenceReferences: [...packet.evidenceReferences],
+    sourceFolderReference: packet.sourceFolderReference,
+    extractedStructuredData: packet.extractedStructuredData,
+    missingFields: [...packet.missingFields],
+    confidence: packet.confidence,
+    requiredVerificationSteps: [...packet.requiredVerificationSteps],
+    safetyFlags: [...packet.safetyFlags],
+    ownerSubmittedEquivalent: packet.ownerSubmittedEquivalent,
+    productionApplied: packet.productionApplied,
+    mutationAllowed: packet.mutationAllowed,
+    implementationAllowed: packet.implementationAllowed,
+    applyEligible: packet.applyEligible
+  };
+  const accountIntake = (packet.extractedStructuredData as { accountIntake?: Record<string, unknown> }).accountIntake || {};
+  const accountType = typeof accountIntake.accountType === 'string' ? accountIntake.accountType : 'other';
+  const requiredNextStep = typeof accountIntake.requiredNextStep === 'string'
+    ? accountIntake.requiredNextStep
+    : 'operator review required';
+  const missingSummary = previewBase.missingFields.length === 0
+    ? 'No missing account intake fields in preview.'
+    : `Missing fields require review: ${Array.from(new Set(previewBase.missingFields.map(humanizeAccountMissingField))).join(', ')}`;
+  const detailParts = [
+    typeof accountIntake.phone === 'string' ? `phone ${accountIntake.phone}` : undefined,
+    typeof accountIntake.email === 'string' ? `email ${accountIntake.email}` : undefined,
+    typeof accountIntake.website === 'string' ? `website ${accountIntake.website}` : undefined,
+    typeof accountIntake.address === 'string' ? `address ${accountIntake.address}` : undefined,
+    typeof accountIntake.serviceArea === 'string' ? `service area ${accountIntake.serviceArea}` : undefined
+  ].filter((value): value is string => typeof value === 'string');
+
+  return {
+    ...previewBase,
+    displayTitle: `MealScout account intake preview - ${packet.targetEntityName}`,
+    operatorSummary: `MealScout account intake preview for ${packet.targetEntityName} (${accountType}) with ${detailParts.length > 0 ? detailParts.join(', ') : 'identity-only details'}. Next step: ${requiredNextStep}.`,
+    updateTypeLabel: 'MealScout account intake preview',
+    targetDisplay: packet.targetEntityId
+      ? `${packet.targetEntityName} (${packet.targetEntityId})`
+      : packet.targetEntityName,
+    evidenceSummary: previewBase.sourceEvidenceReferences.length === 0
+      ? 'No source evidence references were attached to this preview.'
+      : `${previewBase.sourceEvidenceReferences.length} evidence ${previewBase.sourceEvidenceReferences.length === 1 ? 'file' : 'files'}${previewBase.sourceFolderReference ? ` in folder ${previewBase.sourceFolderReference}` : ''}: ${previewBase.sourceEvidenceReferences.slice(0, 3).map((reference) => reference.sourceFileName).join(', ')}${previewBase.sourceEvidenceReferences.length > 3 ? ', ...' : ''}`,
+    missingFieldSummary: missingSummary,
+    verificationSummary: `Verification: preview before any apply; require exact target id before production apply; preserve source evidence`,
+    safetySummary: previewBase.safetyFlags.length === 0
+      ? 'No additional safety flags were attached to this preview.'
+      : `Safety: ${Array.from(new Set(previewBase.safetyFlags)).join('; ')}`,
+    applyStatusLabel: 'Preview only — no production apply',
+    nextRequiredAction: 'review_only'
+  };
+}
+
 export function buildUniversalProductUpdatePacketPreview(
   packet: unknown
 ): MerlinUniversalProductUpdatePacketPreview {
@@ -155,13 +229,17 @@ export function buildUniversalProductUpdatePacketPreview(
     return buildUnsupportedPreview('unsupported_target_product_or_update_type', packet);
   }
 
+  if (packet.updateType === 'account_intake') {
+    return buildAccountIntakePreview(packet as MerlinUniversalProductUpdatePacket & { updateType: 'account_intake' });
+  }
+
   const previewBase: SupportedPreviewBase = {
     kind: 'universal_product_update_packet_preview',
     status: 'supported',
-    targetProduct: packet.targetProduct,
+    targetProduct: 'MealScout',
     targetBusinessName: packet.targetEntityName,
     targetProfileId: packet.targetEntityId,
-    updateType: packet.updateType as SupportedMealScoutPreviewUpdateType,
+    updateType: packet.updateType as Extract<SupportedMealScoutPreviewUpdateType, 'menu_update' | 'logo_update' | 'schedule_update'>,
     sourceEvidenceReferences: [...packet.evidenceReferences],
     sourceFolderReference: packet.sourceFolderReference,
     extractedStructuredData: packet.extractedStructuredData,
@@ -178,6 +256,8 @@ export function buildUniversalProductUpdatePacketPreview(
 
   return {
     ...previewBase,
-    ...buildUniversalProductUpdatePacketPreviewReadability(previewBase)
+    ...buildUniversalProductUpdatePacketPreviewReadability(previewBase as SupportedPreviewBase & {
+      updateType: 'menu_update' | 'logo_update' | 'schedule_update'
+    })
   };
 }
