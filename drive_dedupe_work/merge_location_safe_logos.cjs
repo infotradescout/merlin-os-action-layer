@@ -333,7 +333,34 @@ function run() {
       continue;
     }
     if (distinctSeeds.size > 1) {
-      // Ambiguous: same normalized name maps to multiple distinct master profiles.
+      // Ambiguous by name alone, but the Location Safe row's own phone can still
+      // corroborate exactly which of the same-named master rows it belongs to.
+      // This only ever narrows to rows whose phone_key matches ls.phone_key —
+      // it never guesses across a mismatched or missing phone.
+      if (ls.phone_key) {
+        const phoneMatches = matches.filter((m) => m.phone_key && m.phone_key === ls.phone_key);
+        const distinctPhoneMatchSeeds = new Set(phoneMatches.map((m) => m.seed_id));
+        if (distinctPhoneMatchSeeds.size >= 1) {
+          const url = validUrls.join("; ");
+          for (const target of phoneMatches) {
+            const existing = verifiedByRow.get(target);
+            if (!existing || existing.confidence !== "high_name_and_phone") {
+              verifiedByRow.set(target, { url, confidence: "high_name_and_phone", reason: "high_name_and_phone", disambiguated: true });
+            }
+          }
+          decisions.push({
+            business_name: ls.name,
+            decision: "verified_ambiguous_resolved_by_phone",
+            reason: "phone_match_within_ambiguous_name_group",
+            url,
+            master_seed_id: [...distinctPhoneMatchSeeds].join(", "),
+            match_count: matches.length,
+          });
+          continue;
+        }
+      }
+      // Ambiguous: same normalized name maps to multiple distinct master profiles,
+      // and no phone corroboration was available to narrow it down.
       decisions.push({ business_name: ls.name, decision: "rejected_ambiguous", reason: "ambiguous_name_multiple_master_rows", url: validUrls.join("; "), match_count: matches.length });
       continue;
     }
@@ -378,7 +405,7 @@ function run() {
         row.logo_url = verified.url;
         row.logo_source = "location_safe_verified";
         row.logo_confidence = verified.confidence;
-        row.logo_reason = "matched_business_name" + (verified.confidence === "high_name_and_phone" ? "_and_phone" : "");
+        row.logo_reason = "matched_business_name" + (verified.confidence === "high_name_and_phone" ? "_and_phone" : "") + (verified.disambiguated ? "_ambiguous_group_resolved" : "");
         stats.verified_from_location_safe++;
       } else if (row.image_links) {
         // Preserve an existing image already trusted in the master (e.g. contractors).
