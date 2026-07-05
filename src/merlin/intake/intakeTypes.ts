@@ -507,3 +507,18 @@ export type ProductAdapter = {
   }): { ok: true; action: IntentActionDefinition } | { ok: false; code: string; message: string };
   buildPreviewContext(intent: UploadIntent): Record<string, unknown>;
 };
+
+/**
+ * Generic apply-adapter contract per docs/merlin/MERLIN_REPO_BOUNDARY_AUDIT_2026-07-01.md:
+ * a product-owned seam that turns an approved plan into an actual write,
+ * separate from (and not gated by) the dry-run/live-execution-gate chain.
+ * Type parameters are intentionally product-shaped rather than forced into
+ * one packet/decision type, since products differ in what "approved for
+ * apply" means today (see src/merlin/adapters/mealscoutApplyAdapter.ts).
+ */
+export type ApplyAdapter<TInput, TPlan, TValidation, TExecutionResult, TNormalizedResult> = {
+  buildApplyPlan(input: TInput): TPlan;
+  validateApplyPlan(plan: TPlan): TValidation;
+  executeApplyPlan(plan: TPlan): TExecutionResult;
+  normalizeApplyResult(result: TExecutionResult): TNormalizedResult;
+};
