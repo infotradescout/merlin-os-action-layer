@@ -1,0 +1,12 @@
+{
+  "output_path": "D:\\AAATraderCorner\\TradeScout\\merlin-os-action-layer\\drive_dedupe_work\\Business Lists Master - Deduped - 2026-07-05.xlsx",
+  "raw_business_rows_imported": 350547,
+  "canonical_business_rows": 307000,
+  "automatic_duplicate_groups": 27021,
+  "duplicate_member_rows": 70568,
+  "needs_review_rows": 10001,
+  "source_files_imported": 12,
+  "source_sheets_inventory_rows": 43,
+  "excluded_screenshot_sheets": 4,
+  "identified_not_imported": 4
+}
