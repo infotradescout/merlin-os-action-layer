@@ -196,3 +196,10 @@ export function upsertTradeScoutProfile(profile: TradeScoutSeededProfile): void 
 export function resetTradeScoutProfilesStoreForTest(): void {
   getDb().prepare('DELETE FROM tradescout_profiles').run();
 }
+
+export function closeTradeScoutProfilesStore(): void {
+  if (!db) return;
+  db.close();
+  db = null;
+  dbPath = null;
+}

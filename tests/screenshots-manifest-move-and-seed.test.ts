@@ -89,7 +89,7 @@ test('uses explicit current parent in move call', async () => {
     const audit = readFileSync(auditPath, 'utf8');
     assert.match(audit, /,moved,/);
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -126,7 +126,7 @@ test('keeps seed gate closed when BATCH-001 move fails', async () => {
     assert.equal(output.join('').includes('[SEED GATE CLOSED]'), true);
   } finally {
     process.stdout.write = originalWrite as typeof process.stdout.write;
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -157,7 +157,7 @@ test('marks blocked_missing_current_parent and avoids move call', async () => {
     assert.equal(moveCalled, false);
     assert.match(audit, /blocked_missing_current_parent/);
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -204,7 +204,7 @@ test('diagnose mode processes blocked_missing_current_parent rows without moving
     assert.equal(existsSync(seedReportPath), false);
     assert.equal(existsSync(seedExportPath), false);
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -237,7 +237,7 @@ test('execute mode does not move blocked rows', async () => {
     const seedReport = readFileSync(seedReportPath, 'utf8');
     assert.match(seedReport, /"results": \[\]/);
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -298,7 +298,7 @@ test('copy mode does not require current parent metadata and writes copied_file_
     assert.match(seedReport, /copy-file-001/);
     assert.equal(copiedId, 'copy-file-001');
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });
 
@@ -339,6 +339,6 @@ test('copy mode never seeds contractor, review, blocked, or unknown rows', async
     const seedReport = readFileSync(seedReportPath, 'utf8');
     assert.match(seedReport, /"results": \[\]/);
   } finally {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 });

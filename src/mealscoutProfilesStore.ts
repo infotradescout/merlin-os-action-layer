@@ -219,3 +219,10 @@ export function replaceMealScoutProfile(profile: MealScoutExistingProfile): void
 export function resetMealScoutProfilesStoreForTest(): void {
   getDb().prepare('DELETE FROM mealscout_profiles').run();
 }
+
+export function closeMealScoutProfilesStore(): void {
+  if (!db) return;
+  db.close();
+  db = null;
+  dbPath = null;
+}

@@ -20,16 +20,12 @@ process.env.GOOGLE_REDIRECT_URI = 'http://127.0.0.1:8765';
 process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
 
 const { createMerlinServer } = await import('../src/server.ts');
-const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
-const { resetReplayForTest, closeReplayStore } = await import('../src/replay.ts');
+const { resetReplayForTest } = await import('../src/replay.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 const { resetDriveSafetyStoreForTest } = await import('../src/driveSafetyStore.ts');
 const { resetDriveReviewQueueForTest } = await import('../src/driveReviewQueue.ts');
-const { closeLisaStore } = await import('../src/lisa.ts');
-const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
-const { closeRecommendationsStore } = await import('../src/recommendations.ts');
-const { closeOutcomesStore } = await import('../src/outcomes.ts');
 const { closeDriveReviewQueueStore, initializeDriveReviewQueueStore } = await import('../src/driveReviewQueueStore.ts');
+const { closeAllMerlinStoresForTest } = await import('./testSupport/closeAllStores.ts');
 
 let server: Server;
 let baseUrl: string;
@@ -169,14 +165,9 @@ before(async () => {
 after(async () => {
   await new Promise<void>((resolveStop) => server.close(() => resolveStop()));
   resetDriveClientFactory();
-  closeLisaStore();
-  closeDriveManifestStore();
-  closeRecommendationsStore();
-  closeReplayStore();
-  closeApprovalQueueStore();
-  closeOutcomesStore();
   closeDriveReviewQueueStore();
-  rmSync(tempDir, { recursive: true, force: true });
+  closeAllMerlinStoresForTest();
+  rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
 });
 
 beforeEach(async () => {
