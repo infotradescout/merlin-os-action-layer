@@ -1,0 +1,17 @@
+{
+  "name": "Merlin Action Layer",
+  "short_name": "Merlin",
+  "start_url": "/merlin",
+  "display": "standalone",
+  "background_color": "#f3efe5",
+  "theme_color": "#0b6e4f",
+  "description": "Merlin is the user-facing action layer for connected operational systems.",
+  "icons": [
+    {
+      "src": "/merlin-shell-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ const ACTION_EXPECTED_ROUTES: Record<string, MerlinRoutedDestination[]> = {
   update_schedule: ['schedule'],
   upload_logo: ['logo'],
   add_food_photos: ['photo'],
+  account_intake_review: ['document'],
   attach_menu_evidence: ['menu'],
   attach_schedule_evidence: ['schedule'],
   attach_logo_media: ['logo'],

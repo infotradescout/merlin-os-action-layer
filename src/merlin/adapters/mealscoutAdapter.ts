@@ -16,6 +16,7 @@ const ownerActions = [
 const staffAdminActions = [
   'import_food_truck_evidence',
   'import_restaurant_evidence',
+  'account_intake_review',
   'attach_menu_evidence',
   'attach_schedule_evidence',
   'attach_logo_media',
@@ -30,6 +31,8 @@ const ownerAllowed = ['menu.sections', 'menu.items', 'menu.prices', 'menu.descri
 const ownerForbidden = ['businessName', 'ownerIdentity', 'verifiedStatus', 'subscription', 'payment', 'banking', 'phone'];
 const staffAllowed = ['evidence.attachments', 'review.corrections', 'review.routing', 'menu.sections', 'schedule.date', 'media.logo', 'media.photos'];
 const staffForbidden = ['billing.*', 'bank.*', 'ownerIdentity'];
+const accountAllowed = ['accountIntake'];
+const accountForbidden = ['menu.items', 'menu.prices', 'media.logo', 'media.cover', 'ownerIdentity', 'billing.*', 'bank.*'];
 
 function action(input: {
   actionId: string;
@@ -75,9 +78,13 @@ const actions: IntentActionDefinition[] = [
   ...staffAdminActions.map((id) =>
     action({
       actionId: id,
-      actorScope: id.includes('bulk') || id.includes('review') || id.includes('correct') ? 'admin' : 'staff',
-      allowed: staffAllowed,
-      forbidden: staffForbidden,
+      actorScope: id === 'account_intake_review'
+        ? 'staff'
+        : id.includes('bulk') || id.includes('review') || id.includes('correct')
+          ? 'admin'
+          : 'staff',
+      allowed: id === 'account_intake_review' ? accountAllowed : staffAllowed,
+      forbidden: id === 'account_intake_review' ? accountForbidden : staffForbidden,
       implementationMode: 'admin_review_required',
       riskLevel: 'high',
       requiresEntityContext: false

@@ -4,6 +4,11 @@ import { createMealScoutProfileFromPlanRecord, updateMealScoutProfileFromPlanRec
 import type { MealScoutPublishPlanRecord } from '../mealscoutPublishPlan.js';
 import { upsertAffiliateTrackingLedgerRow } from '../mealscoutAffiliateTrackingLedger.js';
 import { sendProductVerificationEmail } from '../productVerificationEmail.js';
+import {
+  getAllTradeScoutProfiles,
+  resetTradeScoutProfilesStoreForTest,
+  upsertTradeScoutProfile
+} from './tradescoutProfilesStore.js';
 
 export type MerlinProfileSeedBrand = 'MEALSCOUT' | 'TRADESCOUT';
 export type MerlinSeedStatus = 'seeded' | 'blocked';
@@ -19,13 +24,13 @@ export type TradeScoutSeededProfile = {
   email?: string;
   serviceArea?: string;
   claim_status: 'unclaimed';
-  email_verified: false;
-  insurance_verified: false;
+  email_verified: boolean;
+  insurance_verified: boolean;
   affiliate_attribution_email?: string;
   affiliate_attribution_source?: 'folder_email_token' | 'admin_unattributed';
   affiliate_attribution_folder?: string;
   affiliate_attribution_folder_path?: string;
-  seeded_from_evidence: true;
+  seeded_from_evidence: boolean;
   seeded_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
   onboarding_source: 'screenshot_seed' | 'admin_seed' | 'affiliate_seed';
   profile_origin: 'auto_onboarded';
@@ -87,7 +92,6 @@ export type MerlinProfileSeedResult = {
   mutationAllowed: boolean;
 };
 
-const tradeScoutProfiles = new Map<string, TradeScoutSeededProfile>();
 const verificationEmails: VerificationEmailRecord[] = [];
 
 function nowIso(): string {
@@ -163,7 +167,7 @@ function findExistingTradeScoutProfile(input: { email?: string; phone?: string; 
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
   const name = (input.businessName || '').trim().toLowerCase();
-  return Array.from(tradeScoutProfiles.values()).find((profile) => {
+  return getAllTradeScoutProfiles().find((profile) => {
     if (email && normalizeEmail(profile.email) === email) return true;
     if (phone && normalizePhone(profile.phone) === phone) return true;
     return Boolean(name && profile.businessName?.trim().toLowerCase() === name);
@@ -465,7 +469,7 @@ async function seedTradeScout(input: MerlinExistingScreenshotSeedInput): Promise
         createdAt: now,
         updatedAt: now
       };
-  tradeScoutProfiles.set(profile.id, profile);
+  upsertTradeScoutProfile(profile);
   const verificationStatus = await recordVerificationEmail({
     brand: 'TRADESCOUT',
     profileId: profile.id,
@@ -540,15 +544,15 @@ export async function processExistingScreenshotsIntoSeededProfiles(input: {
 }
 
 export function listTradeScoutSeededProfiles(): TradeScoutSeededProfile[] {
-  return Array.from(tradeScoutProfiles.values());
+  return getAllTradeScoutProfiles();
 }
 
 export function listTradeScoutAutoOnboardedProfiles(): TradeScoutSeededProfile[] {
-  return Array.from(tradeScoutProfiles.values()).filter((profile) => profile.profile_origin === 'auto_onboarded');
+  return getAllTradeScoutProfiles().filter((profile) => profile.profile_origin === 'auto_onboarded');
 }
 
 export function listTradeScoutClaimedRegisteredProfiles(): TradeScoutSeededProfile[] {
-  return Array.from(tradeScoutProfiles.values()).filter((profile) => profile.profile_origin !== 'auto_onboarded');
+  return getAllTradeScoutProfiles().filter((profile) => profile.profile_origin !== 'auto_onboarded');
 }
 
 export function listVerificationEmailRecords(): VerificationEmailRecord[] {
@@ -556,6 +560,6 @@ export function listVerificationEmailRecords(): VerificationEmailRecord[] {
 }
 
 export function resetMerlinProfileSeedRuntimeForTest(): void {
-  tradeScoutProfiles.clear();
+  resetTradeScoutProfilesStoreForTest();
   verificationEmails.length = 0;
 }

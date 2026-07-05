@@ -2,6 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { MealScoutEvidenceCluster } from './mealscoutEvidenceClustering.js';
 import type { MealScoutPublishPlanRecord } from './mealscoutPublishPlan.js';
 import { isMenuLikeTruckName } from './mealscoutTruckNameGuardrail.js';
+import {
+  getAllMealScoutProfiles,
+  getMealScoutProfileRowById,
+  insertMealScoutProfile,
+  replaceMealScoutProfile,
+  resetMealScoutProfilesStoreForTest
+} from './mealscoutProfilesStore.js';
 
 export type MealScoutExtractedSignal = {
   sourceFileId: string;
@@ -236,7 +243,6 @@ const batches = new Map<string, MealScoutCaptureBatch>();
 const drafts = new Map<string, MealScoutProfileDraft>();
 const clusterToDraftId = new Map<string, string>();
 const evidenceById = new Map<string, MealScoutExtractedSignal>();
-const existingProfiles = new Map<string, MealScoutExistingProfile>();
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -928,7 +934,7 @@ export function addMealScoutScreenshotEvidence(input: {
   }
 
   evidenceById.set(sourceFileId, signal);
-  const draft = buildMealScoutProfileDraft([signal], Array.from(existingProfiles.values()));
+  const draft = buildMealScoutProfileDraft([signal], getAllMealScoutProfiles());
   drafts.set(draft.draftId, draft);
   clusterToDraftId.set(clusterId, draft.draftId);
 
@@ -990,7 +996,7 @@ export function getMealScoutClusterMatches(clusterId: string): {
 
 export function linkClusterToExistingTruck(clusterId: string, truckId: string): MealScoutProfileDraft | undefined {
   const draftId = clusterToDraftId.get(clusterId);
-  const profile = existingProfiles.get(truckId);
+  const profile = getMealScoutProfileRowById(truckId);
   if (!draftId || !profile) return undefined;
   const draft = drafts.get(draftId);
   if (!draft) return undefined;
@@ -1045,19 +1051,19 @@ export function publishMealScoutDraft(_draftId: string): MealScoutProfileDraft |
 }
 
 export function listMealScoutTrucks(): MealScoutExistingProfile[] {
-  return Array.from(existingProfiles.values());
+  return getAllMealScoutProfiles();
 }
 
 export function listMealScoutAutoOnboardedProfiles(): MealScoutExistingProfile[] {
-  return Array.from(existingProfiles.values()).filter((profile) => profile.profile_origin === 'auto_onboarded');
+  return getAllMealScoutProfiles().filter((profile) => profile.profile_origin === 'auto_onboarded');
 }
 
 export function listMealScoutClaimedRegisteredProfiles(): MealScoutExistingProfile[] {
-  return Array.from(existingProfiles.values()).filter((profile) => profile.profile_origin !== 'auto_onboarded');
+  return getAllMealScoutProfiles().filter((profile) => profile.profile_origin !== 'auto_onboarded');
 }
 
 export function getMealScoutTruckById(id: string): MealScoutExistingProfile | undefined {
-  return existingProfiles.get(id);
+  return getMealScoutProfileRowById(id);
 }
 
 export function seedMealScoutTruck(input: Omit<MealScoutExistingProfile, 'id'>): MealScoutExistingProfile {
@@ -1065,7 +1071,7 @@ export function seedMealScoutTruck(input: Omit<MealScoutExistingProfile, 'id'>):
     ...input,
     id: `ms-profile-${randomUUID()}`
   };
-  existingProfiles.set(profile.id, profile);
+  insertMealScoutProfile(profile);
   return profile;
 }
 
@@ -1108,7 +1114,7 @@ export function createMealScoutProfileFromPlanRecord(record: MealScoutPublishPla
     owner_user_id: null,
     source_refs: sourceRefsFromRecord(record)
   };
-  existingProfiles.set(profile.id, profile);
+  insertMealScoutProfile(profile);
   return profile;
 }
 
@@ -1116,7 +1122,7 @@ export function updateMealScoutProfileFromPlanRecord(
   existingTruckId: string,
   record: MealScoutPublishPlanRecord
 ): MealScoutExistingProfile | undefined {
-  const existing = existingProfiles.get(existingTruckId);
+  const existing = getMealScoutProfileRowById(existingTruckId);
   if (!existing) return undefined;
   const seededSource = resolveSeededSource(record);
   const sourceRefs = Array.from(new Set([...(existing.source_refs || []), ...sourceRefsFromRecord(record)]));
@@ -1147,7 +1153,7 @@ export function updateMealScoutProfileFromPlanRecord(
     owner_user_id: existing.owner_user_id ?? (isAutoOnboarded ? null : undefined),
     source_refs: sourceRefs.length > 0 ? sourceRefs : existing.source_refs
   };
-  existingProfiles.set(existingTruckId, next);
+  replaceMealScoutProfile(next);
   return next;
 }
 
@@ -1156,5 +1162,5 @@ export function resetMealScoutProfileImportForTest(): void {
   drafts.clear();
   clusterToDraftId.clear();
   evidenceById.clear();
-  existingProfiles.clear();
+  resetMealScoutProfilesStoreForTest();
 }

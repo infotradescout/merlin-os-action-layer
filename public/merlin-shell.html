@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Merlin Shell</title>
+    <meta name="theme-color" content="#0b6e4f" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <style>
+      :root {
+        --bg: #f3efe5;
+        --ink: #1b2432;
+        --panel: rgba(255, 252, 246, 0.86);
+        --line: rgba(27, 36, 50, 0.14);
+        --muted: #5f6c7f;
+        --accent: #0b6e4f;
+        --accent-soft: #d8f0e7;
+        --warning: #8a4b0f;
+        --warning-soft: #f7e8cf;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Aptos", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(11, 110, 79, 0.12), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(207, 127, 55, 0.14), transparent 24%),
+          linear-gradient(180deg, #faf5e9, #efe8d8 42%, #f6f2e8);
+      }
+
+      .page {
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 1.2rem;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .panel {
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 1rem;
+        box-shadow: 0 22px 48px rgba(38, 43, 55, 0.08);
+      }
+
+      .eyebrow {
+        font-size: 0.76rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1, h2, h3 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        line-height: 1.02;
+        margin-top: 0.25rem;
+      }
+
+      .lede, .meta, .list-note {
+        color: var(--muted);
+      }
+
+      .doctrine {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.7rem;
+      }
+
+      .doctrine div {
+        background: rgba(255,255,255,0.58);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0.8rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 1rem;
+      }
+
+      .stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+      }
+
+      .triple {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.8rem;
+      }
+
+      label {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 0.25rem;
+      }
+
+      input, select, textarea, button {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.85);
+        color: var(--ink);
+        font: inherit;
+        padding: 0.72rem 0.8rem;
+      }
+
+      textarea {
+        min-height: 132px;
+        resize: vertical;
+      }
+
+      button {
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--accent), #0d8b63);
+        color: #fff;
+        border: none;
+        font-weight: 600;
+      }
+
+      button.secondary {
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+
+      .list {
+        display: grid;
+        gap: 0.7rem;
+        margin-top: 0.9rem;
+      }
+
+      .card {
+        background: rgba(255,255,255,0.74);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0.8rem;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.5rem;
+      }
+
+      .chip {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.76rem;
+      }
+
+      .chip.warn {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      pre {
+        margin: 0;
+        overflow: auto;
+        white-space: pre-wrap;
+        background: rgba(18, 24, 36, 0.93);
+        color: #dbe9ff;
+        border-radius: 16px;
+        padding: 0.9rem;
+      }
+
+      .status {
+        padding: 0.75rem 0.85rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.75);
+        border: 1px solid var(--line);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .install-note {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        margin-top: 0.8rem;
+      }
+
+      .actions-row button {
+        width: auto;
+        min-width: 180px;
+      }
+
+      @media (max-width: 980px) {
+        .hero, .layout, .split, .triple, .doctrine {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <div class="eyebrow">Operational Reality / Merlin Shell</div>
+        <div id="install-note" class="install-note">Browser-installable shell mode only</div>
+      </div>
+      <section class="hero">
+        <div class="panel">
+          <div class="eyebrow">Merlin Shell</div>
+          <h1>Connect systems. State intent. Let Merlin stage the change.</h1>
+          <p class="lede">
+            This is the user-facing front door above the existing operator, intake, and review lanes.
+            It does not skip safety. It turns your connected systems and chosen intent into the same proof-backed preview flow Merlin already knows how to run.
+          </p>
+          <div class="doctrine">
+            <div>
+              <strong>Connect</strong>
+              <div class="list-note">Track which sources belong to a workspace and what they are allowed to expose.</div>
+            </div>
+            <div>
+              <strong>Intent</strong>
+              <div class="list-note">Start a brand-scoped action from one place instead of hunting product-specific routes.</div>
+            </div>
+            <div>
+              <strong>Preview</strong>
+              <div class="list-note">Use Merlin's existing read-only routing and preview path before any future apply surface exists.</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="eyebrow">Session</div>
+          <h2 id="workspace-title">Loading workspace...</h2>
+          <p class="meta" id="operator-line"></p>
+          <p class="meta" id="generated-line"></p>
+          <div class="chips" id="summary-chips"></div>
+          <div class="status" style="margin-top: 0.9rem;">
+            <strong>Next steps</strong>
+            <div id="next-steps" class="list-note" style="margin-top: 0.5rem;"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="layout">
+        <div class="stack">
+          <div class="panel">
+            <div class="eyebrow">Merlin Thread</div>
+            <h2>Persistent action conversation</h2>
+            <div class="split" style="margin-top: 0.8rem;">
+              <div>
+                <label for="thread-title">Thread title</label>
+                <input id="thread-title" placeholder="Update Sweet Heat profile from new account docs" />
+              </div>
+              <div>
+                <label for="thread-picker">Open thread</label>
+                <select id="thread-picker"></select>
+              </div>
+            </div>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button id="create-thread-button">Create thread</button>
+              <button class="secondary" id="reload-thread-button">Reload thread</button>
+            </div>
+            <div id="thread-messages" class="list"></div>
+            <label for="thread-message" style="margin-top: 0.8rem;">Tell Merlin what you want</label>
+            <textarea id="thread-message" placeholder="Use the attached screenshots to update this MealScout account. Skip logos and menus. I only want account facts reviewed first."></textarea>
+            <label for="thread-files-json" style="margin-top: 0.8rem;">Thread attachments JSON</label>
+            <textarea id="thread-files-json" placeholder='[{"fileId":"acct-1","fileName":"account.pdf","mimeType":"application/pdf","extractedText":"Sweet Heat Tacos\\nNew Orleans"}]'></textarea>
+            <div class="triple" style="margin-top: 0.8rem;">
+              <div>
+                <label for="quick-file-name">Quick evidence name</label>
+                <input id="quick-file-name" placeholder="account-notes.txt" />
+              </div>
+              <div>
+                <label for="quick-file-type">Quick evidence type</label>
+                <select id="quick-file-type">
+                  <option value="text/plain">text/plain</option>
+                  <option value="application/pdf">application/pdf</option>
+                  <option value="image/jpeg">image/jpeg</option>
+                </select>
+              </div>
+              <div>
+                <label for="quick-file-id">Quick evidence id</label>
+                <input id="quick-file-id" placeholder="quick-evidence-1" />
+              </div>
+            </div>
+            <label for="quick-evidence-text" style="margin-top: 0.8rem;">Quick evidence text</label>
+            <textarea id="quick-evidence-text" placeholder="Paste account, menu, schedule, or profile text here if you do not want to build JSON attachments yet."></textarea>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button id="send-thread-message-button">Send message</button>
+              <button class="secondary" id="thread-handoff-button">Stage preview from thread</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Connected Sources</div>
+            <h2>Workspace source map</h2>
+            <div class="split" style="margin-top: 0.8rem;">
+              <div>
+                <label for="source-key">Source key</label>
+                <input id="source-key" placeholder="mealscout or google_drive" />
+              </div>
+              <div>
+                <label for="source-label">Source label</label>
+                <input id="source-label" placeholder="MealScout" />
+              </div>
+              <div>
+                <label for="source-type">Type</label>
+                <select id="source-type">
+                  <option value="app">app</option>
+                  <option value="drive">drive</option>
+                  <option value="gmail">gmail</option>
+                  <option value="calendar">calendar</option>
+                  <option value="github">github</option>
+                  <option value="canva">canva</option>
+                  <option value="web">web</option>
+                  <option value="manual">manual</option>
+                </select>
+              </div>
+              <div>
+                <label for="source-status">Connection status</label>
+                <select id="source-status">
+                  <option value="connected">connected</option>
+                  <option value="needs_auth">needs_auth</option>
+                  <option value="disconnected">disconnected</option>
+                </select>
+              </div>
+              <div>
+                <label for="source-auth-kind">Auth kind</label>
+                <select id="source-auth-kind">
+                  <option value="manual">manual</option>
+                  <option value="oauth">oauth</option>
+                  <option value="api_key">api_key</option>
+                  <option value="internal">internal</option>
+                </select>
+              </div>
+              <div>
+                <label for="source-capabilities">Capabilities</label>
+                <input id="source-capabilities" placeholder="read_product_context,start_intents" />
+              </div>
+            </div>
+            <div style="margin-top: 0.8rem;">
+              <button id="connect-source-button">Save connected source</button>
+            </div>
+            <div id="connected-sources" class="list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Attached Drive</div>
+            <h2>Start from existing screenshots</h2>
+            <label for="local-drive-files" style="margin-top: 0.8rem;">Drop local media into the Drive buffer</label>
+            <input id="local-drive-files" type="file" multiple />
+            <div class="split" style="margin-top: 0.8rem;">
+              <div>
+                <label for="drive-upload-folder-label">Buffer batch label</label>
+                <input id="drive-upload-folder-label" placeholder="browser-buffer-july-accounts" />
+              </div>
+              <div>
+                <label for="drive-upload-note">Upload mode</label>
+                <input id="drive-upload-note" value="Drive buffer staging for Merlin browser shell" />
+              </div>
+            </div>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button id="upload-drive-buffer-button">Upload local files to Drive buffer</button>
+              <button id="upload-stage-button">Upload and stage preview</button>
+            </div>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button class="secondary" id="load-drive-status-button">Load Drive status</button>
+              <div>
+                <label for="drive-folder-id">Drive folder id</label>
+                <input id="drive-folder-id" placeholder="optional; blank uses MealScout discovery" />
+              </div>
+              <div>
+                <label for="drive-preview-mode">Drive intent</label>
+                <select id="drive-preview-mode">
+                  <option value="account_first">account_first</option>
+                  <option value="full_preview">full_preview</option>
+                </select>
+              </div>
+            </div>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button class="secondary" id="load-drive-preview-button">Preview Drive folder</button>
+              <button class="secondary" id="load-folder-context-button">Load folder context</button>
+            </div>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button class="secondary" id="attach-drive-preview-button">Attach Drive preview to thread</button>
+              <div></div>
+            </div>
+            <div id="drive-status" class="status" style="margin-top: 0.8rem;">Drive not loaded yet.</div>
+            <div id="drive-preview-list" class="list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">MealScout Incremental Intake</div>
+            <h2>Process screenshots in chunks</h2>
+            <div class="split" style="margin-top: 0.8rem;">
+              <div>
+                <label for="incremental-folder-id">Folder id</label>
+                <input id="incremental-folder-id" placeholder="blank uses incoming/unknown discovery" />
+              </div>
+              <div>
+                <label for="incremental-chunk-size">Chunk size</label>
+                <input id="incremental-chunk-size" type="number" min="1" max="100" value="25" />
+              </div>
+              <div>
+                <label for="incremental-queue-id">Queue id</label>
+                <input id="incremental-queue-id" placeholder="auto-created on first run" />
+              </div>
+              <div>
+                <label for="incremental-reprocess">Reprocess</label>
+                <select id="incremental-reprocess">
+                  <option value="false">false</option>
+                  <option value="true">true</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions-row">
+              <button id="run-incremental-intake-button">Process next chunk</button>
+              <button id="load-incremental-queues-button" class="secondary">Reload queues</button>
+              <button id="copy-incremental-folder-button" class="secondary">Use Drive folder id</button>
+            </div>
+            <div id="incremental-status" class="status" style="margin-top: 0.8rem;">No incremental intake queue loaded yet.</div>
+            <div id="incremental-results" class="list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Brand Action Launcher</div>
+            <h2>Start a Merlin intent</h2>
+            <div class="split" style="margin-top: 0.8rem;">
+              <div>
+                <label for="brand-select">Brand</label>
+                <select id="brand-select">
+                  <option value="MEALSCOUT">MEALSCOUT</option>
+                  <option value="TRADESCOUT">TRADESCOUT</option>
+                  <option value="HOMEID">HOMEID</option>
+                  <option value="MERLIN">MERLIN</option>
+                </select>
+              </div>
+              <div>
+                <label for="actor-scope">Actor scope</label>
+                <select id="actor-scope">
+                  <option value="owner">owner</option>
+                  <option value="staff">staff</option>
+                  <option value="admin">admin</option>
+                  <option value="rep">rep</option>
+                  <option value="system">system</option>
+                </select>
+              </div>
+              <div>
+                <label for="entity-type">Entity type</label>
+                <select id="entity-type">
+                  <option value="food_truck">food_truck</option>
+                  <option value="restaurant">restaurant</option>
+                  <option value="host_location">host_location</option>
+                  <option value="event">event</option>
+                  <option value="unknown">unknown</option>
+                </select>
+              </div>
+              <div>
+                <label for="action-select">Action</label>
+                <select id="action-select"></select>
+              </div>
+              <div>
+                <label for="entity-id">Entity ID</label>
+                <input id="entity-id" placeholder="optional target profile/account id" />
+              </div>
+              <div>
+                <label for="user-hint">User hint</label>
+                <input id="user-hint" placeholder="what should Merlin update?" />
+              </div>
+            </div>
+            <label for="files-json" style="margin-top: 0.8rem;">Evidence refs JSON</label>
+            <textarea id="files-json" placeholder='[{"fileId":"file-1","fileName":"menu.jpg","mimeType":"image/jpeg","extractedText":"MENU\\nWings 10.00"}]'></textarea>
+            <div class="split" style="margin-top: 0.8rem;">
+              <button id="create-intent-button">Create intent</button>
+              <button class="secondary" id="preview-intent-button">Create + attach + route + preview</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="panel">
+            <div class="eyebrow">Available Actions</div>
+            <h2>What Merlin can stage here</h2>
+            <div id="action-cards" class="list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Search</div>
+            <h2>Evidence already indexed</h2>
+            <div class="split" style="margin-top: 0.8rem;">
+              <input id="search-query" placeholder="business name, profile id, phone, source ref" />
+              <button class="secondary" id="run-search-button">Search</button>
+            </div>
+            <div id="search-results" class="list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Result</div>
+            <h2>Last shell operation</h2>
+            <pre id="result-json">{}</pre>
+          </div>
+
+          <div class="panel">
+            <div class="eyebrow">Acceptance Flow</div>
+            <h2>Accept and clean buffered Drive media</h2>
+            <label for="proof-reference" style="margin-top: 0.8rem;">Proof reference</label>
+            <input id="proof-reference" placeholder="operator-review-proof-001" />
+            <label for="cleanup-note" style="margin-top: 0.8rem;">Cleanup note</label>
+            <input id="cleanup-note" placeholder="Accepted in Merlin browser shell after operator review" />
+            <div class="actions-row">
+              <button id="refresh-lifecycle-button" class="secondary">Refresh lifecycle</button>
+              <button id="accept-preview-button">Accept current preview</button>
+              <button id="cleanup-ready-button" class="secondary">Mark cleanup ready</button>
+              <button id="clean-preview-button" class="secondary">Mark cleaned</button>
+            </div>
+            <div id="lifecycle-status" class="status" style="margin-top: 0.8rem;">No preview lifecycle loaded yet.</div>
+            <div id="lifecycle-list" class="list"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const state = {
+        shell: null,
+        selectedThreadId: null,
+        drivePreview: null,
+        lastPreviewResult: null,
+        lifecycleRecords: [],
+        incremental: {
+          queue: null,
+          queues: [],
+          lastRun: null,
+          batchActionCards: []
+        }
+      };
+
+      const workspaceId = 'merlin-workspace-system';
+
+      function chip(text, warn = false) {
+        return `<span class="chip${warn ? ' warn' : ''}">${text}</span>`;
+      }
+
+      async function fetchJson(url, init = {}) {
+        const response = await fetch(url, {
+          headers: { 'Content-Type': 'application/json', 'x-operator-id': 'shell-demo-user', 'x-operator-role': 'admin', ...(init.headers || {}) },
+          ...init
+        });
+        const text = await response.text();
+        const body = text ? JSON.parse(text) : {};
+        if (!response.ok) {
+          throw new Error(body.error || `request_failed:${response.status}`);
+        }
+        return body;
+      }
+
+      function buildQuickAttachment() {
+        const extractedText = document.getElementById('quick-evidence-text').value.trim();
+        if (!extractedText) return null;
+        return {
+          fileId: document.getElementById('quick-file-id').value.trim() || `quick-${Date.now()}`,
+          fileName: document.getElementById('quick-file-name').value.trim() || 'quick-evidence.txt',
+          mimeType: document.getElementById('quick-file-type').value,
+          extractedText
+        };
+      }
+
+      function parseThreadAttachments() {
+        const attachmentsRaw = document.getElementById('thread-files-json').value.trim();
+        const attachments = attachmentsRaw ? JSON.parse(attachmentsRaw) : [];
+        const quickAttachment = buildQuickAttachment();
+        if (quickAttachment) attachments.push(quickAttachment);
+        return attachments;
+      }
+
+      function renderShell(payload) {
+        state.shell = payload;
+        state.selectedThreadId = payload.shell.selectedThread?.thread?.id || null;
+        document.getElementById('workspace-title').textContent = payload.shell.workspace?.workspace_name || 'Merlin System';
+        document.getElementById('operator-line').textContent = `Operator: ${payload.operator?.decidedBy || 'unknown'} · role: ${payload.operatorRole?.role || 'unknown'}`;
+        document.getElementById('generated-line').textContent = `Generated ${new Date(payload.generatedAt).toLocaleString()}`;
+        document.getElementById('next-steps').innerHTML = payload.shell.suggestedNextSteps.map((step) => `<div>${step}</div>`).join('');
+        document.getElementById('summary-chips').innerHTML = [
+          chip(`${payload.shell.connectedSources.length} connected source records`),
+          chip(`${payload.shell.actions.length} registered actions`),
+          chip(`${payload.operatorConsole.summary.approvalRequestedCount} pending approvals`, payload.operatorConsole.summary.approvalRequestedCount > 0),
+          chip(`${payload.operatorConsole.summary.intakeOpenCount} open intake items`)
+        ].join('');
+
+        document.getElementById('connected-sources').innerHTML = payload.shell.sourceCatalog.map((row) => `
+          <div class="card">
+            <strong>${row.label}</strong>
+            <div class="meta">${row.sourceKey} · ${row.type} · trust ${row.trustLevel}</div>
+            <div class="chips">
+              ${chip(row.connectionStatus, row.connectionStatus !== 'connected')}
+              ${(row.capabilities || []).map((capability) => chip(capability)).join('')}
+            </div>
+          </div>
+        `).join('');
+
+        document.getElementById('action-cards').innerHTML = payload.shell.actions.map((row) => `
+          <div class="card">
+            <strong>${row.label}</strong>
+            <div class="meta">${row.brand} · ${row.actorScope} · ${row.actionId}</div>
+          </div>
+        `).join('') || '<div class="card">No registered actions for this brand yet.</div>';
+
+        const actionSelect = document.getElementById('action-select');
+        actionSelect.innerHTML = payload.shell.actions
+          .filter((row) => row.brand === document.getElementById('brand-select').value)
+          .map((row) => `<option value="${row.actionId}">${row.actionId}</option>`)
+          .join('');
+        const threadPicker = document.getElementById('thread-picker');
+        threadPicker.innerHTML = (payload.shell.threads || [])
+          .map((row) => `<option value="${row.id}" ${row.id === state.selectedThreadId ? 'selected' : ''}>${row.title}</option>`)
+          .join('');
+        renderThread(payload.shell.selectedThread);
+      }
+
+      function renderThread(selectedThread) {
+        const container = document.getElementById('thread-messages');
+        if (!selectedThread?.thread) {
+          container.innerHTML = '<div class="card">No thread yet. Create one to keep Merlin context in one lane.</div>';
+          return;
+        }
+        container.innerHTML = `
+          <div class="card">
+            <strong>${selectedThread.thread.title}</strong>
+            <div class="meta">${selectedThread.thread.status} · ${selectedThread.thread.brand || 'no brand'} · ${selectedThread.thread.action_id || 'no action selected yet'}</div>
+          </div>
+        ` + (selectedThread.messages || []).map((row) => `
+          <div class="card">
+            <strong>${row.role}</strong>
+            <div style="margin-top: 0.35rem;">${(row.message_text || '(attachments only)').replace(/</g, '&lt;')}</div>
+            <div class="chips">
+              ${(row.attachments || []).map((file) => chip(file.fileName || file.fileId)).join('')}
+              ${row.linked_upload_intent_id ? chip(`intent:${row.linked_upload_intent_id}`) : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function renderDrivePreview() {
+        const statusNode = document.getElementById('drive-status');
+        const listNode = document.getElementById('drive-preview-list');
+        if (!state.drivePreview) {
+          statusNode.textContent = 'Drive not loaded yet.';
+          listNode.innerHTML = '<div class="card">No Drive preview loaded yet.</div>';
+          return;
+        }
+        statusNode.textContent = state.drivePreview.statusText || 'Drive preview loaded.';
+        const cards = [];
+        if (state.drivePreview.driveSource) {
+          cards.push(`
+            <div class="card">
+              <strong>Drive source</strong>
+              <div class="meta">folder ${state.drivePreview.driveSource.folderId} · listed ${state.drivePreview.driveSource.listedCount} · filtered out ${state.drivePreview.driveSource.filteredOutCount}</div>
+            </div>
+          `);
+        }
+        for (const cluster of state.drivePreview.folderContext?.probableTruckClusters || []) {
+          cards.push(`
+            <div class="card">
+              <strong>${cluster.truckNameGuess || cluster.clusterLabel || 'Probable cluster'}</strong>
+              <div class="meta">${(cluster.fileIds || []).length} files in folder context</div>
+            </div>
+          `);
+        }
+        for (const row of (state.drivePreview.evidenceFiles || []).slice(0, 10)) {
+          cards.push(`
+            <div class="card">
+              <strong>${row.fileName || row.sourceFileName || row.fileId || 'Drive file'}</strong>
+              <div class="meta">${row.detectedType || 'unknown'} · confidence ${Math.round((row.confidence || 0) * 100)}%</div>
+              <div style="margin-top:0.35rem;">${String(row.rawExtractedText || '').slice(0, 220).replace(/</g, '&lt;')}</div>
+            </div>
+          `);
+        }
+        listNode.innerHTML = cards.join('') || '<div class="card">Drive preview returned no evidence files.</div>';
+      }
+
+      function renderIncrementalIntake() {
+        const statusNode = document.getElementById('incremental-status');
+        const listNode = document.getElementById('incremental-results');
+        const lastRun = state.incremental.lastRun;
+        const queue = state.incremental.queue;
+        const queues = state.incremental.queues || [];
+        const batchActionCards = state.incremental.batchActionCards || [];
+
+        if (queue?.id) {
+          document.getElementById('incremental-queue-id').value = queue.id;
+        }
+
+        if (!lastRun && !queues.length) {
+          statusNode.textContent = 'No incremental intake queue loaded yet.';
+          listNode.innerHTML = '<div class="card">Run a chunk to create a queue, or reload queues to inspect existing progress.</div>';
+          return;
+        }
+
+        if (lastRun) {
+          statusNode.textContent = `Queue ${lastRun.queue?.status || 'active'} · processed ${lastRun.processedThisChunkCount || 0} this chunk · ${lastRun.remainingEligibleCount || 0} remaining eligible file(s).`;
+        } else if (queue) {
+          statusNode.textContent = `Queue ${queue.status} · processed ${queue.processed_count || 0} total file(s).`;
+        }
+
+        const cards = [];
+        if (queue) {
+          cards.push(`
+            <div class="card">
+              <strong>Active queue</strong>
+              <div class="meta">${queue.id} · ${queue.status} · processed ${queue.processed_count || 0} · skipped ${queue.skipped_count || 0}</div>
+              <div class="chips">
+                ${chip(`folder:${queue.folder_id}`)}
+                ${queue.last_cursor_file_id ? chip(`cursor:${queue.last_cursor_file_id}`) : ''}
+                ${queue.last_batch_id ? chip(`batch:${queue.last_batch_id}`) : ''}
+              </div>
+            </div>
+          `);
+        }
+        if (lastRun?.processedFiles?.length) {
+          for (const row of lastRun.processedFiles) {
+            cards.push(`
+              <div class="card">
+                <strong>${row.fileName || row.fileId}</strong>
+                <div class="meta">${row.classification || 'unknown'} · confidence ${Math.round((row.confidence || 0) * 100)}%</div>
+                <div class="chips">
+                  ${row.truckName ? chip(row.truckName) : ''}
+                  ${row.email ? chip(row.email) : ''}
+                  ${row.phone ? chip(row.phone) : ''}
+                  ${row.cityArea ? chip(row.cityArea) : ''}
+                  ${Number.isFinite(row.menuItemCount) ? chip(`menu items:${row.menuItemCount}`) : ''}
+                </div>
+              </div>
+            `);
+          }
+        }
+        if (lastRun?.clusters?.length) {
+          for (const cluster of lastRun.clusters) {
+            cards.push(`
+              <div class="card">
+                <strong>${cluster.likelyTruckName || cluster.clusterId}</strong>
+                <div class="meta">${cluster.reviewStatus} · ${(cluster.fileIds || []).length} file(s) · confidence ${Math.round((cluster.confidence || 0) * 100)}%</div>
+              </div>
+            `);
+          }
+        }
+        if (batchActionCards.length) {
+          for (const card of batchActionCards) {
+            cards.push(`
+              <div class="card">
+                <strong>${card.title || card.type}</strong>
+                <div class="meta">${card.type} · confidence ${Math.round((card.confidence || 0) * 100)}%</div>
+              </div>
+            `);
+          }
+        }
+        if (queues.length) {
+          cards.push(...queues.slice(0, 8).map((row) => `
+            <div class="card">
+              <strong>${row.folder_label || row.folder_id}</strong>
+              <div class="meta">${row.id} · ${row.status} · processed ${row.processed_count || 0}</div>
+            </div>
+          `));
+        }
+        listNode.innerHTML = cards.join('') || '<div class="card">No incremental results to display yet.</div>';
+      }
+
+      function getCurrentPreviewFileIds() {
+        const sourceFiles = state.lastPreviewResult?.uploadIntent?.preview?.sourceFiles || [];
+        const ids = sourceFiles
+          .map((row) => row.fileId || row.sourceFileId)
+          .filter(Boolean);
+        if (ids.length) return ids;
+        return drivePreviewToThreadAttachments().map((row) => row.fileId).filter(Boolean);
+      }
+
+      function renderLifecycle() {
+        const statusNode = document.getElementById('lifecycle-status');
+        const listNode = document.getElementById('lifecycle-list');
+        const records = state.lifecycleRecords || [];
+        const trackedFileIds = getCurrentPreviewFileIds();
+
+        if (!trackedFileIds.length) {
+          statusNode.textContent = 'No staged preview files yet. Load Drive evidence, attach it to a thread, then stage a preview.';
+          listNode.innerHTML = '<div class="card">No preview-scoped Drive files selected.</div>';
+          return;
+        }
+
+        statusNode.textContent = `Tracking ${trackedFileIds.length} preview file(s) across the Drive buffer lifecycle.`;
+        listNode.innerHTML = trackedFileIds.map((fileId) => {
+          const record = records.find((row) => row.drive_file_id === fileId);
+          if (!record) {
+            return `
+              <div class="card">
+                <strong>${fileId}</strong>
+                <div class="meta">No lifecycle record loaded yet.</div>
+              </div>
+            `;
+          }
+          return `
+            <div class="card">
+              <strong>${record.drive_file_id}</strong>
+              <div class="meta">${record.lifecycle_state} · updated ${new Date(record.updated_at).toLocaleString()}</div>
+              <div class="chips">
+                ${chip(record.lifecycle_state, record.lifecycle_state !== 'cleaned')}
+                ${record.thread_id ? chip(`thread:${record.thread_id}`) : ''}
+                ${record.upload_intent_id ? chip(`intent:${record.upload_intent_id}`) : ''}
+                ${record.proof_reference ? chip(`proof:${record.proof_reference}`) : ''}
+                ${record.cleanup_mode ? chip(`cleanup:${record.cleanup_mode}`) : ''}
+              </div>
+              ${record.note ? `<div style="margin-top:0.45rem;">${String(record.note).replace(/</g, '&lt;')}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function loadShell(options = {}) {
+        const params = new URLSearchParams({
+          workspace_id: workspaceId,
+          brand: options.brand || document.getElementById('brand-select').value || 'MEALSCOUT'
+        });
+        if (options.q) params.set('q', options.q);
+        if (options.threadId || state.selectedThreadId) params.set('thread_id', options.threadId || state.selectedThreadId);
+        const payload = await fetchJson(`/api/merlin/shell?${params.toString()}`);
+        renderShell(payload);
+        if (options.q) renderSearchResults(payload.shell.searchResults || []);
+      }
+
+      function renderSearchResults(rows) {
+        document.getElementById('search-results').innerHTML = rows.length
+          ? rows.map((row) => `
+              <div class="card">
+                <strong>${row.entityId || row.evidenceId}</strong>
+                <div class="meta">${row.brand} · ${row.actionId} · confidence ${Math.round(row.confidence * 100)}%</div>
+                <div class="chips">${(row.detectedSignals || []).map((signal) => chip(signal)).join('')}</div>
+              </div>
+            `).join('')
+          : '<div class="card">No evidence results for this query yet.</div>';
+      }
+
+      async function saveConnectedSource() {
+        const payload = {
+          workspace_id: workspaceId,
+          source_key: document.getElementById('source-key').value,
+          source_label: document.getElementById('source-label').value,
+          source_type: document.getElementById('source-type').value,
+          connection_status: document.getElementById('source-status').value,
+          auth_kind: document.getElementById('source-auth-kind').value,
+          capabilities: document.getElementById('source-capabilities').value.split(',').map((row) => row.trim()).filter(Boolean)
+        };
+        const result = await fetchJson('/api/merlin/connected-sources', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadShell();
+      }
+
+      async function loadDriveStatus() {
+        const driveStatus = await fetchJson('/api/drive/status');
+        let folderDiscovery;
+        try {
+          folderDiscovery = await fetchJson('/api/mealscout/intake/folders');
+        } catch (error) {
+          folderDiscovery = { error: error.message || String(error) };
+        }
+        state.drivePreview = {
+          ...state.drivePreview,
+          statusText: folderDiscovery.error
+            ? `Drive ${driveStatus.status}. MealScout folders unavailable: ${folderDiscovery.error}`
+            : `Drive ${driveStatus.status}. MealScout folders ${folderDiscovery.status}.`,
+          driveStatus,
+          folderDiscovery
+        };
+        renderDrivePreview();
+        document.getElementById('result-json').textContent = JSON.stringify({ driveStatus, folderDiscovery }, null, 2);
+      }
+
+      async function loadDrivePreview() {
+        const folderId = document.getElementById('drive-folder-id').value.trim();
+        return loadDrivePreviewForFolder(folderId || undefined);
+      }
+
+      async function loadDrivePreviewForFolder(folderId) {
+        const preview = await fetchJson('/api/mealscout/intake/preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            loadFromDriveFolder: true,
+            includeDebugOcr: true,
+            ...(folderId ? { driveFolderId: folderId } : {})
+          })
+        });
+        state.drivePreview = {
+          ...state.drivePreview,
+          statusText: 'Drive preview loaded.',
+          driveSource: preview.driveSource,
+          evidenceFiles: preview.evidenceFiles || [],
+          rawPreview: preview
+        };
+        renderDrivePreview();
+        document.getElementById('result-json').textContent = JSON.stringify(preview, null, 2);
+        return preview;
+      }
+
+      async function loadFolderContext() {
+        const folderId = document.getElementById('drive-folder-id').value.trim();
+        const query = folderId ? `?folderId=${encodeURIComponent(folderId)}` : '';
+        const folderContext = await fetchJson(`/api/mealscout/intake/folder-context${query}`);
+        state.drivePreview = {
+          ...state.drivePreview,
+          statusText: 'Drive folder context loaded.',
+          folderContext
+        };
+        renderDrivePreview();
+        document.getElementById('result-json').textContent = JSON.stringify(folderContext, null, 2);
+      }
+
+      async function loadIncrementalQueues() {
+        const payload = await fetchJson('/api/mealscout/intake/incremental/queues');
+        state.incremental.queues = payload.queues || [];
+        const requestedQueueId = document.getElementById('incremental-queue-id').value.trim();
+        if (requestedQueueId) {
+          const detail = await fetchJson(`/api/mealscout/intake/incremental/queues/${encodeURIComponent(requestedQueueId)}`);
+          state.incremental.queue = detail.queue || null;
+        } else if (state.incremental.queues.length) {
+          state.incremental.queue = state.incremental.queues[0];
+        }
+        renderIncrementalIntake();
+        document.getElementById('result-json').textContent = JSON.stringify(payload, null, 2);
+        return payload;
+      }
+
+      async function runIncrementalIntake() {
+        const folderId = document.getElementById('incremental-folder-id').value.trim() || document.getElementById('drive-folder-id').value.trim() || undefined;
+        const queueId = document.getElementById('incremental-queue-id').value.trim() || undefined;
+        const chunkSize = Number(document.getElementById('incremental-chunk-size').value || 25);
+        const reprocess = document.getElementById('incremental-reprocess').value === 'true';
+        const payload = await fetchJson('/api/mealscout/intake/incremental/next', {
+          method: 'POST',
+          body: JSON.stringify({
+            folderId,
+            queueId,
+            chunkSize,
+            reprocess
+          })
+        });
+        state.incremental.lastRun = payload;
+        state.incremental.queue = payload.queue || null;
+        document.getElementById('incremental-folder-id').value = payload.folderId || folderId || '';
+        document.getElementById('incremental-queue-id').value = payload.queue?.id || queueId || '';
+        if (payload.batchId) {
+          try {
+            const actionCardPayload = await fetchJson(`/api/mealscout/intake/batches/${encodeURIComponent(payload.batchId)}/action-cards`);
+            state.incremental.batchActionCards = actionCardPayload.actionCards || [];
+          } catch {
+            state.incremental.batchActionCards = [];
+          }
+        } else {
+          state.incremental.batchActionCards = [];
+        }
+        await loadIncrementalQueues();
+        renderIncrementalIntake();
+        document.getElementById('result-json').textContent = JSON.stringify(payload, null, 2);
+        return payload;
+      }
+
+      function drivePreviewToThreadAttachments() {
+        return (state.drivePreview?.evidenceFiles || [])
+          .map((row) => ({
+            fileId: row.fileId || row.sourceFileId,
+            fileName: row.fileName || row.sourceFileName || row.fileId || row.sourceFileId,
+            mimeType: row.mimeType || 'image/jpeg',
+            extractedText: row.rawExtractedText || '',
+            metadata: {
+              detectedType: row.detectedType,
+              confidence: row.confidence
+            }
+          }))
+          .filter((row) => row.fileId);
+      }
+
+      function base64FromArrayBuffer(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          const chunk = bytes.subarray(index, index + chunkSize);
+          binary += String.fromCharCode(...chunk);
+        }
+        return btoa(binary);
+      }
+
+      async function fileToDriveBufferPayload(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const payload = {
+          fileName: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          base64Content: base64FromArrayBuffer(arrayBuffer)
+        };
+        const loweredName = file.name.toLowerCase();
+        const shouldReadText = payload.mimeType.startsWith('text/')
+          || payload.mimeType === 'application/json'
+          || payload.mimeType === 'text/csv'
+          || payload.mimeType === 'text/markdown'
+          || loweredName.endsWith('.txt')
+          || loweredName.endsWith('.json')
+          || loweredName.endsWith('.csv')
+          || loweredName.endsWith('.md');
+        if (shouldReadText) {
+          payload.textContent = await file.text();
+        }
+        return payload;
+      }
+
+      async function uploadLocalFilesToDriveBuffer() {
+        const input = document.getElementById('local-drive-files');
+        const files = Array.from(input.files || []);
+        if (!files.length) throw new Error('select_local_files_first');
+        const filePayloads = [];
+        for (const file of files) {
+          filePayloads.push(await fileToDriveBufferPayload(file));
+        }
+        const result = await fetchJson('/api/merlin/drive-buffer/upload', {
+          method: 'POST',
+          body: JSON.stringify({
+            folder_label: document.getElementById('drive-upload-folder-label').value.trim() || undefined,
+            note: document.getElementById('drive-upload-note').value.trim() || undefined,
+            files: filePayloads
+          })
+        });
+        document.getElementById('drive-folder-id').value = result.driveFolder.id;
+        document.getElementById('thread-files-json').value = JSON.stringify(result.threadAttachments, null, 2);
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadDrivePreviewForFolder(result.driveFolder.id);
+        return result;
+      }
+
+      async function uploadAndStagePreview() {
+        if (!state.selectedThreadId) {
+          await createThread();
+        }
+        const uploadResult = await uploadLocalFilesToDriveBuffer();
+        await attachDrivePreviewToThread();
+        await stageThreadPreview();
+        document.getElementById('result-json').textContent = JSON.stringify({
+          uploadResult,
+          stagedThreadId: state.selectedThreadId,
+          stagedPreviewFileIds: getCurrentPreviewFileIds()
+        }, null, 2);
+      }
+
+      async function attachDrivePreviewToThread() {
+        if (!state.selectedThreadId) throw new Error('create_or_select_a_thread_first');
+        const attachments = drivePreviewToThreadAttachments();
+        if (!attachments.length) throw new Error('load_drive_preview_first');
+        const mode = document.getElementById('drive-preview-mode').value;
+        const result = await fetchJson(`/api/merlin/threads/${encodeURIComponent(state.selectedThreadId)}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({
+            role: 'user',
+            message_text: mode === 'account_first'
+              ? 'Process accounts first from the attached Drive evidence. Skip logos and menus unless needed later.'
+              : 'Use the attached Drive evidence to stage the next Merlin preview.',
+            attachments
+          })
+        });
+        document.getElementById('result-json').textContent = JSON.stringify({
+          attachedCount: attachments.length,
+          result
+        }, null, 2);
+        await loadShell({ threadId: state.selectedThreadId, brand: document.getElementById('brand-select').value });
+        await refreshLifecycle();
+      }
+
+      async function createThread() {
+        const result = await fetchJson('/api/merlin/threads', {
+          method: 'POST',
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            title: document.getElementById('thread-title').value || undefined,
+            brand: document.getElementById('brand-select').value,
+            actor_scope: document.getElementById('actor-scope').value,
+            entity_type: document.getElementById('entity-type').value,
+            entity_id: document.getElementById('entity-id').value || undefined,
+            action_id: document.getElementById('action-select').value || undefined
+          })
+        });
+        state.selectedThreadId = result.thread.id;
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadShell({ threadId: result.thread.id });
+      }
+
+      async function sendThreadMessage() {
+        if (!state.selectedThreadId) throw new Error('create_or_select_a_thread_first');
+        const attachments = parseThreadAttachments();
+        const result = await fetchJson(`/api/merlin/threads/${encodeURIComponent(state.selectedThreadId)}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({
+            role: 'user',
+            message_text: document.getElementById('thread-message').value,
+            attachments
+          })
+        });
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadShell({ threadId: state.selectedThreadId });
+      }
+
+      async function stageThreadPreview() {
+        if (!state.selectedThreadId) throw new Error('create_or_select_a_thread_first');
+        const filesRaw = document.getElementById('files-json').value.trim();
+        const explicitFiles = filesRaw ? JSON.parse(filesRaw) : undefined;
+        const quickAttachment = buildQuickAttachment();
+        const mergedFiles = explicitFiles ? [...explicitFiles] : [];
+        if (quickAttachment) mergedFiles.push(quickAttachment);
+        const result = await fetchJson(`/api/merlin/threads/${encodeURIComponent(state.selectedThreadId)}/intent-handoff`, {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: 'shell-demo-user',
+            accountId: workspaceId,
+            brand: document.getElementById('brand-select').value,
+            actorScope: document.getElementById('actor-scope').value,
+            entityType: document.getElementById('entity-type').value,
+            entityId: document.getElementById('entity-id').value || undefined,
+            actionId: document.getElementById('action-select').value,
+            userHint: document.getElementById('user-hint').value || undefined,
+            files: mergedFiles.length ? mergedFiles : undefined
+          })
+        });
+        state.lastPreviewResult = result;
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadShell({ threadId: state.selectedThreadId, brand: document.getElementById('brand-select').value });
+        await refreshLifecycle();
+      }
+
+      async function createIntent(previewToo) {
+        const brand = document.getElementById('brand-select').value;
+        const created = await fetchJson('/api/merlin/intake/upload-intents', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: 'shell-demo-user',
+            accountId: workspaceId,
+            brand,
+            actorScope: document.getElementById('actor-scope').value,
+            entityType: document.getElementById('entity-type').value,
+            entityId: document.getElementById('entity-id').value || undefined,
+            actionId: document.getElementById('action-select').value,
+            userHint: document.getElementById('user-hint').value || undefined
+          })
+        });
+        let result = { created };
+        const uploadId = created.intent?.uploadId;
+        const filesRaw = document.getElementById('files-json').value.trim();
+        const files = filesRaw ? JSON.parse(filesRaw) : [];
+        if (Array.isArray(files) && files.length) {
+          const attached = await fetchJson(`/api/merlin/intake/upload-intents/${uploadId}/files`, {
+            method: 'POST',
+            body: JSON.stringify({ files })
+          });
+          result.attached = attached;
+          if (previewToo) {
+            const routed = await fetchJson(`/api/merlin/intake/upload-intents/${uploadId}/route`, { method: 'POST' });
+            const preview = await fetchJson(`/api/merlin/intake/upload-intents/${uploadId}/preview`, { method: 'POST' });
+            result.routed = routed;
+            result.preview = preview;
+            state.lastPreviewResult = { uploadIntent: preview.uploadIntent || preview.intent || preview };
+          }
+        }
+        document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        await loadShell({ brand });
+        if (previewToo) await refreshLifecycle();
+      }
+
+      async function refreshLifecycle() {
+        const fileIds = getCurrentPreviewFileIds();
+        if (!fileIds.length) {
+          state.lifecycleRecords = [];
+          renderLifecycle();
+          return;
+        }
+        const records = await Promise.all(fileIds.map((fileId) =>
+          fetchJson(`/api/drive/buffer-lifecycle/${encodeURIComponent(fileId)}`).then((payload) => payload.lifecycle)
+        ));
+        state.lifecycleRecords = records;
+        renderLifecycle();
+      }
+
+      async function advanceLifecycle(action) {
+        const fileIds = getCurrentPreviewFileIds();
+        if (!fileIds.length) throw new Error('stage_a_preview_with_drive_files_first');
+        const proofReference = document.getElementById('proof-reference').value.trim();
+        const cleanupNote = document.getElementById('cleanup-note').value.trim();
+        const uploadIntentId = state.lastPreviewResult?.uploadIntent?.uploadId;
+
+        const results = [];
+        for (const fileId of fileIds) {
+          if (action === 'accept') {
+            results.push(await fetchJson(`/api/drive/buffer-lifecycle/${encodeURIComponent(fileId)}/accept`, {
+              method: 'POST',
+              body: JSON.stringify({
+                proof_reference: proofReference || undefined,
+                upload_intent_id: uploadIntentId || undefined,
+                note: cleanupNote || undefined
+              })
+            }));
+          } else if (action === 'cleanup-ready') {
+            results.push(await fetchJson(`/api/drive/buffer-lifecycle/${encodeURIComponent(fileId)}/cleanup-ready`, {
+              method: 'POST',
+              body: JSON.stringify({
+                proof_reference: proofReference || undefined,
+                note: cleanupNote || undefined
+              })
+            }));
+          } else if (action === 'clean') {
+            results.push(await fetchJson(`/api/drive/buffer-lifecycle/${encodeURIComponent(fileId)}/clean`, {
+              method: 'POST',
+              body: JSON.stringify({
+                cleanup_mode: 'mark_only',
+                note: cleanupNote || undefined
+              })
+            }));
+          }
+        }
+
+        document.getElementById('result-json').textContent = JSON.stringify({
+          action,
+          fileIds,
+          results
+        }, null, 2);
+        await refreshLifecycle();
+      }
+
+      function syncActionOptions() {
+        if (!state.shell) return;
+        const brand = document.getElementById('brand-select').value;
+        const actionSelect = document.getElementById('action-select');
+        const actions = state.shell.shell.actions.filter((row) => row.brand === brand);
+        actionSelect.innerHTML = actions.map((row) => `<option value="${row.actionId}">${row.actionId}</option>`).join('');
+      }
+
+      async function boot() {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js').catch(() => undefined);
+        }
+        document.getElementById('brand-select').addEventListener('change', async () => {
+          await loadShell({ brand: document.getElementById('brand-select').value });
+          syncActionOptions();
+        });
+        document.getElementById('upload-drive-buffer-button').addEventListener('click', uploadLocalFilesToDriveBuffer);
+        document.getElementById('upload-stage-button').addEventListener('click', uploadAndStagePreview);
+        document.getElementById('load-drive-status-button').addEventListener('click', loadDriveStatus);
+        document.getElementById('load-drive-preview-button').addEventListener('click', loadDrivePreview);
+        document.getElementById('load-folder-context-button').addEventListener('click', loadFolderContext);
+        document.getElementById('attach-drive-preview-button').addEventListener('click', attachDrivePreviewToThread);
+        document.getElementById('run-incremental-intake-button').addEventListener('click', runIncrementalIntake);
+        document.getElementById('load-incremental-queues-button').addEventListener('click', loadIncrementalQueues);
+        document.getElementById('copy-incremental-folder-button').addEventListener('click', () => {
+          document.getElementById('incremental-folder-id').value = document.getElementById('drive-folder-id').value.trim();
+        });
+        document.getElementById('connect-source-button').addEventListener('click', saveConnectedSource);
+        document.getElementById('create-thread-button').addEventListener('click', createThread);
+        document.getElementById('reload-thread-button').addEventListener('click', async () => {
+          state.selectedThreadId = document.getElementById('thread-picker').value || state.selectedThreadId;
+          await loadShell({ threadId: state.selectedThreadId });
+        });
+        document.getElementById('thread-picker').addEventListener('change', async () => {
+          state.selectedThreadId = document.getElementById('thread-picker').value || null;
+          await loadShell({ threadId: state.selectedThreadId });
+        });
+        document.getElementById('send-thread-message-button').addEventListener('click', sendThreadMessage);
+        document.getElementById('thread-handoff-button').addEventListener('click', stageThreadPreview);
+        document.getElementById('create-intent-button').addEventListener('click', () => createIntent(false));
+        document.getElementById('preview-intent-button').addEventListener('click', () => createIntent(true));
+        document.getElementById('refresh-lifecycle-button').addEventListener('click', refreshLifecycle);
+        document.getElementById('accept-preview-button').addEventListener('click', () => advanceLifecycle('accept'));
+        document.getElementById('cleanup-ready-button').addEventListener('click', () => advanceLifecycle('cleanup-ready'));
+        document.getElementById('clean-preview-button').addEventListener('click', () => advanceLifecycle('clean'));
+        document.getElementById('run-search-button').addEventListener('click', async () => {
+          await loadShell({ q: document.getElementById('search-query').value });
+        });
+        await loadShell({ brand: 'MEALSCOUT' });
+        renderDrivePreview();
+        renderLifecycle();
+        renderIncrementalIntake();
+        syncActionOptions();
+      }
+
+      boot().catch((error) => {
+        document.getElementById('result-json').textContent = JSON.stringify({ error: error.message || String(error) }, null, 2);
+      });
+    </script>
+  </body>
+</html>

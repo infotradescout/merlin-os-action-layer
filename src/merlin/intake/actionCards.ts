@@ -41,6 +41,32 @@ function compact(values: Array<string | undefined>): string[] {
   return values.filter((value): value is string => Boolean(value && value.trim()));
 }
 
+function hasAdminOrDriveSource(draft: MealScoutProfileDraft): boolean {
+  return draft.sourceFiles.some((file) => {
+    const channel = file.sourceAttribution?.sourceChannel;
+    return channel === 'admin_import' || channel === 'drive_upload' || Boolean(file.sourceAttribution?.intakeSubmittedBy);
+  });
+}
+
+function hasStrongOperatorIdentityEvidence(draft: MealScoutProfileDraft): boolean {
+  const hasNamedEntity = Boolean(draft.truckName && draft.truckName.trim());
+  const hasContext =
+    Boolean(draft.cityArea && draft.cityArea.trim()) ||
+    Boolean(draft.cuisine && draft.cuisine.trim()) ||
+    Boolean(draft.website && draft.website.trim()) ||
+    Boolean(draft.socials.facebook && draft.socials.facebook.trim()) ||
+    Boolean(draft.socials.instagram && draft.socials.instagram.trim());
+
+  return hasNamedEntity && hasContext;
+}
+
+function buildCardMissingFields(draft: MealScoutProfileDraft): string[] {
+  if (hasAdminOrDriveSource(draft) && hasStrongOperatorIdentityEvidence(draft)) {
+    return draft.missingFields.filter((field) => field !== 'phone_or_email');
+  }
+  return [...draft.missingFields];
+}
+
 function buildExtractedFields(draft: MealScoutProfileDraft): Record<string, unknown> {
   const sourceTextSnippets = Array.from(
     new Set(
@@ -59,6 +85,22 @@ function buildExtractedFields(draft: MealScoutProfileDraft): Record<string, unkn
     const [sourceFileId, snippet] = row.split('::');
     return { sourceFileId, snippet };
   });
+  const contactCandidates = [
+    draft.extractedFieldEvidence.phone
+      ? {
+          type: 'phone',
+          value: draft.extractedFieldEvidence.phone.value,
+          sourceFileId: draft.extractedFieldEvidence.phone.sourceFileId
+        }
+      : null,
+    draft.extractedFieldEvidence.email
+      ? {
+          type: 'email',
+          value: draft.extractedFieldEvidence.email.value,
+          sourceFileId: draft.extractedFieldEvidence.email.sourceFileId
+        }
+      : null
+  ].filter(Boolean);
 
   return {
     truckName: draft.truckName,
@@ -70,6 +112,7 @@ function buildExtractedFields(draft: MealScoutProfileDraft): Record<string, unkn
     socials: draft.socials,
     menuItems: draft.menu.map((item) => ({ name: item.name, price: item.price, description: item.description })),
     menuDeferred: draft.menuDeferred,
+    contactCandidates,
     extractionDebug: {
       sourceTextSnippets,
       rawTextEvidence: sourceTextSnippets.map((item) => ({ sourceFileId: item.sourceFileId, rawSnippet: item.snippet }))
@@ -78,6 +121,7 @@ function buildExtractedFields(draft: MealScoutProfileDraft): Record<string, unkn
 }
 
 function detectCardType(draft: MealScoutProfileDraft): MerlinActionCardType {
+  const missingFields = buildCardMissingFields(draft);
   const hasIdentity = Boolean(
     draft.truckName ||
       draft.phone ||
@@ -90,13 +134,10 @@ function detectCardType(draft: MealScoutProfileDraft): MerlinActionCardType {
   if (!hasIdentity) return 'defer_unclassified';
   if (draft.existingTruckId) return 'update_existing_profile';
   if (draft.draftType === 'uncertain_match' && draft.duplicateCandidates.length > 0) return 'claim_existing_profile';
-  const missingOnlyMenu = draft.missingFields.length > 0 && draft.missingFields.every((field) => field === 'menu');
-  const adminOrDriveSource = draft.sourceFiles.some((file) => {
-    const channel = file.sourceAttribution?.sourceChannel;
-    return channel === 'admin_import' || channel === 'drive_upload' || Boolean(file.sourceAttribution?.intakeSubmittedBy);
-  });
-  if (missingOnlyMenu && draft.menuDeferred && adminOrDriveSource) return 'create_profile_draft';
-  if (draft.missingFields.length > 0 || draft.reviewStatus === 'missing_required') return 'request_missing_info';
+  const missingOnlyMenu = missingFields.length > 0 && missingFields.every((field) => field === 'menu');
+  const adminOrDriveSource = hasAdminOrDriveSource(draft);
+  if (missingOnlyMenu && adminOrDriveSource) return 'create_profile_draft';
+  if (missingFields.length > 0 || draft.reviewStatus === 'missing_required') return 'request_missing_info';
   return 'create_profile_draft';
 }
 
@@ -141,6 +182,7 @@ export function buildMealScoutActionCards(params: {
   const cards: MerlinActionCard[] = drafts.map((draft) => {
     const type = detectCardType(draft);
     const extractedFields = buildExtractedFields(draft);
+    const missingFields = buildCardMissingFields(draft);
     const sourceFileIds = Array.from(new Set(draft.sourceFiles.map((file) => file.sourceFileId))).filter(Boolean);
     const existingEntityMatch = draft.existingTruckId
       ? {
@@ -164,7 +206,7 @@ export function buildMealScoutActionCards(params: {
       confidence: Number((draft.confidence || 0).toFixed(2)),
       sourceFileIds,
       extractedFields,
-      missingFields: [...draft.missingFields],
+      missingFields,
       existingEntityMatch,
       duplicateWarnings: existingEntityMatch && type === 'create_profile_draft' ? ['possible_duplicate_existing_entity_match'] : [],
       conflictWarnings: [],
