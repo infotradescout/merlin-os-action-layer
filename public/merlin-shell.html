@@ -4,19 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Merlin Shell</title>
-    <meta name="theme-color" content="#0b6e4f" />
+    <meta name="theme-color" content="#0f172a" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       :root {
-        --bg: #f3efe5;
-        --ink: #1b2432;
-        --panel: rgba(255, 252, 246, 0.86);
-        --line: rgba(27, 36, 50, 0.14);
-        --muted: #5f6c7f;
-        --accent: #0b6e4f;
-        --accent-soft: #d8f0e7;
-        --warning: #8a4b0f;
-        --warning-soft: #f7e8cf;
+        --page: #f7f7f8;
+        --surface: #ffffff;
+        --surface-muted: #f1f3f5;
+        --ink: #202123;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --accent: #10a37f;
+        --accent-strong: #0e8f70;
+        --accent-soft: #dff5ee;
+        --blue: #2563eb;
+        --blue-soft: #eff6ff;
+        --warning: #925200;
+        --warning-soft: #fff1d6;
+        --danger: #a33a32;
+        --radius: 12px;
       }
 
       * {
@@ -26,92 +32,219 @@
       body {
         margin: 0;
         color: var(--ink);
-        font-family: "Aptos", "Segoe UI", sans-serif;
-        background:
-          radial-gradient(circle at top left, rgba(11, 110, 79, 0.12), transparent 28%),
-          radial-gradient(circle at bottom right, rgba(207, 127, 55, 0.14), transparent 24%),
-          linear-gradient(180deg, #faf5e9, #efe8d8 42%, #f6f2e8);
+        font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: var(--page);
       }
 
       .page {
-        max-width: 1380px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 1.2rem;
+        padding: 0.85rem 1rem 2rem;
       }
 
-      .hero {
+      .topbar {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
         display: grid;
-        grid-template-columns: 1.5fr 1fr;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        gap: 0.8rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        margin-bottom: 0.45rem;
+        padding: 0.35rem 0;
       }
 
-      .panel {
-        background: var(--panel);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--line);
-        border-radius: 22px;
-        padding: 1rem;
-        box-shadow: 0 22px 48px rgba(38, 43, 55, 0.08);
+      .app-title {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
       }
 
-      .eyebrow {
-        font-size: 0.76rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
+      .app-title h1 {
+        font-size: 1.05rem;
+        line-height: 1.2;
       }
 
       h1, h2, h3 {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
       }
 
-      .hero h1 {
-        font-size: clamp(2rem, 4vw, 3.5rem);
-        line-height: 1.02;
-        margin-top: 0.25rem;
+      h2 {
+        font-size: 1rem;
+      }
+
+      h3 {
+        font-size: 0.92rem;
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       .lede, .meta, .list-note {
         color: var(--muted);
       }
 
-      .doctrine {
-        margin-top: 1rem;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.7rem;
+      .meta, .list-note {
+        font-size: 0.88rem;
       }
 
-      .doctrine div {
-        background: rgba(255,255,255,0.58);
+      .shell-grid {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: minmax(0, 780px) 320px;
+        align-items: start;
+        justify-content: center;
+      }
+
+      .panel {
+        background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+      }
+
+      .panel + .panel {
+        margin-top: 0.75rem;
+      }
+
+      .task-panel {
+        border-top: 0;
+      }
+
+      .workflow {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .workflow-step {
+        align-items: start;
+        background: var(--surface-muted);
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        display: grid;
+        gap: 0.45rem;
+        grid-template-columns: 1.65rem minmax(0, 1fr);
+        padding: 0.55rem;
+      }
+
+      .workflow-step strong {
+        display: block;
+        font-size: 0.9rem;
+      }
+
+      .plain-steps {
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 1rem auto 0;
+        max-width: 860px;
+      }
+
+      .plain-step {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 0.75rem;
+        text-align: left;
+      }
+
+      .plain-step strong {
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .primary-action {
+        font-size: 1rem;
+        padding: 0.78rem 0.85rem;
+      }
+
+      .hero-card {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        display: block;
+        gap: 0.75rem;
+        margin: 0 auto 1rem;
+        max-width: 980px;
+        padding: 1.6rem 0 0.7rem;
+        text-align: center;
+      }
+
+      .hero-card h2 {
+        font-size: 2rem;
+        font-weight: 650;
+        letter-spacing: 0;
+        line-height: 1.12;
+        margin: 0 auto;
+        max-width: 780px;
+      }
+
+      .friendly-status {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        margin: 1rem auto 0;
+        max-width: 640px;
         padding: 0.8rem;
+        text-align: left;
       }
 
-      .layout {
-        display: grid;
-        grid-template-columns: 1.1fr 1fr;
-        gap: 1rem;
+      .admin-shell {
+        margin-top: 0.75rem;
       }
 
-      .stack {
+      .admin-shell > summary {
+        background: var(--surface-muted);
+        border-radius: var(--radius);
+        padding: 0.7rem;
+      }
+
+      .admin-grid {
         display: grid;
-        gap: 1rem;
+        gap: 0.75rem;
+        grid-template-columns: 250px minmax(0, 1fr);
+        margin-top: 0.75rem;
+      }
+
+      .step-number {
+        align-items: center;
+        background: var(--accent);
+        border-radius: 999px;
+        color: #fff;
+        display: inline-flex;
+        font-weight: 700;
+        height: 1.55rem;
+        justify-content: center;
+        width: 1.55rem;
       }
 
       .split {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.8rem;
+        gap: 0.65rem;
       }
 
       .triple {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 0.8rem;
+        gap: 0.65rem;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.65rem;
+      }
+
+      .toolbar > * {
+        flex: 1 1 160px;
       }
 
       label {
@@ -123,25 +256,37 @@
 
       input, select, textarea, button {
         width: 100%;
-        border-radius: 14px;
+        border-radius: 10px;
         border: 1px solid var(--line);
-        background: rgba(255,255,255,0.85);
+        background: #fff;
         color: var(--ink);
         font: inherit;
         padding: 0.72rem 0.8rem;
       }
 
       textarea {
-        min-height: 132px;
+        min-height: 112px;
         resize: vertical;
+      }
+
+      textarea#thread-message {
+        min-height: 118px;
+      }
+
+      textarea#quick-evidence-text {
+        min-height: 92px;
       }
 
       button {
         cursor: pointer;
-        background: linear-gradient(135deg, var(--accent), #0d8b63);
+        background: var(--accent);
         color: #fff;
         border: none;
         font-weight: 600;
+      }
+
+      button:hover {
+        background: var(--accent-strong);
       }
 
       button.secondary {
@@ -150,17 +295,62 @@
         border: 1px solid var(--line);
       }
 
+      button.secondary:hover {
+        background: var(--surface-muted);
+      }
+
       .list {
         display: grid;
-        gap: 0.7rem;
-        margin-top: 0.9rem;
+        gap: 0.55rem;
+        margin-top: 0.65rem;
       }
 
       .card {
-        background: rgba(255,255,255,0.74);
+        background: #fff;
         border: 1px solid var(--line);
-        border-radius: 16px;
+        border-radius: 14px;
+        padding: 0.65rem;
+      }
+
+      .chat-message {
+        border-radius: 18px;
+        margin-top: 0.8rem;
+        max-width: 92%;
+        padding: 0.85rem 0.95rem;
+      }
+
+      .chat-message.assistant {
+        background: var(--surface-muted);
+        border: 1px solid var(--line);
+      }
+
+      .chat-message.user {
+        background: var(--accent-soft);
+        margin-left: auto;
+      }
+
+      .composer {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        margin-top: 0.75rem;
         padding: 0.8rem;
+      }
+
+      .composer textarea,
+      .composer input,
+      .composer select {
+        background: #fff;
+      }
+
+      #thread-messages .card {
+        border-radius: 18px;
+      }
+
+      #thread-messages .card strong {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: capitalize;
       }
 
       .chips {
@@ -183,29 +373,43 @@
         color: var(--warning);
       }
 
+      details {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        margin-top: 0.75rem;
+        padding: 0.65rem;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      details.subtle {
+        background: var(--surface-muted);
+      }
+
+      details.subtle .panel,
+      details.subtle .card {
+        background: #fff;
+      }
+
       pre {
         margin: 0;
         overflow: auto;
         white-space: pre-wrap;
-        background: rgba(18, 24, 36, 0.93);
+        background: #111827;
         color: #dbe9ff;
-        border-radius: 16px;
-        padding: 0.9rem;
+        border-radius: var(--radius);
+        max-height: 430px;
+        padding: 0.75rem;
       }
 
       .status {
-        padding: 0.75rem 0.85rem;
+        padding: 0.65rem;
         border-radius: 14px;
-        background: rgba(255,255,255,0.75);
+        background: var(--surface-muted);
         border: 1px solid var(--line);
-      }
-
-      .topbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 0.8rem;
       }
 
       .install-note {
@@ -216,341 +420,454 @@
       .actions-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.7rem;
-        margin-top: 0.8rem;
+        gap: 0.55rem;
+        margin-top: 0.65rem;
       }
 
       .actions-row button {
         width: auto;
-        min-width: 180px;
+        min-width: 150px;
       }
 
-      @media (max-width: 980px) {
-        .hero, .layout, .split, .triple, .doctrine {
+      .rail-links {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 0.65rem;
+      }
+
+      .rail-links a {
+        background: var(--surface-muted);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        color: var(--ink);
+        padding: 0.5rem 0.55rem;
+        text-decoration: none;
+      }
+
+      .rail-links a:hover {
+        border-color: var(--accent);
+      }
+
+      .section-head {
+        align-items: start;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .field-group {
+        margin-top: 0.65rem;
+      }
+
+      @media (max-width: 1120px) {
+        .shell-grid,
+        .hero-card,
+        .admin-grid {
           grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar,
+        .split,
+        .triple,
+        .plain-steps {
+          grid-template-columns: 1fr;
+        }
+
+        .actions-row button {
+          width: 100%;
         }
       }
     </style>
   </head>
   <body>
     <div class="page">
-      <div class="topbar">
-        <div class="eyebrow">Operational Reality / Merlin Shell</div>
-        <div id="install-note" class="install-note">Browser-installable shell mode only</div>
-      </div>
-      <section class="hero">
-        <div class="panel">
-          <div class="eyebrow">Merlin Shell</div>
-          <h1>Connect systems. State intent. Let Merlin stage the change.</h1>
-          <p class="lede">
-            This is the user-facing front door above the existing operator, intake, and review lanes.
-            It does not skip safety. It turns your connected systems and chosen intent into the same proof-backed preview flow Merlin already knows how to run.
-          </p>
-          <div class="doctrine">
-            <div>
-              <strong>Connect</strong>
-              <div class="list-note">Track which sources belong to a workspace and what they are allowed to expose.</div>
-            </div>
-            <div>
-              <strong>Intent</strong>
-              <div class="list-note">Start a brand-scoped action from one place instead of hunting product-specific routes.</div>
-            </div>
-            <div>
-              <strong>Preview</strong>
-              <div class="list-note">Use Merlin's existing read-only routing and preview path before any future apply surface exists.</div>
-            </div>
+      <header class="topbar">
+        <div>
+          <div class="app-title">
+            <h1>Merlin</h1>
+            <span class="eyebrow">request review with proof</span>
+          </div>
+          <div class="meta">Prepare updates from screenshots, PDFs, Drive files, or notes.</div>
+        </div>
+        <div>
+          <div id="workspace-title" style="font-weight:700;">Loading...</div>
+          <div class="meta" id="generated-line">Loading session...</div>
+        </div>
+      </header>
+
+      <section class="hero-card">
+        <div>
+          <div class="eyebrow">Start a review</div>
+            <h2>Update anything you can log into, with proof kept beside the request.</h2>
+          <div class="plain-steps">
+              <div class="plain-step">
+                <strong>1. Name the place</strong>
+                <div class="meta">Website, app, admin portal, marketplace, profile, listing, or account.</div>
+              </div>
+              <div class="plain-step">
+                <strong>2. Say the change</strong>
+                <div class="meta">Describe what needs to be updated in normal language.</div>
+              </div>
+              <div class="plain-step">
+                <strong>3. Add access context</strong>
+                <div class="meta">Tell Merlin who can log in and attach screenshots, PDFs, or notes.</div>
+              </div>
           </div>
         </div>
-        <div class="panel">
-          <div class="eyebrow">Session</div>
-          <h2 id="workspace-title">Loading workspace...</h2>
-          <p class="meta" id="operator-line"></p>
-          <p class="meta" id="generated-line"></p>
-          <div class="chips" id="summary-chips"></div>
-          <div class="status" style="margin-top: 0.9rem;">
-            <strong>Next steps</strong>
-            <div id="next-steps" class="list-note" style="margin-top: 0.5rem;"></div>
-          </div>
+        <div class="friendly-status">
+          <strong>Merlin does not need your password here.</strong>
+          <div class="meta" style="margin-top:0.4rem;">It stages the request, proof, and next steps. A logged-in human or approved connector still controls the actual change.</div>
         </div>
       </section>
 
-      <section class="layout">
-        <div class="stack">
-          <div class="panel">
-            <div class="eyebrow">Merlin Thread</div>
-            <h2>Persistent action conversation</h2>
-            <div class="split" style="margin-top: 0.8rem;">
+      <main class="shell-grid">
+        <section>
+          <div class="panel task-panel">
+            <div class="section-head">
               <div>
-                <label for="thread-title">Thread title</label>
-                <input id="thread-title" placeholder="Update Sweet Heat profile from new account docs" />
+                <div class="eyebrow">Request</div>
+                <h2>What do you want updated?</h2>
               </div>
+            </div>
+            <div class="chat-message assistant">
+              Tell me the place you can log into, what needs to change, and who has access. Add screenshots or notes below and I will prepare a review packet.
+            </div>
+            <div class="composer">
+              <div class="split">
+                <div>
+                  <label for="destination-name">Where should Merlin help update?</label>
+                  <input id="destination-name" placeholder="Google Business Profile, Shopify, DoorDash, Instagram, WordPress" />
+                </div>
+                <div>
+                  <label for="access-context">Who can log in?</label>
+                  <input id="access-context" placeholder="I can log in, owner can log in, staff has access" />
+                </div>
+                <div>
+                  <label for="user-hint">What should change?</label>
+                  <input id="user-hint" placeholder="Update hours, replace menu, add phone number, fix address" />
+                </div>
+                <div>
+                  <label for="entity-id">Which account or listing?</label>
+                  <input id="entity-id" placeholder="Business name, profile link, account id, or leave blank" />
+                </div>
+              </div>
+            </div>
+            <details class="subtle">
+              <summary>Advanced routing</summary>
+              <div class="triple" style="margin-top:0.65rem;">
+                <div>
+                  <label for="brand-select">Best matching product</label>
+                  <select id="brand-select">
+                    <option value="MEALSCOUT">MEALSCOUT</option>
+                    <option value="TRADESCOUT">TRADESCOUT</option>
+                    <option value="HOMEID">HOMEID</option>
+                    <option value="MERLIN">MERLIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="action-select">Best matching action</label>
+                  <select id="action-select"></select>
+                </div>
+                <div>
+                  <label for="actor-scope">Requester type</label>
+                  <select id="actor-scope">
+                    <option value="owner">owner</option>
+                    <option value="staff">staff</option>
+                    <option value="admin">admin</option>
+                    <option value="rep">rep</option>
+                    <option value="system">system</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="entity-type">Record type</label>
+                  <select id="entity-type">
+                    <option value="unknown">unknown</option>
+                    <option value="food_truck">food_truck</option>
+                    <option value="restaurant">restaurant</option>
+                    <option value="host_location">host_location</option>
+                    <option value="event">event</option>
+                  </select>
+                </div>
+              </div>
+            </details>
+            <div class="toolbar">
+              <button id="create-thread-button">Start request</button>
+              <button class="secondary" id="preview-intent-button">Prepare review</button>
+              <button class="secondary" id="create-intent-button">Save for later</button>
+            </div>
+          </div>
+
+          <div class="panel task-panel">
+            <div class="section-head">
               <div>
-                <label for="thread-picker">Open thread</label>
+                <div class="eyebrow">Notes</div>
+                <h2>Add instructions and proof text</h2>
+              </div>
+              <div style="min-width:220px;">
+                <label for="thread-picker">Saved request</label>
                 <select id="thread-picker"></select>
               </div>
             </div>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button id="create-thread-button">Create thread</button>
-              <button class="secondary" id="reload-thread-button">Reload thread</button>
-            </div>
-            <div id="thread-messages" class="list"></div>
-            <label for="thread-message" style="margin-top: 0.8rem;">Tell Merlin what you want</label>
-            <textarea id="thread-message" placeholder="Use the attached screenshots to update this MealScout account. Skip logos and menus. I only want account facts reviewed first."></textarea>
-            <label for="thread-files-json" style="margin-top: 0.8rem;">Thread attachments JSON</label>
-            <textarea id="thread-files-json" placeholder='[{"fileId":"acct-1","fileName":"account.pdf","mimeType":"application/pdf","extractedText":"Sweet Heat Tacos\\nNew Orleans"}]'></textarea>
-            <div class="triple" style="margin-top: 0.8rem;">
+            <div class="split field-group">
               <div>
-                <label for="quick-file-name">Quick evidence name</label>
+                <label for="thread-title">Request name</label>
+                <input id="thread-title" placeholder="Update Sweet Heat profile from new account docs" />
+              </div>
+              <div>
+                <label for="quick-file-name">Note name</label>
                 <input id="quick-file-name" placeholder="account-notes.txt" />
               </div>
-              <div>
-                <label for="quick-file-type">Quick evidence type</label>
-                <select id="quick-file-type">
-                  <option value="text/plain">text/plain</option>
-                  <option value="application/pdf">application/pdf</option>
-                  <option value="image/jpeg">image/jpeg</option>
-                </select>
-              </div>
-              <div>
-                <label for="quick-file-id">Quick evidence id</label>
-                <input id="quick-file-id" placeholder="quick-evidence-1" />
+            </div>
+            <div id="thread-messages" class="list"></div>
+            <div class="composer">
+              <label for="thread-message">Instructions</label>
+              <textarea id="thread-message" placeholder="Example: update the public hours in the account. Use the attached screenshot as the source of truth."></textarea>
+              <div class="field-group">
+              <label for="quick-evidence-text">Paste proof or notes</label>
+              <textarea id="quick-evidence-text" placeholder="Paste the exact text, instructions, confirmation, or source details Merlin should use."></textarea>
               </div>
             </div>
-            <label for="quick-evidence-text" style="margin-top: 0.8rem;">Quick evidence text</label>
-            <textarea id="quick-evidence-text" placeholder="Paste account, menu, schedule, or profile text here if you do not want to build JSON attachments yet."></textarea>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button id="send-thread-message-button">Send message</button>
-              <button class="secondary" id="thread-handoff-button">Stage preview from thread</button>
+            <details class="subtle">
+              <summary>Advanced attachment options</summary>
+              <div class="split" style="margin-top: 0.65rem;">
+                <div>
+                  <label for="quick-file-type">Attachment type</label>
+                  <select id="quick-file-type">
+                    <option value="text/plain">text/plain</option>
+                    <option value="application/pdf">application/pdf</option>
+                    <option value="image/jpeg">image/jpeg</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="quick-file-id">Attachment id</label>
+                  <input id="quick-file-id" placeholder="quick-evidence-1" />
+                </div>
+              </div>
+              <label for="thread-files-json" style="margin-top: 0.65rem;">Thread attachments JSON</label>
+              <textarea id="thread-files-json" placeholder='[{"fileId":"acct-1","fileName":"account.pdf","mimeType":"application/pdf","extractedText":"Sweet Heat Tacos\\nNew Orleans"}]'></textarea>
+              <label for="files-json" style="margin-top: 0.65rem;">Evidence refs JSON</label>
+              <textarea id="files-json" placeholder='[{"fileId":"file-1","fileName":"menu.jpg","mimeType":"image/jpeg","extractedText":"MENU\\nWings 10.00"}]'></textarea>
+            </details>
+            <div class="toolbar">
+              <button id="send-thread-message-button">Add to job</button>
+              <button class="secondary" id="thread-handoff-button">Prepare preview from notes</button>
+              <button class="secondary" id="reload-thread-button">Refresh job</button>
             </div>
           </div>
 
-          <div class="panel">
-            <div class="eyebrow">Connected Sources</div>
-            <h2>Workspace source map</h2>
-            <div class="split" style="margin-top: 0.8rem;">
+          <div class="panel task-panel">
+            <div class="section-head">
               <div>
-                <label for="source-key">Source key</label>
-                <input id="source-key" placeholder="mealscout or google_drive" />
-              </div>
-              <div>
-                <label for="source-label">Source label</label>
-                <input id="source-label" placeholder="MealScout" />
-              </div>
-              <div>
-                <label for="source-type">Type</label>
-                <select id="source-type">
-                  <option value="app">app</option>
-                  <option value="drive">drive</option>
-                  <option value="gmail">gmail</option>
-                  <option value="calendar">calendar</option>
-                  <option value="github">github</option>
-                  <option value="canva">canva</option>
-                  <option value="web">web</option>
-                  <option value="manual">manual</option>
-                </select>
-              </div>
-              <div>
-                <label for="source-status">Connection status</label>
-                <select id="source-status">
-                  <option value="connected">connected</option>
-                  <option value="needs_auth">needs_auth</option>
-                  <option value="disconnected">disconnected</option>
-                </select>
-              </div>
-              <div>
-                <label for="source-auth-kind">Auth kind</label>
-                <select id="source-auth-kind">
-                  <option value="manual">manual</option>
-                  <option value="oauth">oauth</option>
-                  <option value="api_key">api_key</option>
-                  <option value="internal">internal</option>
-                </select>
-              </div>
-              <div>
-                <label for="source-capabilities">Capabilities</label>
-                <input id="source-capabilities" placeholder="read_product_context,start_intents" />
+                <div class="eyebrow">Files</div>
+                <h2>Add screenshots, PDFs, or Drive files as proof</h2>
               </div>
             </div>
-            <div style="margin-top: 0.8rem;">
-              <button id="connect-source-button">Save connected source</button>
+            <div class="field-group">
+              <label for="local-drive-files">Choose files from this computer</label>
+              <input id="local-drive-files" type="file" multiple />
             </div>
-            <div id="connected-sources" class="list"></div>
-          </div>
-
-          <div class="panel">
-            <div class="eyebrow">Attached Drive</div>
-            <h2>Start from existing screenshots</h2>
-            <label for="local-drive-files" style="margin-top: 0.8rem;">Drop local media into the Drive buffer</label>
-            <input id="local-drive-files" type="file" multiple />
-            <div class="split" style="margin-top: 0.8rem;">
+            <div class="split field-group">
               <div>
-                <label for="drive-upload-folder-label">Buffer batch label</label>
-                <input id="drive-upload-folder-label" placeholder="browser-buffer-july-accounts" />
+                <label for="drive-upload-folder-label">Folder label</label>
+                <input id="drive-upload-folder-label" placeholder="july account updates" />
               </div>
               <div>
-                <label for="drive-upload-note">Upload mode</label>
+                <label for="drive-upload-note">File note</label>
                 <input id="drive-upload-note" value="Drive buffer staging for Merlin browser shell" />
               </div>
-            </div>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button id="upload-drive-buffer-button">Upload local files to Drive buffer</button>
-              <button id="upload-stage-button">Upload and stage preview</button>
-            </div>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button class="secondary" id="load-drive-status-button">Load Drive status</button>
               <div>
-                <label for="drive-folder-id">Drive folder id</label>
-                <input id="drive-folder-id" placeholder="optional; blank uses MealScout discovery" />
+                <label for="drive-folder-id">Google Drive folder, if known</label>
+                <input id="drive-folder-id" placeholder="optional folder id" />
               </div>
               <div>
-                <label for="drive-preview-mode">Drive intent</label>
+                <label for="drive-preview-mode">Review style</label>
                 <select id="drive-preview-mode">
-                  <option value="account_first">account_first</option>
-                  <option value="full_preview">full_preview</option>
+                  <option value="account_first">account info first</option>
+                  <option value="full_preview">full review</option>
                 </select>
               </div>
             </div>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button class="secondary" id="load-drive-preview-button">Preview Drive folder</button>
-              <button class="secondary" id="load-folder-context-button">Load folder context</button>
+            <div class="toolbar">
+              <button id="upload-stage-button" class="primary-action">Upload files and prepare preview</button>
+              <button class="secondary" id="load-drive-preview-button">Look at Drive folder</button>
+              <button class="secondary" id="attach-drive-preview-button">Add Drive files to job</button>
             </div>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button class="secondary" id="attach-drive-preview-button">Attach Drive preview to thread</button>
-              <div></div>
-            </div>
-            <div id="drive-status" class="status" style="margin-top: 0.8rem;">Drive not loaded yet.</div>
+            <details class="subtle">
+              <summary>Advanced file tools</summary>
+              <div class="toolbar">
+                <button class="secondary" id="upload-drive-buffer-button">Upload only</button>
+                <button class="secondary" id="load-drive-status-button">Check Drive connection</button>
+                <button class="secondary" id="load-folder-context-button">Analyze folder context</button>
+              </div>
+            </details>
+            <div id="drive-status" class="status" style="margin-top: 0.65rem;">Drive not loaded yet.</div>
             <div id="drive-preview-list" class="list"></div>
           </div>
 
-          <div class="panel">
-            <div class="eyebrow">MealScout Incremental Intake</div>
-            <h2>Process screenshots in chunks</h2>
-            <div class="split" style="margin-top: 0.8rem;">
-              <div>
-                <label for="incremental-folder-id">Folder id</label>
-                <input id="incremental-folder-id" placeholder="blank uses incoming/unknown discovery" />
+          <div class="panel task-panel">
+            <details class="subtle">
+              <summary>Batch processing tools</summary>
+              <div class="section-head" style="margin-top: 0.65rem;">
+                <div>
+                  <div class="eyebrow">For large screenshot folders</div>
+                  <h2>Process uploads in smaller groups</h2>
+                </div>
               </div>
-              <div>
-                <label for="incremental-chunk-size">Chunk size</label>
-                <input id="incremental-chunk-size" type="number" min="1" max="100" value="25" />
+              <div class="split field-group">
+                <div>
+                  <label for="incremental-folder-id">Folder id</label>
+                  <input id="incremental-folder-id" placeholder="blank uses incoming/unknown discovery" />
+                </div>
+                <div>
+                  <label for="incremental-chunk-size">Files per batch</label>
+                  <input id="incremental-chunk-size" type="number" min="1" max="100" value="25" />
+                </div>
+                <div>
+                  <label for="incremental-queue-id">Queue id</label>
+                  <input id="incremental-queue-id" placeholder="auto-created on first run" />
+                </div>
+                <div>
+                  <label for="incremental-reprocess">Reprocess already-seen files?</label>
+                  <select id="incremental-reprocess">
+                    <option value="false">no</option>
+                    <option value="true">yes</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label for="incremental-queue-id">Queue id</label>
-                <input id="incremental-queue-id" placeholder="auto-created on first run" />
+              <div class="toolbar">
+                <button id="run-incremental-intake-button">Process next batch</button>
+                <button id="load-incremental-queues-button" class="secondary">Reload batches</button>
+                <button id="copy-incremental-folder-button" class="secondary">Use Drive folder id</button>
               </div>
-              <div>
-                <label for="incremental-reprocess">Reprocess</label>
-                <select id="incremental-reprocess">
-                  <option value="false">false</option>
-                  <option value="true">true</option>
-                </select>
-              </div>
-            </div>
-            <div class="actions-row">
-              <button id="run-incremental-intake-button">Process next chunk</button>
-              <button id="load-incremental-queues-button" class="secondary">Reload queues</button>
-              <button id="copy-incremental-folder-button" class="secondary">Use Drive folder id</button>
-            </div>
-            <div id="incremental-status" class="status" style="margin-top: 0.8rem;">No incremental intake queue loaded yet.</div>
-            <div id="incremental-results" class="list"></div>
+              <div id="incremental-status" class="status" style="margin-top: 0.65rem;">No batch loaded yet.</div>
+              <div id="incremental-results" class="list"></div>
+            </details>
           </div>
+        </section>
 
-          <div class="panel">
-            <div class="eyebrow">Brand Action Launcher</div>
-            <h2>Start a Merlin intent</h2>
-            <div class="split" style="margin-top: 0.8rem;">
-              <div>
-                <label for="brand-select">Brand</label>
-                <select id="brand-select">
-                  <option value="MEALSCOUT">MEALSCOUT</option>
-                  <option value="TRADESCOUT">TRADESCOUT</option>
-                  <option value="HOMEID">HOMEID</option>
-                  <option value="MERLIN">MERLIN</option>
-                </select>
-              </div>
-              <div>
-                <label for="actor-scope">Actor scope</label>
-                <select id="actor-scope">
-                  <option value="owner">owner</option>
-                  <option value="staff">staff</option>
-                  <option value="admin">admin</option>
-                  <option value="rep">rep</option>
-                  <option value="system">system</option>
-                </select>
-              </div>
-              <div>
-                <label for="entity-type">Entity type</label>
-                <select id="entity-type">
-                  <option value="food_truck">food_truck</option>
-                  <option value="restaurant">restaurant</option>
-                  <option value="host_location">host_location</option>
-                  <option value="event">event</option>
-                  <option value="unknown">unknown</option>
-                </select>
-              </div>
-              <div>
-                <label for="action-select">Action</label>
-                <select id="action-select"></select>
-              </div>
-              <div>
-                <label for="entity-id">Entity ID</label>
-                <input id="entity-id" placeholder="optional target profile/account id" />
-              </div>
-              <div>
-                <label for="user-hint">User hint</label>
-                <input id="user-hint" placeholder="what should Merlin update?" />
-              </div>
+        <aside>
+          <section class="panel task-panel">
+            <div class="eyebrow">Request status</div>
+            <h2>Ready for any logged-in update request</h2>
+            <div class="chips" id="summary-chips"></div>
+            <div class="status" style="margin-top:0.65rem;">
+              <strong>Next step</strong>
+              <div id="next-steps" class="list-note" style="margin-top:0.4rem;">Name the app or account, describe the change, add proof, then prepare a review.</div>
             </div>
-            <label for="files-json" style="margin-top: 0.8rem;">Evidence refs JSON</label>
-            <textarea id="files-json" placeholder='[{"fileId":"file-1","fileName":"menu.jpg","mimeType":"image/jpeg","extractedText":"MENU\\nWings 10.00"}]'></textarea>
-            <div class="split" style="margin-top: 0.8rem;">
-              <button id="create-intent-button">Create intent</button>
-              <button class="secondary" id="preview-intent-button">Create + attach + route + preview</button>
-            </div>
-          </div>
-        </div>
+          </section>
 
-        <div class="stack">
-          <div class="panel">
-            <div class="eyebrow">Available Actions</div>
-            <h2>What Merlin can stage here</h2>
-            <div id="action-cards" class="list"></div>
-          </div>
-
-          <div class="panel">
+          <section class="panel">
             <div class="eyebrow">Search</div>
-            <h2>Evidence already indexed</h2>
-            <div class="split" style="margin-top: 0.8rem;">
+            <h2>Find existing proof</h2>
+            <div class="split" style="margin-top: 0.65rem;">
               <input id="search-query" placeholder="business name, profile id, phone, source ref" />
               <button class="secondary" id="run-search-button">Search</button>
             </div>
             <div id="search-results" class="list"></div>
-          </div>
+          </section>
 
-          <div class="panel">
-            <div class="eyebrow">Result</div>
-            <h2>Last shell operation</h2>
-            <pre id="result-json">{}</pre>
-          </div>
-
-          <div class="panel">
-            <div class="eyebrow">Acceptance Flow</div>
-            <h2>Accept and clean buffered Drive media</h2>
-            <label for="proof-reference" style="margin-top: 0.8rem;">Proof reference</label>
-            <input id="proof-reference" placeholder="operator-review-proof-001" />
-            <label for="cleanup-note" style="margin-top: 0.8rem;">Cleanup note</label>
-            <input id="cleanup-note" placeholder="Accepted in Merlin browser shell after operator review" />
-            <div class="actions-row">
-              <button id="refresh-lifecycle-button" class="secondary">Refresh lifecycle</button>
-              <button id="accept-preview-button">Accept current preview</button>
-              <button id="cleanup-ready-button" class="secondary">Mark cleanup ready</button>
-              <button id="clean-preview-button" class="secondary">Mark cleaned</button>
+          <section class="panel task-panel">
+            <div class="eyebrow">After review</div>
+            <h2>Mark files reviewed</h2>
+            <div class="field-group">
+              <label for="proof-reference">Review note or proof link</label>
+              <input id="proof-reference" placeholder="operator-review-proof-001" />
             </div>
-            <div id="lifecycle-status" class="status" style="margin-top: 0.8rem;">No preview lifecycle loaded yet.</div>
+            <div class="field-group">
+              <label for="cleanup-note">Cleanup note</label>
+              <input id="cleanup-note" placeholder="Accepted in Merlin browser shell after operator review" />
+            </div>
+            <div class="actions-row">
+              <button id="refresh-lifecycle-button" class="secondary">Refresh status</button>
+              <button id="accept-preview-button">Mark preview reviewed</button>
+              <button id="cleanup-ready-button" class="secondary">Ready to clean up</button>
+              <button id="clean-preview-button" class="secondary">Mark cleaned up</button>
+            </div>
+            <div id="lifecycle-status" class="status" style="margin-top: 0.65rem;">No preview lifecycle loaded yet.</div>
             <div id="lifecycle-list" class="list"></div>
-          </div>
-        </div>
-      </section>
+          </section>
+
+          <section class="panel">
+            <details class="subtle">
+              <summary>Admin and technical details</summary>
+              <div class="field-group">
+                <div class="eyebrow">Connected apps</div>
+                <div id="connected-sources" class="list"></div>
+              </div>
+              <details class="subtle">
+                <summary>App setup</summary>
+                <div class="split" style="margin-top: 0.65rem;">
+                  <div>
+                    <label for="source-key">Source key</label>
+                    <input id="source-key" placeholder="mealscout or google_drive" />
+                  </div>
+                  <div>
+                    <label for="source-label">Source label</label>
+                    <input id="source-label" placeholder="MealScout" />
+                  </div>
+                  <div>
+                    <label for="source-type">Type</label>
+                    <select id="source-type">
+                      <option value="app">app</option>
+                      <option value="drive">drive</option>
+                      <option value="gmail">gmail</option>
+                      <option value="calendar">calendar</option>
+                      <option value="github">github</option>
+                      <option value="canva">canva</option>
+                      <option value="web">web</option>
+                      <option value="manual">manual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="source-status">Connection status</label>
+                    <select id="source-status">
+                      <option value="connected">connected</option>
+                      <option value="needs_auth">needs_auth</option>
+                      <option value="disconnected">disconnected</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="source-auth-kind">Auth kind</label>
+                    <select id="source-auth-kind">
+                      <option value="manual">manual</option>
+                      <option value="oauth">oauth</option>
+                      <option value="api_key">api_key</option>
+                      <option value="internal">internal</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="source-capabilities">Capabilities</label>
+                    <input id="source-capabilities" placeholder="read_product_context,start_intents" />
+                  </div>
+                </div>
+                <div class="field-group">
+                  <button id="connect-source-button">Save connected source</button>
+                </div>
+              </details>
+              <div class="field-group">
+                <div class="eyebrow">Admin pages</div>
+                <div class="rail-links">
+                  <a href="/">Daily command center</a>
+                  <a href="/admin/drive-review-queue">Drive review inbox</a>
+                  <a href="/admin/mealscout-review-queue">MealScout OCR review</a>
+                  <a href="/admin/merlin-operator-review">Merlin operator review</a>
+                </div>
+              </div>
+              <div class="field-group">
+                <div class="eyebrow">Available actions</div>
+                <h2>Stageable actions</h2>
+                <div id="action-cards" class="list"></div>
+              </div>
+              <div class="field-group">
+                <div class="eyebrow">Technical result</div>
+                <pre id="result-json">{}</pre>
+              </div>
+            </details>
+          </section>
+        </aside>
+      </main>
     </div>
 
     <script>
@@ -572,6 +889,131 @@
 
       function chip(text, warn = false) {
         return `<span class="chip${warn ? ' warn' : ''}">${text}</span>`;
+      }
+
+      function humanizeToken(value) {
+        return String(value || '')
+          .replace(/[_-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+      }
+
+      function humanizeBrand(value) {
+        const brand = String(value || '').toUpperCase();
+        if (brand === 'MEALSCOUT') return 'MealScout';
+        if (brand === 'TRADESCOUT') return 'TradeScout';
+        if (brand === 'HOMEID') return 'HomeID';
+        return humanizeToken(brand);
+      }
+
+      function humanizeAction(actionId) {
+        const labels = {
+          update_schedule: 'Update schedule',
+          update_menu: 'Update menu',
+          add_food_photos: 'Add food photos',
+          upload_logo: 'Upload logo',
+          add_event_flyer: 'Add event flyer',
+          add_deal: 'Add deal',
+          update_hours: 'Update hours',
+          update_location: 'Update location',
+          update_contact_info: 'Update contact info',
+          upload_everything: 'Upload everything',
+          import_food_truck_evidence: 'Review food truck uploads',
+          import_restaurant_evidence: 'Review restaurant uploads',
+          account_intake_review: 'Review account info',
+          attach_menu_evidence: 'Attach menu proof',
+          attach_schedule_evidence: 'Attach schedule proof',
+          attach_logo_media: 'Attach logo',
+          attach_event_flyer: 'Attach event flyer',
+          attach_deal_evidence: 'Attach deal proof',
+          correct_existing_profile: 'Fix an existing profile',
+          review_unknown_uploads: 'Review unknown uploads',
+          bulk_intake_review: 'Review a batch'
+        };
+        return labels[actionId] || humanizeToken(actionId);
+      }
+
+      function connectionLabel(status) {
+        if (status === 'connected') return 'Ready';
+        if (status === 'needs_auth') return 'Needs sign in';
+        if (status === 'disconnected') return 'Not connected';
+        return humanizeToken(status);
+      }
+
+      function fieldValue(id) {
+        return document.getElementById(id)?.value?.trim() || '';
+      }
+
+      function buildRequestContext() {
+        const destination = fieldValue('destination-name');
+        const access = fieldValue('access-context');
+        const account = fieldValue('entity-id');
+        const request = fieldValue('user-hint');
+        const parts = [];
+        if (destination) parts.push(`Where to update: ${destination}`);
+        if (account) parts.push(`Account or listing: ${account}`);
+        if (access) parts.push(`Access context: ${access}`);
+        if (request) parts.push(`Requested change: ${request}`);
+        return parts.join('\n');
+      }
+
+      function buildMergedUserHint() {
+        const context = buildRequestContext();
+        const hint = fieldValue('user-hint');
+        return context || hint || undefined;
+      }
+
+      function buildThreadTitle() {
+        const typedTitle = fieldValue('thread-title');
+        if (typedTitle) return typedTitle;
+        const destination = fieldValue('destination-name');
+        const request = fieldValue('user-hint');
+        if (destination && request) return `${humanizeToken(request)} in ${destination}`;
+        if (destination) return `Update ${destination}`;
+        return undefined;
+      }
+
+      function mergeMessageWithRequestContext(message) {
+        const context = buildRequestContext();
+        if (!context) return message;
+        return `${context}${message ? `\n\nNotes:\n${message}` : ''}`;
+      }
+
+      function currentBrandActions() {
+        if (!state.shell) return [];
+        const brand = document.getElementById('brand-select').value;
+        return state.shell.shell.actions.filter((row) => row.brand === brand);
+      }
+
+      function syncSelectedActionContext() {
+        const actionSelect = document.getElementById('action-select');
+        const selected = currentBrandActions().find((row) => row.actionId === actionSelect.value);
+        if (!selected) return;
+        const actorScope = document.getElementById('actor-scope');
+        actorScope.value = selected.actorScope || actorScope.value;
+        const entityType = document.getElementById('entity-type');
+        const allowedEntityTypes = selected.entityTypesAllowed || selected.entityTypes || [];
+        if (allowedEntityTypes.includes('unknown')) {
+          entityType.value = 'unknown';
+        } else if (allowedEntityTypes.includes(entityType.value)) {
+          entityType.value = entityType.value;
+        } else if (allowedEntityTypes.length) {
+          entityType.value = allowedEntityTypes[0];
+        }
+      }
+
+      function populateActionSelect() {
+        const actionSelect = document.getElementById('action-select');
+        const actions = currentBrandActions();
+        actionSelect.innerHTML = actions
+          .map((row) => `<option value="${row.actionId}">${humanizeAction(row.actionId)}</option>`)
+          .join('');
+        const preferred = actions.find((row) => row.actionId === 'account_intake_review')
+          || actions.find((row) => row.actionId === 'review_unknown_uploads')
+          || actions[0];
+        if (preferred) actionSelect.value = preferred.actionId;
+        syncSelectedActionContext();
       }
 
       async function fetchJson(url, init = {}) {
@@ -606,60 +1048,64 @@
         return attachments;
       }
 
-      function renderShell(payload) {
+      function renderShell(payload, { showSelectedThread = false } = {}) {
         state.shell = payload;
-        state.selectedThreadId = payload.shell.selectedThread?.thread?.id || null;
-        document.getElementById('workspace-title').textContent = payload.shell.workspace?.workspace_name || 'Merlin System';
-        document.getElementById('operator-line').textContent = `Operator: ${payload.operator?.decidedBy || 'unknown'} · role: ${payload.operatorRole?.role || 'unknown'}`;
+        if (showSelectedThread) {
+          state.selectedThreadId = payload.shell.selectedThread?.thread?.id || state.selectedThreadId;
+        } else {
+          state.selectedThreadId = null;
+        }
+        document.getElementById('workspace-title').textContent = 'Review workspace';
         document.getElementById('generated-line').textContent = `Generated ${new Date(payload.generatedAt).toLocaleString()}`;
-        document.getElementById('next-steps').innerHTML = payload.shell.suggestedNextSteps.map((step) => `<div>${step}</div>`).join('');
+        document.getElementById('next-steps').innerHTML = [
+          'Describe the place you can log into.',
+          'Add the change you want and the proof behind it.',
+          'Prepare a review before anyone makes the actual update.'
+        ].map((step) => `<div>${step}</div>`).join('');
         document.getElementById('summary-chips').innerHTML = [
-          chip(`${payload.shell.connectedSources.length} connected source records`),
-          chip(`${payload.shell.actions.length} registered actions`),
-          chip(`${payload.operatorConsole.summary.approvalRequestedCount} pending approvals`, payload.operatorConsole.summary.approvalRequestedCount > 0),
-          chip(`${payload.operatorConsole.summary.intakeOpenCount} open intake items`)
+          chip(`${payload.shell.connectedSources.length} apps ready`),
+          chip(`${payload.shell.actions.length} review types`),
+          chip(`${payload.operatorConsole.summary.approvalRequestedCount} waiting for review`, payload.operatorConsole.summary.approvalRequestedCount > 0),
+          chip(`${payload.operatorConsole.summary.intakeOpenCount} open requests`)
         ].join('');
 
         document.getElementById('connected-sources').innerHTML = payload.shell.sourceCatalog.map((row) => `
           <div class="card">
             <strong>${row.label}</strong>
-            <div class="meta">${row.sourceKey} · ${row.type} · trust ${row.trustLevel}</div>
+            <div class="meta">${connectionLabel(row.connectionStatus)} · ${humanizeToken(row.type)}</div>
             <div class="chips">
-              ${chip(row.connectionStatus, row.connectionStatus !== 'connected')}
-              ${(row.capabilities || []).map((capability) => chip(capability)).join('')}
+              ${chip(connectionLabel(row.connectionStatus), row.connectionStatus !== 'connected')}
+              ${(row.capabilities || []).slice(0, 3).map((capability) => chip(humanizeToken(capability))).join('')}
             </div>
           </div>
         `).join('');
 
         document.getElementById('action-cards').innerHTML = payload.shell.actions.map((row) => `
           <div class="card">
-            <strong>${row.label}</strong>
-            <div class="meta">${row.brand} · ${row.actorScope} · ${row.actionId}</div>
+            <strong>${humanizeAction(row.actionId)}</strong>
+            <div class="meta">${humanizeBrand(row.brand)} · for ${humanizeToken(row.actorScope)}</div>
           </div>
         `).join('') || '<div class="card">No registered actions for this brand yet.</div>';
 
         const actionSelect = document.getElementById('action-select');
-        actionSelect.innerHTML = payload.shell.actions
-          .filter((row) => row.brand === document.getElementById('brand-select').value)
-          .map((row) => `<option value="${row.actionId}">${row.actionId}</option>`)
-          .join('');
+        populateActionSelect();
         const threadPicker = document.getElementById('thread-picker');
-        threadPicker.innerHTML = (payload.shell.threads || [])
+        threadPicker.innerHTML = '<option value="">New request</option>' + (payload.shell.threads || [])
           .map((row) => `<option value="${row.id}" ${row.id === state.selectedThreadId ? 'selected' : ''}>${row.title}</option>`)
           .join('');
-        renderThread(payload.shell.selectedThread);
+        renderThread(showSelectedThread ? payload.shell.selectedThread : null);
       }
 
       function renderThread(selectedThread) {
         const container = document.getElementById('thread-messages');
         if (!selectedThread?.thread) {
-          container.innerHTML = '<div class="card">No thread yet. Create one to keep Merlin context in one lane.</div>';
+          container.innerHTML = '<div class="card">No request started yet. Fill out the request, then choose Start request.</div>';
           return;
         }
         container.innerHTML = `
           <div class="card">
             <strong>${selectedThread.thread.title}</strong>
-            <div class="meta">${selectedThread.thread.status} · ${selectedThread.thread.brand || 'no brand'} · ${selectedThread.thread.action_id || 'no action selected yet'}</div>
+            <div class="meta">${humanizeToken(selectedThread.thread.status)} · ${humanizeBrand(selectedThread.thread.brand || '')} · ${selectedThread.thread.action_id ? humanizeAction(selectedThread.thread.action_id) : 'No action selected yet'}</div>
           </div>
         ` + (selectedThread.messages || []).map((row) => `
           <div class="card">
@@ -852,9 +1298,10 @@
           brand: options.brand || document.getElementById('brand-select').value || 'MEALSCOUT'
         });
         if (options.q) params.set('q', options.q);
-        if (options.threadId || state.selectedThreadId) params.set('thread_id', options.threadId || state.selectedThreadId);
+        const requestedThreadId = options.threadId || state.selectedThreadId;
+        if (requestedThreadId) params.set('thread_id', requestedThreadId);
         const payload = await fetchJson(`/api/merlin/shell?${params.toString()}`);
-        renderShell(payload);
+        renderShell(payload, { showSelectedThread: Boolean(requestedThreadId) });
         if (options.q) renderSearchResults(payload.shell.searchResults || []);
       }
 
@@ -1091,8 +1538,8 @@
           body: JSON.stringify({
             role: 'user',
             message_text: mode === 'account_first'
-              ? 'Process accounts first from the attached Drive evidence. Skip logos and menus unless needed later.'
-              : 'Use the attached Drive evidence to stage the next Merlin preview.',
+              ? mergeMessageWithRequestContext('Process account or listing details first from the attached evidence. Skip unrelated media unless needed later.')
+              : mergeMessageWithRequestContext('Use the attached evidence to prepare the next Merlin review.'),
             attachments
           })
         });
@@ -1109,7 +1556,7 @@
           method: 'POST',
           body: JSON.stringify({
             workspace_id: workspaceId,
-            title: document.getElementById('thread-title').value || undefined,
+            title: buildThreadTitle(),
             brand: document.getElementById('brand-select').value,
             actor_scope: document.getElementById('actor-scope').value,
             entity_type: document.getElementById('entity-type').value,
@@ -1119,6 +1566,17 @@
         });
         state.selectedThreadId = result.thread.id;
         document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+        const requestContext = buildRequestContext();
+        if (requestContext) {
+          await fetchJson(`/api/merlin/threads/${encodeURIComponent(result.thread.id)}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({
+              role: 'user',
+              message_text: mergeMessageWithRequestContext(document.getElementById('thread-message').value),
+              attachments: parseThreadAttachments()
+            })
+          });
+        }
         await loadShell({ threadId: result.thread.id });
       }
 
@@ -1129,7 +1587,7 @@
           method: 'POST',
           body: JSON.stringify({
             role: 'user',
-            message_text: document.getElementById('thread-message').value,
+            message_text: mergeMessageWithRequestContext(document.getElementById('thread-message').value),
             attachments
           })
         });
@@ -1154,7 +1612,7 @@
             entityType: document.getElementById('entity-type').value,
             entityId: document.getElementById('entity-id').value || undefined,
             actionId: document.getElementById('action-select').value,
-            userHint: document.getElementById('user-hint').value || undefined,
+            userHint: buildMergedUserHint(),
             files: mergedFiles.length ? mergedFiles : undefined
           })
         });
@@ -1176,7 +1634,7 @@
             entityType: document.getElementById('entity-type').value,
             entityId: document.getElementById('entity-id').value || undefined,
             actionId: document.getElementById('action-select').value,
-            userHint: document.getElementById('user-hint').value || undefined
+            userHint: buildMergedUserHint()
           })
         });
         let result = { created };
@@ -1263,10 +1721,7 @@
 
       function syncActionOptions() {
         if (!state.shell) return;
-        const brand = document.getElementById('brand-select').value;
-        const actionSelect = document.getElementById('action-select');
-        const actions = state.shell.shell.actions.filter((row) => row.brand === brand);
-        actionSelect.innerHTML = actions.map((row) => `<option value="${row.actionId}">${row.actionId}</option>`).join('');
+        populateActionSelect();
       }
 
       async function boot() {
@@ -1277,6 +1732,7 @@
           await loadShell({ brand: document.getElementById('brand-select').value });
           syncActionOptions();
         });
+        document.getElementById('action-select').addEventListener('change', syncSelectedActionContext);
         document.getElementById('upload-drive-buffer-button').addEventListener('click', uploadLocalFilesToDriveBuffer);
         document.getElementById('upload-stage-button').addEventListener('click', uploadAndStagePreview);
         document.getElementById('load-drive-status-button').addEventListener('click', loadDriveStatus);

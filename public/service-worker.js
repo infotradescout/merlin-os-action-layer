@@ -1,4 +1,4 @@
-const CACHE_NAME = 'merlin-shell-v1';
+const CACHE_NAME = 'merlin-shell-v2';
 const STATIC_ASSETS = [
   '/merlin',
   '/manifest.webmanifest',
