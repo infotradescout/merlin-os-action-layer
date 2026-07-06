@@ -11,17 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --page: #07121a;
-        --surface: #0f1d27;
-        --surface-muted: #142533;
-        --ink: #eaf5ff;
-        --muted: #89a3ba;
-        --line: #23445b;
-        --accent: #31f5bf;
-        --accent-strong: #12c89b;
-        --accent-soft: #123429;
-        --blue: #45b3ff;
-        --blue-soft: #102739;
+        --page: #0b1220;
+        --surface: #111a2b;
+        --surface-muted: #172238;
+        --ink: #ecf2ff;
+        --muted: #9aacc8;
+        --line: #2b3e61;
+        --accent: #61a8ff;
+        --accent-strong: #4a94f4;
+        --accent-soft: #172f4d;
+        --blue: #89c3ff;
+        --blue-soft: #152742;
         --warning: #925200;
         --warning-soft: #fff1d6;
         --danger: #a33a32;
@@ -37,35 +37,21 @@
         color: var(--ink);
         font-family: "Space Grotesk", "Segoe UI", sans-serif;
         background:
-          radial-gradient(1200px 600px at 8% 2%, rgba(69, 179, 255, 0.2), transparent 48%),
-          radial-gradient(900px 500px at 92% 4%, rgba(49, 245, 191, 0.17), transparent 55%),
-          linear-gradient(180deg, #07121a 0%, #091827 52%, #07111a 100%);
+          radial-gradient(1000px 480px at 8% -12%, rgba(97, 168, 255, 0.18), transparent 58%),
+          radial-gradient(900px 460px at 96% -10%, rgba(124, 96, 255, 0.15), transparent 62%),
+          linear-gradient(180deg, #0b1220 0%, #0d1527 56%, #0b1220 100%);
         min-height: 100vh;
         overflow-x: hidden;
       }
 
       body::before {
-        animation: grid-drift 16s linear infinite;
-        background-image:
-          linear-gradient(rgba(78, 130, 165, 0.22) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(78, 130, 165, 0.22) 1px, transparent 1px);
-        background-size: 38px 38px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 35%);
         content: '';
         inset: 0;
-        mask-image: radial-gradient(circle at 50% 0%, black 45%, transparent 92%);
-        opacity: 0.26;
+        opacity: 0.8;
         pointer-events: none;
         position: fixed;
         z-index: -1;
-      }
-
-      @keyframes grid-drift {
-        from {
-          transform: translate3d(0, 0, 0);
-        }
-        to {
-          transform: translate3d(38px, 38px, 0);
-        }
       }
 
       .page {
@@ -517,10 +503,10 @@
       }
 
       .human-app {
-        animation: shell-enter 640ms cubic-bezier(0.19, 1, 0.22, 1);
+        animation: shell-enter 380ms ease;
         margin: 0 auto;
-        max-width: 1200px;
-        padding: 0.95rem 1rem 1.4rem;
+        max-width: 1320px;
+        padding: 1.15rem 1rem 1.5rem;
         position: relative;
       }
 
@@ -537,120 +523,121 @@
 
       .human-shell-top {
         align-items: center;
+        background: linear-gradient(90deg, rgba(20, 36, 62, 0.7), rgba(23, 30, 58, 0.58));
+        border: 1px solid rgba(126, 161, 222, 0.24);
+        border-radius: 16px;
+        box-shadow: 0 14px 36px rgba(5, 10, 22, 0.38);
         display: flex;
         justify-content: space-between;
         gap: 0.75rem;
-        margin-bottom: 0.85rem;
+        margin-bottom: 1rem;
+        padding: 0.8rem 0.95rem;
       }
 
       .human-brand {
-        color: #dff3ff;
-        font-size: 1.05rem;
+        color: #edf4ff;
+        font-size: 1rem;
         font-weight: 700;
-        letter-spacing: 0.035em;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
       }
 
       .human-note {
         color: var(--muted);
-        font-size: 0.88rem;
+        font-size: 0.92rem;
       }
 
       .human-shell {
         align-items: stretch;
         display: grid;
-        gap: 0.85rem;
-        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 1rem;
+        grid-template-columns: 360px minmax(0, 1fr);
         min-height: calc(100vh - 120px);
       }
 
       .human-sidebar {
-        background: linear-gradient(165deg, rgba(11, 28, 38, 0.85) 0%, rgba(8, 22, 31, 0.92) 100%);
-        border: 1px solid rgba(102, 184, 231, 0.24);
+        background: linear-gradient(175deg, rgba(18, 30, 52, 0.88), rgba(14, 23, 39, 0.88));
+        border: 1px solid rgba(119, 152, 217, 0.24);
         border-radius: 18px;
-        box-shadow: 0 18px 40px rgba(2, 11, 19, 0.48);
+        box-shadow: 0 20px 46px rgba(4, 10, 20, 0.46);
         backdrop-filter: blur(8px);
         display: grid;
-        gap: 0.8rem;
-        padding: 0.85rem;
+        gap: 0.95rem;
+        padding: 0.95rem;
       }
 
       .human-sidebar .block {
-        background: linear-gradient(180deg, rgba(18, 38, 52, 0.88), rgba(14, 31, 44, 0.88));
-        border: 1px solid rgba(95, 170, 214, 0.24);
+        background: linear-gradient(180deg, rgba(24, 40, 68, 0.78), rgba(18, 30, 50, 0.78));
+        border: 1px solid rgba(126, 161, 222, 0.22);
         border-radius: 14px;
-        padding: 0.7rem;
+        padding: 0.82rem;
       }
 
       .human-sidebar h2 {
-        color: #e2f6ff;
-        font-size: 0.92rem;
+        color: #f2f7ff;
+        font-size: 1.06rem;
       }
 
       .human-sidebar .meta {
-        color: #90afc3;
+        color: #9db0cf;
       }
 
       .human-chip-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.55rem;
+        gap: 0.55rem;
+        margin-top: 0.65rem;
       }
 
       .human-chip {
-        background: linear-gradient(180deg, rgba(22, 74, 64, 0.72), rgba(18, 58, 51, 0.72));
-        border: 1px solid rgba(69, 224, 180, 0.44);
+        background: linear-gradient(180deg, rgba(37, 60, 95, 0.85), rgba(28, 44, 73, 0.85));
+        border: 1px solid rgba(148, 184, 246, 0.36);
         border-radius: 999px;
-        color: #b8ffe9;
+        color: #d9e9ff;
         cursor: pointer;
         font-size: 0.78rem;
-        padding: 0.26rem 0.55rem;
+        padding: 0.34rem 0.78rem;
+        width: auto;
+        flex: 0 0 auto;
         transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
       }
 
       .human-chip:hover {
-        border-color: #61ffd6;
-        box-shadow: 0 0 0 1px rgba(97, 255, 214, 0.22), 0 8px 18px rgba(11, 59, 49, 0.45);
+        border-color: #b2d1ff;
+        box-shadow: 0 0 0 1px rgba(178, 209, 255, 0.2), 0 10px 20px rgba(8, 14, 28, 0.5);
         transform: translateY(-1px);
       }
 
       .human-connector-list {
         display: grid;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
+        gap: 0.56rem;
+        margin-top: 0.65rem;
       }
 
       .human-connector {
-        background: linear-gradient(180deg, rgba(17, 44, 57, 0.78), rgba(13, 33, 45, 0.78));
-        border: 1px solid rgba(108, 198, 245, 0.28);
+        background: linear-gradient(180deg, rgba(31, 55, 89, 0.86), rgba(23, 40, 67, 0.86));
+        border: 1px solid rgba(139, 176, 236, 0.28);
         border-radius: 12px;
-        padding: 0.5rem;
-        position: relative;
-      }
-
-      .human-connector::after {
-        background: linear-gradient(90deg, rgba(49, 245, 191, 0.22), transparent);
-        border-radius: 10px;
-        content: '';
-        inset: 2px;
-        pointer-events: none;
-        position: absolute;
+        padding: 0.62rem;
       }
 
       .human-connector strong {
-        color: #d8f3ff;
+        color: #eef5ff;
         display: block;
-        font-size: 0.85rem;
-        position: relative;
-        z-index: 1;
+        font-size: 0.98rem;
+        margin-bottom: 0.12rem;
+      }
+
+      .human-connector span {
+        color: #9ab0d0;
+        font-size: 0.84rem;
       }
 
       .human-chat {
-        background: linear-gradient(180deg, rgba(14, 30, 41, 0.86) 0%, rgba(10, 23, 33, 0.9) 100%);
-        border: 1px solid rgba(102, 184, 231, 0.3);
+        background: linear-gradient(180deg, rgba(21, 34, 59, 0.88), rgba(14, 24, 43, 0.9));
+        border: 1px solid rgba(126, 161, 222, 0.26);
         border-radius: 18px;
-        box-shadow: 0 20px 48px rgba(3, 11, 19, 0.55);
+        box-shadow: 0 24px 50px rgba(5, 10, 21, 0.5);
         backdrop-filter: blur(8px);
         display: grid;
         grid-template-rows: auto 1fr auto;
@@ -658,33 +645,111 @@
       }
 
       .human-chat-head {
-        border-bottom: 1px solid rgba(93, 153, 189, 0.28);
-        padding: 0.85rem 0.95rem;
+        border-bottom: 1px solid rgba(126, 161, 222, 0.24);
+        padding: 0.95rem 1rem;
       }
 
       .human-chat-head h2 {
         color: #f3fbff;
-        font-size: 1.34rem;
+        font-size: 1.5rem;
+        line-height: 1.2;
+      }
+
+      .human-plan {
+        background: linear-gradient(180deg, rgba(24, 40, 67, 0.75), rgba(18, 30, 50, 0.75));
+        border: 1px solid rgba(126, 161, 222, 0.24);
+        border-radius: 12px;
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 0.7rem;
+        padding: 0.62rem 0.68rem;
+      }
+
+      .human-plan-head {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .human-plan-head strong {
+        font-size: 0.84rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .human-plan-meta {
+        color: #a5bddb;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.75rem;
+      }
+
+      .human-plan-steps {
+        display: grid;
+        gap: 0.36rem;
+        margin: 0;
+        padding: 0;
+      }
+
+      .human-plan-step {
+        align-items: center;
+        background: rgba(13, 26, 45, 0.52);
+        border: 1px solid rgba(126, 161, 222, 0.18);
+        border-radius: 10px;
+        display: flex;
+        font-size: 0.82rem;
+        justify-content: space-between;
+        padding: 0.42rem 0.5rem;
+      }
+
+      .human-plan-step .status {
+        background: rgba(126, 161, 222, 0.18);
+        border: 1px solid rgba(126, 161, 222, 0.34);
+        border-radius: 999px;
+        color: #cfe2ff;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        margin: 0;
+        padding: 0.14rem 0.4rem;
+      }
+
+      .human-plan-step.active {
+        border-color: rgba(158, 197, 255, 0.5);
+      }
+
+      .human-plan-step.active .status {
+        background: rgba(158, 197, 255, 0.22);
+        border-color: rgba(158, 197, 255, 0.5);
+        color: #eff6ff;
+      }
+
+      .human-plan-step.done {
+        border-color: rgba(106, 208, 162, 0.48);
+      }
+
+      .human-plan-step.done .status {
+        background: rgba(92, 182, 146, 0.24);
+        border-color: rgba(106, 208, 162, 0.46);
+        color: #d8fff0;
       }
 
       .human-chat-log {
         background:
-          radial-gradient(600px 220px at 50% -8%, rgba(63, 151, 199, 0.2), transparent 65%),
+          radial-gradient(640px 240px at 50% -8%, rgba(99, 146, 233, 0.18), transparent 66%),
           transparent;
         display: grid;
-        gap: 0.6rem;
+        gap: 0.72rem;
         overflow: auto;
-        padding: 0.95rem;
+        padding: 1rem;
       }
 
       .human-bubble {
         animation: bubble-rise 240ms ease;
-        border: 1px solid rgba(97, 164, 205, 0.3);
+        border: 1px solid rgba(133, 171, 235, 0.32);
         border-radius: 14px;
-        box-shadow: 0 8px 20px rgba(2, 11, 19, 0.35);
+        box-shadow: 0 10px 24px rgba(4, 10, 21, 0.42);
         line-height: 1.45;
         max-width: 88%;
-        padding: 0.7rem 0.78rem;
+        padding: 0.78rem 0.86rem;
         white-space: pre-wrap;
       }
 
@@ -700,19 +765,19 @@
       }
 
       .human-bubble.assistant {
-        background: linear-gradient(180deg, rgba(30, 62, 77, 0.9), rgba(20, 48, 62, 0.9));
-        color: #d9f1ff;
+        background: linear-gradient(180deg, rgba(41, 67, 104, 0.88), rgba(32, 54, 85, 0.88));
+        color: #e6f1ff;
       }
 
       .human-bubble.user {
-        background: linear-gradient(180deg, rgba(17, 94, 77, 0.86), rgba(13, 72, 60, 0.9));
-        border-color: rgba(86, 255, 210, 0.36);
-        color: #d6ffef;
+        background: linear-gradient(180deg, rgba(73, 117, 188, 0.84), rgba(58, 97, 160, 0.86));
+        border-color: rgba(158, 197, 255, 0.34);
+        color: #eff6ff;
         margin-left: auto;
       }
 
       .human-bubble.thinking {
-        background: linear-gradient(180deg, rgba(20, 57, 71, 0.9), rgba(18, 45, 57, 0.9));
+        background: linear-gradient(180deg, rgba(35, 62, 101, 0.88), rgba(28, 50, 81, 0.88));
         border-style: dashed;
       }
 
@@ -734,7 +799,7 @@
       }
 
       .human-bubble .meta {
-        color: #89a7ba;
+        color: #a5bddb;
         display: block;
         font-family: "IBM Plex Mono", monospace;
         font-size: 0.75rem;
@@ -742,39 +807,39 @@
       }
 
       .human-composer {
-        border-top: 1px solid rgba(93, 153, 189, 0.28);
-        padding: 0.85rem 0.95rem 0.95rem;
+        border-top: 1px solid rgba(126, 161, 222, 0.24);
+        padding: 0.95rem 1rem 1rem;
       }
 
       .human-composer-row {
         display: grid;
-        gap: 0.6rem;
+        gap: 0.72rem;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.72rem;
       }
 
       .human-composer textarea,
       .human-composer input,
       .human-composer select {
-        background: rgba(11, 27, 38, 0.92);
-        border: 1px solid rgba(93, 153, 189, 0.34);
+        background: rgba(11, 22, 39, 0.92);
+        border: 1px solid rgba(126, 161, 222, 0.34);
         border-radius: 12px;
         color: #dcf4ff;
         font: inherit;
-        padding: 0.72rem 0.8rem;
+        padding: 0.78rem 0.82rem;
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
 
       .human-composer label {
-        color: #9dc4dd;
+        color: #b0c7e7;
         font-size: 0.8rem;
       }
 
       .human-composer textarea:focus,
       .human-composer input:focus,
       .human-composer select:focus {
-        border-color: #5bf5cb;
-        box-shadow: 0 0 0 3px rgba(91, 245, 203, 0.14);
+        border-color: #9cc4ff;
+        box-shadow: 0 0 0 3px rgba(156, 196, 255, 0.16);
         outline: none;
       }
 
@@ -787,8 +852,8 @@
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.65rem;
+        gap: 0.58rem;
+        margin-top: 0.72rem;
       }
 
       .human-actions button {
@@ -796,33 +861,35 @@
         flex: 0 1 auto;
         font-weight: 700;
         min-width: 152px;
+        padding: 0.66rem 0.86rem;
+        width: auto;
         transition: transform 160ms ease, box-shadow 160ms ease;
       }
 
       .human-actions button:not(.secondary) {
-        background: linear-gradient(180deg, #52ffca, #20d9aa);
-        color: #04202b;
+        background: linear-gradient(180deg, #8fc5ff, #6caeff);
+        color: #0c2140;
       }
 
       .human-actions button.secondary {
-        background: linear-gradient(180deg, rgba(21, 46, 61, 0.95), rgba(16, 35, 48, 0.95));
-        border: 1px solid rgba(111, 197, 246, 0.35);
-        color: #d0e9fa;
+        background: linear-gradient(180deg, rgba(29, 49, 82, 0.96), rgba(22, 38, 64, 0.96));
+        border: 1px solid rgba(126, 161, 222, 0.34);
+        color: #dde9ff;
       }
 
       .human-actions button:hover {
-        box-shadow: 0 10px 22px rgba(5, 16, 25, 0.45);
+        box-shadow: 0 12px 24px rgba(5, 12, 24, 0.5);
         transform: translateY(-1px);
       }
 
       .human-status {
-        background: linear-gradient(180deg, rgba(18, 41, 55, 0.95), rgba(14, 33, 45, 0.95));
-        border: 1px solid rgba(102, 184, 231, 0.3);
+        background: linear-gradient(180deg, rgba(28, 45, 75, 0.95), rgba(21, 35, 58, 0.95));
+        border: 1px solid rgba(126, 161, 222, 0.3);
         border-radius: 12px;
         color: var(--muted);
         margin-left: auto;
-        max-width: 420px;
-        padding: 0.38rem 0.55rem;
+        max-width: 470px;
+        padding: 0.46rem 0.62rem;
       }
 
       .human-status strong {
@@ -901,6 +968,30 @@
           <div class="human-chat-head">
             <h2>What do you want to update?</h2>
             <div class="human-note">Describe it naturally, choose a connector target, and Merlin stages the request.</div>
+            <div class="human-plan" aria-label="Connector action plan">
+              <div class="human-plan-head">
+                <strong>Connector Action Plan</strong>
+                <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
+              </div>
+              <div id="human-plan-steps" class="human-plan-steps">
+                <div class="human-plan-step" data-step="scope">
+                  <span>Scope request and match connector</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="permissions">
+                  <span>Verify mode and permissions</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="evidence">
+                  <span>Attach and parse evidence</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="packet">
+                  <span>Assemble executable packet</span>
+                  <span class="status">pending</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div id="human-chat-log" class="human-chat-log">
@@ -1584,6 +1675,34 @@
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
 
+      function resetHumanPlan() {
+        const steps = document.querySelectorAll('#human-plan-steps .human-plan-step');
+        steps.forEach((stepNode) => {
+          stepNode.classList.remove('active', 'done');
+          const status = stepNode.querySelector('.status');
+          if (status) status.textContent = 'pending';
+        });
+      }
+
+      function markHumanPlanStep(step, state, label) {
+        const node = document.querySelector(`#human-plan-steps .human-plan-step[data-step="${step}"]`);
+        if (!node) return;
+        node.classList.remove('active', 'done');
+        if (state === 'active') node.classList.add('active');
+        if (state === 'done') node.classList.add('done');
+        const status = node.querySelector('.status');
+        if (status) status.textContent = label;
+      }
+
+      function updateHumanPlanMeta() {
+        const connector = selectedConnectorName();
+        const mode = document.getElementById('human-mode')?.value || 'human_guided';
+        const fileCount = Array.from(document.getElementById('local-drive-files')?.files || []).length;
+        const meta = document.getElementById('human-plan-meta');
+        if (!meta) return;
+        meta.textContent = `target: ${connector} | mode: ${mode} | files: ${fileCount}`;
+      }
+
       function syncHumanComposer() {
         const prompt = document.getElementById('human-prompt')?.value?.trim() || '';
         const target = document.getElementById('human-target')?.value?.trim() || '';
@@ -1635,6 +1754,7 @@
         if (titleInput && title) titleInput.value = title;
         const noteName = document.getElementById('quick-file-name');
         if (noteName && destination) noteName.value = `${destination.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'update'}-notes.txt`;
+        updateHumanPlanMeta();
       }
 
       function humanPickFiles() {
@@ -1676,11 +1796,15 @@
         }
 
         pushHumanBubble('user', prompt, `Connector: ${connector} · Mode: ${humanizeToken(executionMode)}`);
+        resetHumanPlan();
+        markHumanPlanStep('scope', 'active', 'running');
         const progress = beginHumanProgress(`Analyzing request and selecting ${connector}...`, 'Connector runtime');
 
         const files = document.getElementById('local-drive-files')?.files || [];
         try {
           await pauseHumanProgress(260);
+          markHumanPlanStep('scope', 'done', 'done');
+          markHumanPlanStep('permissions', 'active', 'running');
           progress.update(`Starting ${modeLabel(executionMode)} and validating request scope...`, 'Connector runtime');
 
           if (mode === 'files') {
@@ -1690,14 +1814,19 @@
               return;
             }
             await pauseHumanProgress();
+            markHumanPlanStep('permissions', 'done', 'done');
+            markHumanPlanStep('evidence', 'active', 'running');
             progress.update(`Connecting to ${connector} and creating the request thread...`, 'Connector runtime');
             setHumanStatus('Uploading files and preparing the request...', 'Working.');
             await pauseHumanProgress();
             progress.update('Uploading files, extracting evidence text, and linking attachments...', 'Connector runtime');
             await uploadAndStagePreview();
             await pauseHumanProgress();
+            markHumanPlanStep('evidence', 'done', 'done');
+            markHumanPlanStep('packet', 'active', 'running');
             progress.update('Verifying permissions and assembling final review packet...', 'Connector runtime');
             await pauseHumanProgress();
+            markHumanPlanStep('packet', 'done', 'ready');
             progress.done('Files attached and review staged. You can inspect the packet or add follow-up instructions.', 'Merlin assistant');
             setHumanStatus('Files are attached and a review is prepared.', 'Request ready.');
             const promptInput = document.getElementById('human-prompt');
@@ -1707,21 +1836,30 @@
 
           if (!state.selectedThreadId) {
             await pauseHumanProgress();
+            markHumanPlanStep('permissions', 'done', 'done');
             progress.update(`Routing to ${connector} and opening a new thread...`, 'Connector runtime');
             setHumanStatus('Creating the update request...', 'Working.');
             await createThread();
           } else {
             await pauseHumanProgress();
+            markHumanPlanStep('permissions', 'done', 'done');
             progress.update('Using your existing thread and appending new instructions...', 'Connector runtime');
             await sendThreadMessage();
           }
 
           if (mode === 'review') {
             await pauseHumanProgress();
+            markHumanPlanStep('evidence', 'active', files.length ? 'running' : 'none');
             progress.update('Checking connector permissions and building an action plan...', 'Connector runtime');
             setHumanStatus('Preparing a review from the request details...', 'Working.');
             await stageThreadPreview();
             await pauseHumanProgress();
+            if (files.length) {
+              markHumanPlanStep('evidence', 'done', 'done');
+            } else {
+              markHumanPlanStep('evidence', 'done', 'skipped');
+            }
+            markHumanPlanStep('packet', 'done', 'ready');
             progress.done('Request captured and review prepared. Add files if you want stronger proof coverage.', 'Merlin assistant');
             setHumanStatus('Review prepared. Check the saved request details below if needed.', 'Request ready.');
             const promptInput = document.getElementById('human-prompt');
@@ -1730,13 +1868,17 @@
           }
 
           await pauseHumanProgress();
+          markHumanPlanStep('evidence', 'done', files.length ? 'done' : 'none');
+          markHumanPlanStep('packet', 'active', 'queued');
           progress.update('Request is saved and queued for your next connector action.', 'Connector runtime');
           await pauseHumanProgress();
+          markHumanPlanStep('packet', 'done', 'queued');
           progress.done('Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
           setHumanStatus('The update request was created. Add files or prepare a review when ready.', 'Request created.');
           const promptInput = document.getElementById('human-prompt');
           if (promptInput) promptInput.value = '';
         } catch (error) {
+          markHumanPlanStep('packet', 'active', 'error');
           progress.fail(error instanceof Error ? error.message : 'Could not complete the request.', 'Merlin assistant');
           setHumanStatus(error instanceof Error ? error.message : 'Something went wrong while creating the request.', 'Could not finish.');
         }
@@ -2505,6 +2647,7 @@
         if (humanUploadReviewButton) humanUploadReviewButton.addEventListener('click', () => submitHumanRequest('files'));
         const humanPromptInput = document.getElementById('human-prompt');
         if (humanPromptInput) {
+          humanPromptInput.addEventListener('input', updateHumanPlanMeta);
           humanPromptInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
@@ -2512,6 +2655,14 @@
             }
           });
         }
+        const humanTarget = document.getElementById('human-target');
+        if (humanTarget) humanTarget.addEventListener('change', updateHumanPlanMeta);
+        const humanMode = document.getElementById('human-mode');
+        if (humanMode) humanMode.addEventListener('change', updateHumanPlanMeta);
+        const humanAccount = document.getElementById('human-account');
+        if (humanAccount) humanAccount.addEventListener('input', updateHumanPlanMeta);
+        const humanLogin = document.getElementById('human-login-url');
+        if (humanLogin) humanLogin.addEventListener('input', updateHumanPlanMeta);
         document.querySelectorAll('.human-chip').forEach((chipButton) => {
           chipButton.addEventListener('click', () => {
             const prompt = chipButton.getAttribute('data-prompt') || '';
@@ -2520,6 +2671,7 @@
               promptInput.value = prompt;
               promptInput.focus();
             }
+            updateHumanPlanMeta();
           });
         });
         document.getElementById('action-select').addEventListener('change', syncSelectedActionContext);
@@ -2533,6 +2685,7 @@
               ? `${files.length} file${files.length === 1 ? '' : 's'} attached`
               : 'No files attached';
           }
+          updateHumanPlanMeta();
         });
         document.getElementById('load-drive-status-button').addEventListener('click', loadDriveStatus);
         document.getElementById('load-drive-preview-button').addEventListener('click', loadDrivePreview);
@@ -2569,6 +2722,7 @@
         renderLifecycle();
         renderIncrementalIntake();
         syncActionOptions();
+        updateHumanPlanMeta();
       }
 
       boot().catch((error) => {
