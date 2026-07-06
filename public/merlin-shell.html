@@ -935,113 +935,192 @@
 
       .human-app {
         display: grid;
-        gap: 0.75rem;
+        gap: 1rem;
         grid-template-rows: auto minmax(0, 1fr);
         height: 100vh;
-        max-width: 1440px;
-        padding: 0.75rem 1rem 1rem;
+        max-width: 1480px;
+        padding: 1rem;
       }
 
       .human-shell-top {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9deea;
+        border-radius: 14px;
+        box-shadow: 0 8px 20px rgba(23, 43, 77, 0.08);
         margin-bottom: 0;
-        min-height: 72px;
+        min-height: 74px;
+      }
+
+      .human-brand {
+        color: #172b4d;
+        letter-spacing: 0.04em;
+      }
+
+      .human-note {
+        color: #4b5d7a;
       }
 
       .presence-grid {
         align-items: stretch;
-        gap: 0.75rem;
-        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 1rem;
+        grid-template-columns: 290px minmax(0, 1fr);
         min-height: 0;
       }
 
       .presence-side {
-        background: rgba(10, 18, 34, 0.9);
-        border: 1px solid rgba(96, 136, 204, 0.28);
+        background: #f7f9fc;
+        border: 1px solid #dbe2ef;
         border-radius: 14px;
-        gap: 0.6rem;
+        gap: 0.7rem;
         overflow: auto;
         padding: 0.7rem;
       }
 
       .presence-main {
+        background: #f4f7fb;
+        border: 1px solid #dbe2ef;
+        border-radius: 14px;
         display: grid;
         gap: 0.75rem;
         grid-template-rows: minmax(0, 1fr) auto;
         min-height: 0;
+        padding: 0.75rem;
       }
 
       .presence-side .human-panel,
       .presence-main .human-panel {
+        background: #ffffff;
+        border: 1px solid #e2e8f3;
         border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(23, 43, 77, 0.05);
         margin: 0;
       }
 
-      .presence-side .human-panel {
-        background: rgba(15, 27, 48, 0.92);
+      .presence-side .human-panel h2,
+      .presence-main .human-panel h2 {
+        color: #172b4d;
       }
 
-      .presence-side .human-field-grid {
-        grid-template-columns: 1fr;
+      .presence-side .human-panel-sub {
+        color: #5f708c;
       }
 
       .human-conversation-panel {
         display: grid;
-        gap: 0.62rem;
+        gap: 0.6rem;
         grid-template-rows: auto minmax(0, 1fr);
         min-height: 0;
       }
 
       .human-conversation-head {
         align-items: center;
+        border-bottom: 1px solid #e5ebf5;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem 0.8rem;
         justify-content: space-between;
-      }
-
-      .human-conversation-head h2 {
-        margin: 0;
+        padding-bottom: 0.5rem;
       }
 
       .human-timeline {
+        background: #f8fafe;
+        border: 1px solid #e1e8f4;
+        border-radius: 12px;
         max-height: none;
         min-height: 0;
       }
 
       .human-chat-log {
-        min-height: 320px;
+        min-height: 360px;
       }
 
-      .human-composer-panel {
-        background: rgba(15, 27, 48, 0.94);
+      .human-bubble.assistant {
+        background: #ffffff;
+        border-color: #dbe4f2;
+        color: #1e2f4d;
+      }
+
+      .human-bubble.user {
+        background: #d8ecff;
+        border-color: #8bbce8;
+        color: #123153;
+      }
+
+      .human-bubble .meta,
+      .human-file-status {
+        color: #5f708c;
       }
 
       .human-composer-panel textarea {
+        background: #ffffff;
+        border: 1px solid #d4deee;
+        color: #1e2f4d;
         min-height: 124px;
       }
 
-      .human-composer-panel .human-actions {
-        margin-top: 0.62rem;
+      .human-composer-panel textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
       }
 
-      .human-composer-panel .human-actions button {
-        min-width: 124px;
+      .human-compose-row {
+        margin-top: 0.6rem;
       }
 
-      .human-composer-panel .human-plan {
-        margin-top: 0.7rem;
+      .human-compose-row button {
+        min-width: 120px;
       }
 
-      .human-composer-panel .human-plan-steps {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .human-actions button:not(.secondary) {
+        background: #2563eb;
+        border-color: #1d4ed8;
+        color: #ffffff;
       }
 
-      .human-composer-panel .human-plan-step {
-        font-size: 0.84rem;
+      .human-actions button.secondary {
+        background: #eef3fb;
+        border: 1px solid #d3dff1;
+        color: #28405f;
+      }
+
+      .human-connector {
+        background: #ffffff;
+        border-color: #d8e1f0;
+      }
+
+      .human-connector:hover {
+        background: #f3f8ff;
+        border-color: #8db4e7;
+      }
+
+      .human-connector.active {
+        background: #e7f1ff;
+        border-color: #3b82f6;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.22);
+      }
+
+      .human-connector strong {
+        color: #173255;
+      }
+
+      .human-chip {
+        background: #f1f5fb;
+        border-color: #d3dff1;
+        color: #2b4466;
       }
 
       .human-status {
-        max-width: 520px;
+        background: #f3f7ff;
+        border: 1px solid #d4dff0;
+        color: #425a79;
+        max-width: 560px;
+      }
+
+      .human-status strong {
+        color: #173255;
+      }
+
+      .human-hidden-controls {
+        display: none;
       }
 
       @media (max-width: 1040px) {
@@ -1100,57 +1179,28 @@
       <header class="human-shell-top">
         <div>
           <div class="human-brand">Merlin Chat</div>
-          <div class="human-note">One chat surface for updates across your connected apps.</div>
+          <div class="human-note">Ask for edits in plain language.</div>
         </div>
-        <div id="human-status" class="human-status"><strong>Ready.</strong> Tap a connection, describe the update, then run.</div>
+        <div id="human-status" class="human-status"><strong>Ready.</strong> Choose a connection and type your update request.</div>
       </header>
 
       <section class="presence-grid">
         <aside class="presence-side">
           <section class="human-panel">
             <h2>Connections</h2>
-            <div class="human-panel-sub">Tap a connection to choose where this edit should run.</div>
+            <div class="human-panel-sub">Pick where you want the edit to happen.</div>
             <div id="human-connectors" class="human-connector-list">
               <div class="human-connector"><strong>Loading apps...</strong><span class="meta">Checking status</span></div>
             </div>
           </section>
 
           <section class="human-panel">
-            <h2>Quick Commands</h2>
+            <h2>Starter Prompts</h2>
             <div class="human-chip-grid">
               <button type="button" class="human-chip" data-prompt="Update business hours across all profiles for this week.">Hours</button>
               <button type="button" class="human-chip" data-prompt="Replace menu and update featured items on listings.">Menu</button>
               <button type="button" class="human-chip" data-prompt="Fix phone number and contact links everywhere.">Contact</button>
               <button type="button" class="human-chip" data-prompt="Sync profile description and hero image across all channels.">Profile sync</button>
-            </div>
-          </section>
-
-          <section class="human-panel">
-            <h2>Context</h2>
-            <div class="human-field-grid">
-              <div class="full">
-                <label for="human-target">Selected connection</label>
-                <select id="human-target">
-                  <option value="">Auto-select</option>
-                </select>
-              </div>
-              <div>
-                <label for="human-mode">Run mode</label>
-                <select id="human-mode">
-                  <option value="human_guided">Guided</option>
-                  <option value="prepare_packet">Draft only</option>
-                  <option value="approved_connector">Approved connector</option>
-                  <option value="screen_share">Live handoff</option>
-                </select>
-              </div>
-              <div>
-                <label for="human-account">Account / Listing</label>
-                <input id="human-account" placeholder="Name, URL, or account id" />
-              </div>
-              <div class="full">
-                <label for="human-login-url">Admin URL</label>
-                <input id="human-login-url" placeholder="https://..." />
-              </div>
             </div>
           </section>
         </aside>
@@ -1159,7 +1209,6 @@
           <section class="human-panel human-conversation-panel">
             <div class="human-conversation-head">
               <h2>Conversation</h2>
-              <span id="human-plan-meta" class="human-plan-meta">target: best matching connector | mode: human_guided | files: 0</span>
             </div>
             <div class="human-timeline">
               <div id="human-chat-log" class="human-chat-log">
@@ -1174,28 +1223,42 @@
           <section class="human-panel human-composer-panel">
             <label for="human-prompt">Message</label>
             <textarea id="human-prompt" placeholder="Example: update hours and menu links for MealScout this week."></textarea>
-            <div class="human-actions">
+            <div class="human-actions human-compose-row">
               <button type="button" class="secondary" onclick="humanPickFiles()">Attach files</button>
               <span id="human-file-status" class="human-file-status">No files attached</span>
-              <button id="human-send-button" type="button">Run</button>
-              <button id="human-review-button" type="button" class="secondary">Preview</button>
-              <button id="human-upload-review-button" type="button" class="secondary">Upload + preview</button>
+              <button id="human-send-button" type="button">Send</button>
             </div>
-            <div class="human-plan">
-              <div class="human-plan-head">
-                <strong>Request status</strong>
-              </div>
-              <div id="human-plan-steps" class="human-plan-steps">
-                <div class="human-plan-step" data-step="scope"><span>Match request to channel</span><span class="status">pending</span></div>
-                <div class="human-plan-step" data-step="permissions"><span>Confirm access + approvals</span><span class="status">pending</span></div>
-                <div class="human-plan-step" data-step="evidence"><span>Attach files + notes</span><span class="status">pending</span></div>
-                <div class="human-plan-step" data-step="packet"><span>Build preview</span><span class="status">pending</span></div>
-              </div>
-            </div>
-            <div class="human-panel-sub">Enter submits. Shift+Enter adds a new line.</div>
+            <div class="human-panel-sub">Press Enter to send. Use Shift+Enter for a new line.</div>
           </section>
         </section>
       </section>
+
+      <div class="human-hidden-controls" aria-hidden="true">
+        <label for="human-target">Selected connection</label>
+        <select id="human-target">
+          <option value="">Auto-select</option>
+        </select>
+        <label for="human-mode">Run mode</label>
+        <select id="human-mode">
+          <option value="human_guided">Guided</option>
+          <option value="prepare_packet">Draft only</option>
+          <option value="approved_connector">Approved connector</option>
+          <option value="screen_share">Live handoff</option>
+        </select>
+        <label for="human-account">Account / Listing</label>
+        <input id="human-account" placeholder="Name, URL, or account id" />
+        <label for="human-login-url">Admin URL</label>
+        <input id="human-login-url" placeholder="https://..." />
+        <button id="human-review-button" type="button">Preview</button>
+        <button id="human-upload-review-button" type="button">Upload + preview</button>
+        <span id="human-plan-meta">target: best matching connector | mode: human_guided | files: 0</span>
+        <div id="human-plan-steps">
+          <div class="human-plan-step" data-step="scope"><span>Match request to channel</span><span class="status">pending</span></div>
+          <div class="human-plan-step" data-step="permissions"><span>Confirm access + approvals</span><span class="status">pending</span></div>
+          <div class="human-plan-step" data-step="evidence"><span>Attach files + notes</span><span class="status">pending</span></div>
+          <div class="human-plan-step" data-step="packet"><span>Build preview</span><span class="status">pending</span></div>
+        </div>
+      </div>
 
       <input id="human-destination" type="hidden" />
       <input id="human-access" type="hidden" />
