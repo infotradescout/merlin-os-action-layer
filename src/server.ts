@@ -1359,6 +1359,50 @@ function servePublicFile(res: ServerResponse, fileName: string): boolean {
   }
 }
 
+const WEB_DIST_DIR = resolve(process.cwd(), 'web', 'dist');
+
+function getWebAssetMimeType(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (extension === 'js' || extension === 'mjs') return 'application/javascript';
+  if (extension === 'css') return 'text/css';
+  if (extension === 'svg') return 'image/svg+xml';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'woff2') return 'font/woff2';
+  if (extension === 'woff') return 'font/woff';
+  if (extension === 'json' || extension === 'webmanifest') return 'application/manifest+json';
+  return 'application/octet-stream';
+}
+
+function serveMerlinShellIndex(res: ServerResponse): boolean {
+  const indexPath = resolve(WEB_DIST_DIR, 'index.html');
+  if (!existsSync(indexPath)) return false;
+  try {
+    const html = readFileSync(indexPath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html');
+    res.end(html);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function serveMerlinShellAsset(res: ServerResponse, assetPath: string): boolean {
+  const resolvedPath = resolve(WEB_DIST_DIR, assetPath);
+  const normalizedDir = WEB_DIST_DIR.endsWith(sep) ? WEB_DIST_DIR : `${WEB_DIST_DIR}${sep}`;
+  if (!resolvedPath.startsWith(normalizedDir)) return false;
+  if (!existsSync(resolvedPath)) return false;
+  try {
+    const contents = readFileSync(resolvedPath);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', getWebAssetMimeType(resolvedPath));
+    res.end(contents);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function serveUiIndex(res: ServerResponse): boolean {
   const indexPath = resolve(process.cwd(), 'public', 'index.html');
   if (!existsSync(indexPath)) {
@@ -2348,9 +2392,16 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
 
   if ((method === 'GET' || method === 'HEAD') && pathname === '/merlin') {
-    const served = servePublicFile(res, 'merlin-shell.html');
+    const served = serveMerlinShellIndex(res);
     if (served) return;
     return responseJson(res, { error: 'Merlin shell not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname.startsWith('/merlin/assets/')) {
+    const assetPath = pathname.slice('/merlin/'.length);
+    const served = serveMerlinShellAsset(res, assetPath);
+    if (served) return;
+    return responseJson(res, { error: 'Merlin shell asset not found' }, 404);
   }
 
   if ((method === 'GET' || method === 'HEAD') && pathname === '/manifest.webmanifest') {
