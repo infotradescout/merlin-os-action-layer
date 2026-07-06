@@ -503,39 +503,25 @@
       }
 
       .human-app {
-        animation: shell-enter 380ms ease;
         margin: 0 auto;
-        max-width: 1320px;
-        padding: 1.15rem 1rem 1.5rem;
-        position: relative;
-      }
-
-      @keyframes shell-enter {
-        from {
-          opacity: 0;
-          transform: translateY(14px) scale(0.985);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
+        max-width: 1280px;
+        padding: 1rem;
       }
 
       .human-shell-top {
-        align-items: center;
-        background: linear-gradient(90deg, rgba(20, 36, 62, 0.7), rgba(23, 30, 58, 0.58));
-        border: 1px solid rgba(126, 161, 222, 0.24);
-        border-radius: 16px;
-        box-shadow: 0 14px 36px rgba(5, 10, 22, 0.38);
+        align-items: start;
+        background: rgba(18, 27, 46, 0.9);
+        border: 1px solid rgba(126, 161, 222, 0.2);
+        border-radius: 14px;
         display: flex;
+        gap: 1rem;
         justify-content: space-between;
-        gap: 0.75rem;
         margin-bottom: 1rem;
-        padding: 0.8rem 0.95rem;
+        padding: 0.85rem 1rem;
       }
 
       .human-brand {
-        color: #edf4ff;
+        color: #e8f0ff;
         font-size: 1rem;
         font-weight: 700;
         letter-spacing: 0.05em;
@@ -543,257 +529,219 @@
       }
 
       .human-note {
-        color: var(--muted);
-        font-size: 0.92rem;
+        color: #9cb0cf;
+        font-size: 0.9rem;
       }
 
       .human-shell {
-        align-items: stretch;
         display: grid;
         gap: 1rem;
-        grid-template-columns: minmax(0, 1fr) 360px;
-        min-height: calc(100vh - 120px);
+        grid-template-columns: minmax(0, 1fr) 320px;
       }
 
-      .human-chat {
-        order: 1;
-      }
-
-      .human-sidebar {
-        order: 2;
-      }
-
-      .human-sidebar {
-        background: linear-gradient(175deg, rgba(18, 30, 52, 0.88), rgba(14, 23, 39, 0.88));
-        border: 1px solid rgba(119, 152, 217, 0.24);
-        border-radius: 18px;
-        box-shadow: 0 20px 46px rgba(4, 10, 20, 0.46);
-        backdrop-filter: blur(8px);
+      .human-main {
         display: grid;
-        gap: 0.95rem;
-        padding: 0.95rem;
+        gap: 1rem;
       }
 
-      .human-sidebar .block {
-        background: linear-gradient(180deg, rgba(24, 40, 68, 0.78), rgba(18, 30, 50, 0.78));
+      .human-panel {
+        background: rgba(17, 26, 43, 0.92);
         border: 1px solid rgba(126, 161, 222, 0.22);
         border-radius: 14px;
-        padding: 0.82rem;
+        padding: 1rem;
       }
 
-      .human-rail-list {
-        color: #c8d9f2;
+      .human-panel h2 {
+        color: #f0f5ff;
+        font-size: 1.18rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .human-panel-sub {
+        color: #9cb0cf;
+        font-size: 0.88rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .human-field-grid {
         display: grid;
-        font-size: 0.85rem;
-        gap: 0.35rem;
-        margin-top: 0.5rem;
+        gap: 0.7rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .human-sidebar h2 {
-        color: #f2f7ff;
-        font-size: 1.06rem;
+      .human-field-grid .full {
+        grid-column: 1 / -1;
       }
 
-      .human-sidebar .meta {
-        color: #9db0cf;
+      .human-panel label {
+        color: #b2c5e4;
+        display: block;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
       }
 
-      .human-chip-grid {
+      .human-panel textarea,
+      .human-panel input,
+      .human-panel select {
+        background: rgba(11, 20, 35, 0.94);
+        border: 1px solid rgba(126, 161, 222, 0.32);
+        border-radius: 10px;
+        color: #e0ecff;
+        font: inherit;
+        padding: 0.72rem 0.78rem;
+      }
+
+      .human-panel textarea {
+        min-height: 100px;
+        width: 100%;
+      }
+
+      .human-panel textarea:focus,
+      .human-panel input:focus,
+      .human-panel select:focus {
+        border-color: #94bfff;
+        box-shadow: 0 0 0 3px rgba(148, 191, 255, 0.16);
+        outline: none;
+      }
+
+      .human-actions {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
         gap: 0.55rem;
-        margin-top: 0.65rem;
+        margin-top: 0.75rem;
       }
 
-      .human-chip {
-        background: linear-gradient(180deg, rgba(37, 60, 95, 0.85), rgba(28, 44, 73, 0.85));
-        border: 1px solid rgba(148, 184, 246, 0.36);
-        border-radius: 999px;
-        color: #d9e9ff;
-        cursor: pointer;
-        font-size: 0.78rem;
-        padding: 0.34rem 0.78rem;
+      .human-actions button {
+        border-radius: 10px;
+        min-width: 164px;
+        padding: 0.66rem 0.84rem;
         width: auto;
-        flex: 0 0 auto;
-        transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease;
       }
 
-      .human-chip:hover {
-        border-color: #b2d1ff;
-        box-shadow: 0 0 0 1px rgba(178, 209, 255, 0.2), 0 10px 20px rgba(8, 14, 28, 0.5);
-        transform: translateY(-1px);
+      .human-actions button:not(.secondary) {
+        background: #7ab3ff;
+        color: #0b1c35;
       }
 
-      .human-connector-list {
-        display: grid;
-        gap: 0.56rem;
-        margin-top: 0.65rem;
+      .human-actions button.secondary {
+        background: rgba(31, 45, 71, 0.95);
+        border: 1px solid rgba(126, 161, 222, 0.35);
+        color: #dde9ff;
       }
 
-      .human-connector {
-        background: linear-gradient(180deg, rgba(31, 55, 89, 0.86), rgba(23, 40, 67, 0.86));
-        border: 1px solid rgba(139, 176, 236, 0.28);
-        border-radius: 12px;
-        padding: 0.62rem;
+      .human-file-status {
+        color: #9cb0cf;
+        font-size: 0.82rem;
       }
 
-      .human-connector strong {
-        color: #eef5ff;
-        display: block;
-        font-size: 0.98rem;
-        margin-bottom: 0.12rem;
+      .human-status {
+        background: rgba(23, 35, 58, 0.95);
+        border: 1px solid rgba(126, 161, 222, 0.24);
+        border-radius: 10px;
+        color: #a7b9d6;
+        margin-left: auto;
+        max-width: 420px;
+        padding: 0.46rem 0.58rem;
       }
 
-      .human-connector span {
-        color: #9ab0d0;
-        font-size: 0.84rem;
-      }
-
-      .human-chat {
-        background: linear-gradient(180deg, rgba(21, 34, 59, 0.88), rgba(14, 24, 43, 0.9));
-        border: 1px solid rgba(126, 161, 222, 0.26);
-        border-radius: 18px;
-        box-shadow: 0 24px 50px rgba(5, 10, 21, 0.5);
-        backdrop-filter: blur(8px);
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        min-height: 70vh;
-      }
-
-      .human-chat-head {
-        border-bottom: 1px solid rgba(126, 161, 222, 0.24);
-        padding: 0.95rem 1rem;
-      }
-
-      .human-chat-head h2 {
-        color: #f3fbff;
-        font-size: 1.5rem;
-        line-height: 1.2;
+      .human-status strong {
+        color: #edf3ff;
       }
 
       .human-plan {
-        background: linear-gradient(180deg, rgba(24, 40, 67, 0.75), rgba(18, 30, 50, 0.75));
-        border: 1px solid rgba(126, 161, 222, 0.24);
-        border-radius: 12px;
-        display: grid;
-        gap: 0.5rem;
-        margin-top: 0.7rem;
-        padding: 0.62rem 0.68rem;
+        margin-top: 0.8rem;
       }
 
       .human-plan-head {
         align-items: center;
         display: flex;
         justify-content: space-between;
+        margin-bottom: 0.45rem;
       }
 
       .human-plan-head strong {
-        font-size: 0.84rem;
+        color: #e8f0ff;
+        font-size: 0.82rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       .human-plan-meta {
-        color: #a5bddb;
+        color: #9cb0cf;
         font-family: "IBM Plex Mono", monospace;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
       }
 
       .human-plan-steps {
         display: grid;
-        gap: 0.36rem;
-        margin: 0;
-        padding: 0;
+        gap: 0.4rem;
       }
 
       .human-plan-step {
         align-items: center;
-        background: rgba(13, 26, 45, 0.52);
-        border: 1px solid rgba(126, 161, 222, 0.18);
-        border-radius: 10px;
+        background: rgba(12, 21, 36, 0.88);
+        border: 1px solid rgba(126, 161, 222, 0.2);
+        border-radius: 9px;
         display: flex;
-        font-size: 0.82rem;
         justify-content: space-between;
-        padding: 0.42rem 0.5rem;
+        padding: 0.45rem 0.5rem;
       }
 
       .human-plan-step .status {
-        background: rgba(126, 161, 222, 0.18);
-        border: 1px solid rgba(126, 161, 222, 0.34);
+        background: rgba(84, 112, 161, 0.25);
+        border: 1px solid rgba(126, 161, 222, 0.3);
         border-radius: 999px;
-        color: #cfe2ff;
+        color: #c9daf7;
         font-family: "IBM Plex Mono", monospace;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         margin: 0;
-        padding: 0.14rem 0.4rem;
+        padding: 0.1rem 0.42rem;
       }
 
       .human-plan-step.active {
-        border-color: rgba(158, 197, 255, 0.5);
-      }
-
-      .human-plan-step.active .status {
-        background: rgba(158, 197, 255, 0.22);
-        border-color: rgba(158, 197, 255, 0.5);
-        color: #eff6ff;
+        border-color: rgba(157, 191, 249, 0.5);
       }
 
       .human-plan-step.done {
-        border-color: rgba(106, 208, 162, 0.48);
+        border-color: rgba(121, 207, 160, 0.45);
       }
 
-      .human-plan-step.done .status {
-        background: rgba(92, 182, 146, 0.24);
-        border-color: rgba(106, 208, 162, 0.46);
-        color: #d8fff0;
+      .human-timeline {
+        background: rgba(11, 18, 31, 0.8);
+        border: 1px solid rgba(126, 161, 222, 0.2);
+        border-radius: 12px;
+        max-height: 360px;
+        overflow: auto;
+        padding: 0.75rem;
       }
 
       .human-chat-log {
-        background:
-          radial-gradient(640px 240px at 50% -8%, rgba(99, 146, 233, 0.18), transparent 66%),
-          transparent;
         display: grid;
-        gap: 0.72rem;
-        overflow: auto;
-        padding: 1rem;
+        gap: 0.6rem;
       }
 
       .human-bubble {
-        animation: bubble-rise 240ms ease;
-        border: 1px solid rgba(133, 171, 235, 0.32);
-        border-radius: 14px;
-        box-shadow: 0 10px 24px rgba(4, 10, 21, 0.42);
+        border: 1px solid rgba(126, 161, 222, 0.24);
+        border-radius: 10px;
         line-height: 1.45;
-        max-width: 88%;
-        padding: 0.78rem 0.86rem;
+        max-width: 90%;
+        padding: 0.62rem 0.72rem;
         white-space: pre-wrap;
       }
 
-      @keyframes bubble-rise {
-        from {
-          opacity: 0;
-          transform: translateY(6px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
       .human-bubble.assistant {
-        background: linear-gradient(180deg, rgba(41, 67, 104, 0.88), rgba(32, 54, 85, 0.88));
+        background: rgba(32, 49, 79, 0.9);
         color: #e6f1ff;
       }
 
       .human-bubble.user {
-        background: linear-gradient(180deg, rgba(73, 117, 188, 0.84), rgba(58, 97, 160, 0.86));
-        border-color: rgba(158, 197, 255, 0.34);
-        color: #eff6ff;
+        background: rgba(62, 98, 156, 0.9);
+        color: #f4f8ff;
         margin-left: auto;
       }
 
       .human-bubble.thinking {
-        background: linear-gradient(180deg, rgba(35, 62, 101, 0.88), rgba(28, 50, 81, 0.88));
         border-style: dashed;
       }
 
@@ -803,139 +751,93 @@
       }
 
       @keyframes human-pulse {
-        0% {
-          opacity: 0.25;
-        }
-        50% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0.25;
-        }
+        0% { opacity: 0.25; }
+        50% { opacity: 1; }
+        100% { opacity: 0.25; }
       }
 
       .human-bubble .meta {
-        color: #a5bddb;
+        color: #a9bedf;
         display: block;
         font-family: "IBM Plex Mono", monospace;
-        font-size: 0.75rem;
-        margin-top: 0.35rem;
+        font-size: 0.72rem;
+        margin-top: 0.34rem;
       }
 
-      .human-composer {
-        border-top: 1px solid rgba(126, 161, 222, 0.24);
-        padding: 0.95rem 1rem 1rem;
-      }
-
-      .human-composer-row {
+      .human-sidebar {
         display: grid;
-        gap: 0.72rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-bottom: 0.72rem;
+        gap: 1rem;
       }
 
-      .human-composer textarea,
-      .human-composer input,
-      .human-composer select {
-        background: rgba(11, 22, 39, 0.92);
-        border: 1px solid rgba(126, 161, 222, 0.34);
-        border-radius: 12px;
-        color: #dcf4ff;
-        font: inherit;
-        padding: 0.78rem 0.82rem;
-        transition: border-color 140ms ease, box-shadow 140ms ease;
+      .human-sidebar .block {
+        background: rgba(17, 26, 43, 0.92);
+        border: 1px solid rgba(126, 161, 222, 0.22);
+        border-radius: 14px;
+        padding: 0.85rem;
       }
 
-      .human-composer label {
-        color: #b0c7e7;
-        font-size: 0.8rem;
+      .human-sidebar h2 {
+        color: #edf3ff;
+        font-size: 1rem;
       }
 
-      .human-composer textarea:focus,
-      .human-composer input:focus,
-      .human-composer select:focus {
-        border-color: #9cc4ff;
-        box-shadow: 0 0 0 3px rgba(156, 196, 255, 0.16);
-        outline: none;
+      .human-sidebar .meta {
+        color: #9cb0cf;
       }
 
-      .human-composer textarea {
-        min-height: 94px;
-        width: 100%;
+      .human-rail-list {
+        color: #c8d8f2;
+        display: grid;
+        font-size: 0.84rem;
+        gap: 0.34rem;
+        margin-top: 0.45rem;
       }
 
-      .human-actions {
-        align-items: center;
+      .human-connector-list {
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 0.55rem;
+      }
+
+      .human-connector {
+        background: rgba(26, 40, 66, 0.85);
+        border: 1px solid rgba(126, 161, 222, 0.24);
+        border-radius: 10px;
+        padding: 0.52rem;
+      }
+
+      .human-connector strong {
+        color: #e8f0ff;
+        display: block;
+        font-size: 0.92rem;
+      }
+
+      .human-chip-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.58rem;
-        margin-top: 0.72rem;
+        gap: 0.46rem;
+        margin-top: 0.55rem;
       }
 
-      .human-actions button {
-        border-radius: 12px;
-        flex: 0 1 auto;
-        font-weight: 700;
-        min-width: 152px;
-        padding: 0.66rem 0.86rem;
+      .human-chip {
+        background: rgba(36, 53, 83, 0.9);
+        border: 1px solid rgba(126, 161, 222, 0.33);
+        border-radius: 999px;
+        color: #dbe8ff;
+        flex: 0 0 auto;
+        font-size: 0.78rem;
+        padding: 0.3rem 0.7rem;
         width: auto;
-        transition: transform 160ms ease, box-shadow 160ms ease;
       }
 
-      .human-actions button:not(.secondary) {
-        background: linear-gradient(180deg, #8fc5ff, #6caeff);
-        color: #0c2140;
-      }
-
-      .human-actions button.secondary {
-        background: linear-gradient(180deg, rgba(29, 49, 82, 0.96), rgba(22, 38, 64, 0.96));
-        border: 1px solid rgba(126, 161, 222, 0.34);
-        color: #dde9ff;
-      }
-
-      .human-actions button:hover {
-        box-shadow: 0 12px 24px rgba(5, 12, 24, 0.5);
-        transform: translateY(-1px);
-      }
-
-      .human-status {
-        background: linear-gradient(180deg, rgba(28, 45, 75, 0.95), rgba(21, 35, 58, 0.95));
-        border: 1px solid rgba(126, 161, 222, 0.3);
-        border-radius: 12px;
-        color: var(--muted);
-        margin-left: auto;
-        max-width: 470px;
-        padding: 0.46rem 0.62rem;
-      }
-
-      .human-status strong {
-        color: var(--ink);
-      }
-
-      .human-file-status {
-        color: var(--muted);
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.82rem;
-      }
-
-      @media (max-width: 960px) {
+      @media (max-width: 1040px) {
         .human-shell {
           grid-template-columns: 1fr;
-          min-height: 0;
-        }
-
-        .human-chat,
-        .human-sidebar {
-          order: initial;
-        }
-
-        .human-chat {
-          min-height: 66vh;
         }
       }
 
       @media (max-width: 720px) {
-        .human-composer-row {
+        .human-field-grid {
           grid-template-columns: 1fr;
         }
 
@@ -953,87 +855,21 @@
     </style>
   </head>
   <body>
-    <main class="human-app" aria-label="Merlin connector chat">
+    <main class="human-app" aria-label="Merlin operator action layer">
       <header class="human-shell-top">
         <div>
-          <div class="human-brand">Merlin Connectors</div>
-          <div class="human-note">Convert plain-language requests into verified execution packets.</div>
+          <div class="human-brand">Merlin Operator Action Layer</div>
+          <div class="human-note">Turn trusted intent plus evidence into auditable, connector-safe execution packets.</div>
         </div>
-        <div class="human-note">No credentials entered here. Access stays with your team or approved connector.</div>
+        <div class="human-note">No external mutation by default. Live execution remains policy and approval gated.</div>
       </header>
 
       <section class="human-shell">
-        <aside class="human-sidebar" aria-label="Connector operations rail">
-          <div class="block">
-            <h2>Connector Inventory</h2>
-            <div id="human-connectors" class="human-connector-list">
-              <div class="human-connector">
-                <strong>Loading connectors...</strong>
-                <span class="meta">Checking status</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="block">
-            <h2>Request Templates</h2>
-            <div class="human-chip-grid">
-              <button type="button" class="human-chip" data-prompt="Update business hours across profiles using this week's schedule.">Hours update</button>
-              <button type="button" class="human-chip" data-prompt="Replace the menu with attached assets and preserve category order.">Menu replacement</button>
-              <button type="button" class="human-chip" data-prompt="Correct phone and contact links across listings.">Contact correction</button>
-              <button type="button" class="human-chip" data-prompt="Build a full execution packet from attached screenshots and notes.">Packet from evidence</button>
-            </div>
-          </div>
-
-          <div class="block">
-            <h2>Execution Rules</h2>
-            <div class="human-rail-list">
-              <div>1. Match the best connector for the requested outcome.</div>
-              <div>2. Validate execution mode and permission boundaries.</div>
-              <div>3. Bind all evidence to a reproducible packet before action.</div>
-              <div>4. Keep human approval in the loop for final execution.</div>
-            </div>
-          </div>
-        </aside>
-
-        <section class="human-chat" aria-label="Chat composer">
-          <div class="human-chat-head">
-            <h2>Build a connector-ready request</h2>
-            <div class="human-note">Describe the outcome, attach evidence, then generate an execution packet your team can trust.</div>
-            <div class="human-plan" aria-label="Connector action plan">
-              <div class="human-plan-head">
-                <strong>Execution Plan</strong>
-                <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
-              </div>
-              <div id="human-plan-steps" class="human-plan-steps">
-                <div class="human-plan-step" data-step="scope">
-                  <span>Scope request and match connector</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="permissions">
-                  <span>Verify mode and permissions</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="evidence">
-                  <span>Attach and parse evidence</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="packet">
-                  <span>Assemble executable packet</span>
-                  <span class="status">pending</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="human-chat-log" class="human-chat-log">
-            <div class="human-bubble assistant">
-              Describe the outcome you need, the account affected, and the proof source. I will stage a connector-safe execution packet.
-              <span class="meta">Merlin assistant</span>
-            </div>
-          </div>
-
-          <div class="human-composer">
-            <div class="human-composer-row">
+        <section class="human-main" aria-label="Request and execution lane">
+          <section class="human-panel" aria-label="Request lane">
+            <h2>1) Define Request</h2>
+            <div class="human-panel-sub">State the business outcome and select the execution lane.</div>
+            <div class="human-field-grid">
               <div>
                 <label for="human-target">Connector target</label>
                 <select id="human-target">
@@ -1043,37 +879,110 @@
               <div>
                 <label for="human-mode">Execution mode</label>
                 <select id="human-mode">
-                  <option value="human_guided">Guide a logged-in person</option>
+                  <option value="human_guided">Guide a logged-in operator</option>
                   <option value="prepare_packet">Prepare packet only</option>
                   <option value="approved_connector">Use approved connector</option>
-                  <option value="screen_share">Use live handoff</option>
+                  <option value="screen_share">Live handoff session</option>
                 </select>
               </div>
               <div>
-                <label for="human-account">Account or listing</label>
-                <input id="human-account" placeholder="Business name, profile URL, store, account id" />
+                <label for="human-account">Account, listing, or entity</label>
+                <input id="human-account" placeholder="Business name, listing URL, account id" />
               </div>
               <div>
-                <label for="human-login-url">Login/admin URL (optional)</label>
-                <input id="human-login-url" placeholder="Optional: https://..." />
+                <label for="human-login-url">Admin/login URL (optional)</label>
+                <input id="human-login-url" placeholder="https://..." />
+              </div>
+              <div class="full">
+                <label for="human-prompt">Outcome to achieve</label>
+                <textarea id="human-prompt" placeholder="Describe what must change, expected result, and what proof should be treated as source of truth."></textarea>
               </div>
             </div>
-
-            <label for="human-prompt">Message</label>
-            <textarea id="human-prompt" placeholder="Example: Update our Google Business Profile hours for July 4 and replace menu photos using the attached screenshots."></textarea>
-
             <div class="human-actions">
-              <button type="button" class="secondary" onclick="humanPickFiles()">Attach screenshots/files</button>
+              <button type="button" class="secondary" onclick="humanPickFiles()">Attach evidence files</button>
               <span id="human-file-status" class="human-file-status">No files attached</span>
               <button id="human-send-button" type="button">Create request</button>
-              <button id="human-review-button" type="button" class="secondary">Create + prepare review</button>
-              <button id="human-upload-review-button" type="button" class="secondary">Create + upload + prepare</button>
+              <button id="human-review-button" type="button" class="secondary">Create and prepare preview</button>
+              <button id="human-upload-review-button" type="button" class="secondary">Create, upload, and preview</button>
               <div id="human-status" class="human-status">
-                <strong>Ready.</strong> Start with the desired outcome and connector target.
+                <strong>Ready.</strong> Define outcome, attach evidence, then stage execution packet.
               </div>
             </div>
-          </div>
+          </section>
+
+          <section class="human-panel" aria-label="Execution stage lane">
+            <h2>2) Validate Execution Path</h2>
+            <div class="human-panel-sub">Merlin tracks stage completion before any live execution consideration.</div>
+            <div class="human-plan">
+              <div class="human-plan-head">
+                <strong>Runtime Stages</strong>
+                <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
+              </div>
+              <div id="human-plan-steps" class="human-plan-steps">
+                <div class="human-plan-step" data-step="scope">
+                  <span>Scope intent and map connector lane</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="permissions">
+                  <span>Run policy and permission checks</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="evidence">
+                  <span>Bind evidence and references</span>
+                  <span class="status">pending</span>
+                </div>
+                <div class="human-plan-step" data-step="packet">
+                  <span>Create dry-run execution packet</span>
+                  <span class="status">pending</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="human-panel" aria-label="Audit timeline">
+            <h2>3) Audit Timeline</h2>
+            <div class="human-panel-sub">Every request and assistant action is logged in one thread lane.</div>
+            <div class="human-timeline">
+              <div id="human-chat-log" class="human-chat-log">
+                <div class="human-bubble assistant">
+                  Start by describing the intended change and adding evidence. Merlin will stage a policy-aware packet for operator review.
+                  <span class="meta">merlin-runtime</span>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
+
+        <aside class="human-sidebar" aria-label="Operator context rail">
+          <section class="block">
+            <h2>Product Purpose</h2>
+            <div class="human-rail-list">
+              <div>1. Collect trusted intent and evidence.</div>
+              <div>2. Produce auditable action cards and dry-run packets.</div>
+              <div>3. Enforce approvals and policy before live execution.</div>
+            </div>
+          </section>
+
+          <section class="block">
+            <h2>Connector Inventory</h2>
+            <div id="human-connectors" class="human-connector-list">
+              <div class="human-connector">
+                <strong>Loading connectors...</strong>
+                <span class="meta">Checking status</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <h2>Starter Templates</h2>
+            <div class="human-chip-grid">
+              <button type="button" class="human-chip" data-prompt="Update business hours from approved schedule evidence and keep existing lane metadata.">Hours update packet</button>
+              <button type="button" class="human-chip" data-prompt="Replace menu assets from uploaded proof and stage a review-only packet.">Menu evidence packet</button>
+              <button type="button" class="human-chip" data-prompt="Correct contact details across listings and include source screenshot references.">Contact correction packet</button>
+              <button type="button" class="human-chip" data-prompt="Create a dry-run execution packet from attached screenshots for operator approval.">Dry-run packet</button>
+            </div>
+          </section>
+        </aside>
       </section>
 
       <input id="human-destination" type="hidden" />
