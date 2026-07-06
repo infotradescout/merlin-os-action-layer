@@ -544,6 +544,83 @@
         gap: 1rem;
       }
 
+      .human-metrics {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .human-metric {
+        background: rgba(11, 20, 35, 0.82);
+        border: 1px solid rgba(126, 161, 222, 0.22);
+        border-radius: 10px;
+        padding: 0.55rem 0.6rem;
+      }
+
+      .human-metric .k {
+        color: #9fb4d4;
+        font-size: 0.73rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .human-metric .v {
+        color: #eef4ff;
+        font-size: 1.28rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .human-attention-grid {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 0.72rem;
+      }
+
+      .human-attention-card {
+        background: rgba(11, 20, 35, 0.8);
+        border: 1px solid rgba(126, 161, 222, 0.2);
+        border-radius: 10px;
+        padding: 0.55rem 0.62rem;
+      }
+
+      .human-attention-card strong {
+        color: #eef4ff;
+        display: block;
+        font-size: 0.88rem;
+      }
+
+      .human-attention-card .meta {
+        color: #9fb4d4;
+      }
+
+      .human-list {
+        display: grid;
+        gap: 0.36rem;
+        margin-top: 0.45rem;
+      }
+
+      .human-list-row {
+        align-items: center;
+        background: rgba(24, 35, 57, 0.78);
+        border: 1px solid rgba(126, 161, 222, 0.16);
+        border-radius: 8px;
+        display: flex;
+        font-size: 0.8rem;
+        justify-content: space-between;
+        padding: 0.32rem 0.42rem;
+      }
+
+      .human-pill {
+        background: rgba(126, 161, 222, 0.22);
+        border: 1px solid rgba(126, 161, 222, 0.34);
+        border-radius: 999px;
+        color: #d7e6ff;
+        font-size: 0.7rem;
+        padding: 0.08rem 0.34rem;
+      }
+
       .human-panel {
         background: rgba(17, 26, 43, 0.92);
         border: 1px solid rgba(126, 161, 222, 0.22);
@@ -834,10 +911,20 @@
         .human-shell {
           grid-template-columns: 1fr;
         }
+
+        .human-metrics,
+        .human-attention-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
 
       @media (max-width: 720px) {
         .human-field-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .human-metrics,
+        .human-attention-grid {
           grid-template-columns: 1fr;
         }
 
@@ -855,20 +942,36 @@
     </style>
   </head>
   <body>
-    <main class="human-app" aria-label="Merlin operator action layer">
+    <main class="human-app" aria-label="Merlin online presence console">
       <header class="human-shell-top">
         <div>
-          <div class="human-brand">Merlin Operator Action Layer</div>
-          <div class="human-note">Turn trusted intent plus evidence into auditable, connector-safe execution packets.</div>
+          <div class="human-brand">Merlin Presence Console</div>
+          <div class="human-note">One surface to manage your entire online presence across listings, profiles, sites, and channels.</div>
         </div>
-        <div class="human-note">No external mutation by default. Live execution remains policy and approval gated.</div>
+        <div class="human-note">Plan, stage, validate, and track changes from one control plane.</div>
       </header>
 
       <section class="human-shell">
-        <section class="human-main" aria-label="Request and execution lane">
+        <section class="human-main" aria-label="Request and update lane">
+          <section class="human-panel" aria-label="Online presence health">
+            <h2>Online Presence Health</h2>
+            <div class="human-panel-sub">Unified status across incoming updates, approvals, apply readiness, and blocked items.</div>
+            <div id="human-metrics" class="human-metrics"></div>
+            <div class="human-attention-grid">
+              <div class="human-attention-card">
+                <strong>At Risk / Needs Attention</strong>
+                <div id="human-needs-attention" class="human-list"></div>
+              </div>
+              <div class="human-attention-card">
+                <strong>What Is Changing Now</strong>
+                <div id="human-recent-activity" class="human-list"></div>
+              </div>
+            </div>
+          </section>
+
           <section class="human-panel" aria-label="Request lane">
-            <h2>1) Define Request</h2>
-            <div class="human-panel-sub">State the business outcome and select the execution lane.</div>
+            <h2>1) Plan a Presence Change</h2>
+            <div class="human-panel-sub">Define the change once and route it to the right connector path.</div>
             <div class="human-field-grid">
               <div>
                 <label for="human-target">Connector target</label>
@@ -877,10 +980,10 @@
                 </select>
               </div>
               <div>
-                <label for="human-mode">Execution mode</label>
+                <label for="human-mode">How should this run?</label>
                 <select id="human-mode">
                   <option value="human_guided">Guide a logged-in operator</option>
-                  <option value="prepare_packet">Prepare packet only</option>
+                  <option value="prepare_packet">Draft only (no apply)</option>
                   <option value="approved_connector">Use approved connector</option>
                   <option value="screen_share">Live handoff session</option>
                 </select>
@@ -899,23 +1002,23 @@
               </div>
             </div>
             <div class="human-actions">
-              <button type="button" class="secondary" onclick="humanPickFiles()">Attach evidence files</button>
+              <button type="button" class="secondary" onclick="humanPickFiles()">Attach files</button>
               <span id="human-file-status" class="human-file-status">No files attached</span>
               <button id="human-send-button" type="button">Create request</button>
               <button id="human-review-button" type="button" class="secondary">Create and prepare preview</button>
               <button id="human-upload-review-button" type="button" class="secondary">Create, upload, and preview</button>
               <div id="human-status" class="human-status">
-                <strong>Ready.</strong> Define outcome, attach evidence, then stage execution packet.
+                <strong>Ready.</strong> Define outcome, attach files, and stage the update plan.
               </div>
             </div>
           </section>
 
-          <section class="human-panel" aria-label="Execution stage lane">
-            <h2>2) Validate Execution Path</h2>
-            <div class="human-panel-sub">Merlin tracks stage completion before any live execution consideration.</div>
+          <section class="human-panel" aria-label="Update stage lane">
+            <h2>2) Validate Before Apply</h2>
+            <div class="human-panel-sub">Every change passes checks before any live apply step is allowed.</div>
             <div class="human-plan">
               <div class="human-plan-head">
-                <strong>Runtime Stages</strong>
+                <strong>Update Stages</strong>
                 <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
               </div>
               <div id="human-plan-steps" class="human-plan-steps">
@@ -928,11 +1031,11 @@
                   <span class="status">pending</span>
                 </div>
                 <div class="human-plan-step" data-step="evidence">
-                  <span>Bind evidence and references</span>
+                  <span>Attach files and source details</span>
                   <span class="status">pending</span>
                 </div>
                 <div class="human-plan-step" data-step="packet">
-                  <span>Create dry-run execution packet</span>
+                  <span>Create preview plan</span>
                   <span class="status">pending</span>
                 </div>
               </div>
@@ -941,11 +1044,11 @@
 
           <section class="human-panel" aria-label="Audit timeline">
             <h2>3) Audit Timeline</h2>
-            <div class="human-panel-sub">Every request and assistant action is logged in one thread lane.</div>
+            <div class="human-panel-sub">A single timeline for what changed, why, and which files or notes backed it.</div>
             <div class="human-timeline">
               <div id="human-chat-log" class="human-chat-log">
                 <div class="human-bubble assistant">
-                  Start by describing the intended change and adding evidence. Merlin will stage a policy-aware packet for operator review.
+                  Start by describing the intended change and adding files or notes. Merlin will stage a preview plan for review.
                   <span class="meta">merlin-runtime</span>
                 </div>
               </div>
@@ -955,11 +1058,11 @@
 
         <aside class="human-sidebar" aria-label="Operator context rail">
           <section class="block">
-            <h2>Product Purpose</h2>
+            <h2>Control Surface Rules</h2>
             <div class="human-rail-list">
-              <div>1. Collect trusted intent and evidence.</div>
-              <div>2. Produce auditable action cards and dry-run packets.</div>
-              <div>3. Enforce approvals and policy before live execution.</div>
+              <div>1. One request surface for every online channel.</div>
+              <div>2. Unified files, notes, and status tracking.</div>
+              <div>3. Approval and policy checks before live action.</div>
             </div>
           </section>
 
@@ -976,10 +1079,10 @@
           <section class="block">
             <h2>Starter Templates</h2>
             <div class="human-chip-grid">
-              <button type="button" class="human-chip" data-prompt="Update business hours from approved schedule evidence and keep existing lane metadata.">Hours update packet</button>
-              <button type="button" class="human-chip" data-prompt="Replace menu assets from uploaded proof and stage a review-only packet.">Menu evidence packet</button>
-              <button type="button" class="human-chip" data-prompt="Correct contact details across listings and include source screenshot references.">Contact correction packet</button>
-              <button type="button" class="human-chip" data-prompt="Create a dry-run execution packet from attached screenshots for operator approval.">Dry-run packet</button>
+              <button type="button" class="human-chip" data-prompt="Update business hours from approved schedule details and keep channel mapping intact.">Hours update draft</button>
+              <button type="button" class="human-chip" data-prompt="Replace menu assets from uploaded files and stage a review-only preview.">Menu update draft</button>
+              <button type="button" class="human-chip" data-prompt="Correct contact details across listings and include screenshot references.">Contact correction draft</button>
+              <button type="button" class="human-chip" data-prompt="Create a dry-run preview from attached screenshots for operator approval.">Dry-run preview draft</button>
             </div>
           </section>
         </aside>
@@ -1606,7 +1709,7 @@
 
       function modeLabel(mode) {
         if (mode === 'approved_connector') return 'approved connector';
-        if (mode === 'prepare_packet') return 'packet-only workflow';
+        if (mode === 'prepare_packet') return 'draft-only workflow';
         if (mode === 'screen_share') return 'live handoff workflow';
         return 'human-guided workflow';
       }
@@ -1738,14 +1841,14 @@
         pushHumanBubble('user', prompt, `Connector: ${connector} · Mode: ${humanizeToken(executionMode)}`);
         resetHumanPlan();
         markHumanPlanStep('scope', 'active', 'running');
-        const progress = beginHumanProgress(`Analyzing request and selecting ${connector}...`, 'Connector runtime');
+        const progress = beginHumanProgress(`Analyzing request and selecting ${connector}...`, 'Merlin runtime');
 
         const files = document.getElementById('local-drive-files')?.files || [];
         try {
           await pauseHumanProgress(260);
           markHumanPlanStep('scope', 'done', 'done');
           markHumanPlanStep('permissions', 'active', 'running');
-          progress.update(`Starting ${modeLabel(executionMode)} and validating request scope...`, 'Connector runtime');
+          progress.update(`Starting ${modeLabel(executionMode)} and validating request scope...`, 'Merlin runtime');
 
           if (mode === 'files') {
             if (!files.length) {
@@ -1756,18 +1859,18 @@
             await pauseHumanProgress();
             markHumanPlanStep('permissions', 'done', 'done');
             markHumanPlanStep('evidence', 'active', 'running');
-            progress.update(`Connecting to ${connector} and creating the request thread...`, 'Connector runtime');
+            progress.update(`Connecting to ${connector} and creating the request thread...`, 'Merlin runtime');
             setHumanStatus('Uploading files and preparing the request...', 'Working.');
             await pauseHumanProgress();
-            progress.update('Uploading files, extracting evidence text, and linking attachments...', 'Connector runtime');
+            progress.update('Uploading files, reading text, and linking attachments...', 'Merlin runtime');
             await uploadAndStagePreview();
             await pauseHumanProgress();
             markHumanPlanStep('evidence', 'done', 'done');
             markHumanPlanStep('packet', 'active', 'running');
-            progress.update('Verifying permissions and assembling final review packet...', 'Connector runtime');
+            progress.update('Verifying permissions and assembling final preview...', 'Merlin runtime');
             await pauseHumanProgress();
             markHumanPlanStep('packet', 'done', 'ready');
-            progress.done('Files attached and review staged. You can inspect the packet or add follow-up instructions.', 'Merlin assistant');
+            progress.done('Files attached and preview is ready. You can inspect it or add follow-up instructions.', 'Merlin assistant');
             setHumanStatus('Files are attached and a review is prepared.', 'Request ready.');
             const promptInput = document.getElementById('human-prompt');
             if (promptInput) promptInput.value = '';
@@ -1777,20 +1880,20 @@
           if (!state.selectedThreadId) {
             await pauseHumanProgress();
             markHumanPlanStep('permissions', 'done', 'done');
-            progress.update(`Routing to ${connector} and opening a new thread...`, 'Connector runtime');
+            progress.update(`Routing to ${connector} and opening a new thread...`, 'Merlin runtime');
             setHumanStatus('Creating the update request...', 'Working.');
             await createThread();
           } else {
             await pauseHumanProgress();
             markHumanPlanStep('permissions', 'done', 'done');
-            progress.update('Using your existing thread and appending new instructions...', 'Connector runtime');
+            progress.update('Using your existing thread and appending new instructions...', 'Merlin runtime');
             await sendThreadMessage();
           }
 
           if (mode === 'review') {
             await pauseHumanProgress();
             markHumanPlanStep('evidence', 'active', files.length ? 'running' : 'none');
-            progress.update('Checking connector permissions and building an action plan...', 'Connector runtime');
+            progress.update('Checking permissions and building a clear update plan...', 'Merlin runtime');
             setHumanStatus('Preparing a review from the request details...', 'Working.');
             await stageThreadPreview();
             await pauseHumanProgress();
@@ -1810,7 +1913,7 @@
           await pauseHumanProgress();
           markHumanPlanStep('evidence', 'done', files.length ? 'done' : 'none');
           markHumanPlanStep('packet', 'active', 'queued');
-          progress.update('Request is saved and queued for your next connector action.', 'Connector runtime');
+          progress.update('Request is saved and queued for your next update step.', 'Merlin runtime');
           await pauseHumanProgress();
           markHumanPlanStep('packet', 'done', 'queued');
           progress.done('Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
@@ -1892,6 +1995,64 @@
         return attachments;
       }
 
+      function renderPresenceOverview(payload) {
+        const metricsNode = document.getElementById('human-metrics');
+        const attentionNode = document.getElementById('human-needs-attention');
+        const recentNode = document.getElementById('human-recent-activity');
+        if (!metricsNode || !attentionNode || !recentNode) return;
+
+        const summary = payload.operatorConsole?.summary || {};
+        const attention = payload.operatorConsole?.attention || {};
+        const recent = payload.operatorConsole?.recent || {};
+
+        const metrics = [
+          ['Open Requests', summary.intakeOpenCount || 0],
+          ['Pending Approvals', summary.approvalRequestedCount || 0],
+          ['Dry-runs', summary.dryRunSimulatedCount || 0],
+          ['Blocked Gates', summary.liveGateBlockedCount || 0],
+          ['Policy Blocks', summary.rolePolicyBlockedCount || 0],
+          ['Ready to Apply', summary.executionPlanEligibleCount || 0],
+          ['Outcomes Recorded', summary.outcomeRecordedCount || 0],
+          ['Connected Sources', payload.shell?.connectedSources?.length || 0]
+        ];
+        metricsNode.innerHTML = metrics.map(([k, v]) => `
+          <div class="human-metric">
+            <div class="k">${k}</div>
+            <div class="v">${v}</div>
+          </div>
+        `).join('');
+
+        const attentionRows = [
+          ['Blocked Intake', attention.blockedIntake?.length || 0],
+          ['Blocked Action Cards', attention.blockedActionCards?.length || 0],
+          ['Pending Approvals', attention.pendingApprovals?.length || 0],
+          ['Blocked Apply Plans', attention.blockedExecutionPlans?.length || 0],
+          ['Blocked Live Gates', attention.blockedLiveExecutionGates?.length || 0],
+          ['Critical Live Gates', attention.criticalLiveExecutionGates?.length || 0]
+        ];
+        attentionNode.innerHTML = attentionRows.map(([name, count]) => `
+          <div class="human-list-row">
+            <span>${name}</span>
+            <span class="human-pill">${count}</span>
+          </div>
+        `).join('');
+
+        const recentRows = [
+          ['Recent Intake Items', recent.intake?.length || 0],
+          ['Recent Action Cards', recent.actionCards?.length || 0],
+          ['Recent Outcomes', recent.outcomes?.length || 0],
+          ['Recent Apply Plans', recent.executionPlans?.length || 0],
+          ['Open Threads', payload.shell?.threads?.length || 0],
+          ['Role Checks', payload.shell?.recentRoleChecks?.length || 0]
+        ];
+        recentNode.innerHTML = recentRows.map(([name, count]) => `
+          <div class="human-list-row">
+            <span>${name}</span>
+            <span class="human-pill">${count}</span>
+          </div>
+        `).join('');
+      }
+
       function renderShell(payload, { showSelectedThread = false } = {}) {
         state.shell = payload;
         if (showSelectedThread) {
@@ -1938,6 +2099,7 @@
           .map((row) => `<option value="${row.id}" ${row.id === state.selectedThreadId ? 'selected' : ''}>${row.title}</option>`)
           .join('');
         renderThread(showSelectedThread ? payload.shell.selectedThread : null);
+        renderPresenceOverview(payload);
         renderHumanConnectors();
       }
 
