@@ -539,6 +539,19 @@
         grid-template-columns: minmax(0, 1fr) 320px;
       }
 
+      .presence-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 320px;
+      }
+
+      .presence-main,
+      .presence-side {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+      }
+
       .human-main {
         display: grid;
         gap: 1rem;
@@ -912,6 +925,10 @@
           grid-template-columns: 1fr;
         }
 
+        .presence-grid {
+          grid-template-columns: 1fr;
+        }
+
         .human-metrics,
         .human-attention-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -945,144 +962,99 @@
     <main class="human-app" aria-label="Merlin online presence console">
       <header class="human-shell-top">
         <div>
-          <div class="human-brand">Merlin Presence Console</div>
-          <div class="human-note">One surface to manage your entire online presence across listings, profiles, sites, and channels.</div>
+          <div class="human-brand">Merlin Chat</div>
+          <div class="human-note">One chat surface for updates across your connected apps.</div>
         </div>
-        <div class="human-note">Plan, stage, validate, and track changes from one control plane.</div>
+        <div id="human-status" class="human-status"><strong>Ready.</strong> Pick a channel, describe the update, then run.</div>
       </header>
 
-      <section class="human-shell">
-        <section class="human-main" aria-label="Request and update lane">
-          <section class="human-panel" aria-label="Online presence health">
-            <h2>Online Presence Health</h2>
-            <div class="human-panel-sub">Unified status across incoming updates, approvals, apply readiness, and blocked items.</div>
-            <div id="human-metrics" class="human-metrics"></div>
-            <div class="human-attention-grid">
-              <div class="human-attention-card">
-                <strong>At Risk / Needs Attention</strong>
-                <div id="human-needs-attention" class="human-list"></div>
-              </div>
-              <div class="human-attention-card">
-                <strong>What Is Changing Now</strong>
-                <div id="human-recent-activity" class="human-list"></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="human-panel" aria-label="Request lane">
-            <h2>1) Plan a Presence Change</h2>
-            <div class="human-panel-sub">Define the change once and route it to the right connector path.</div>
+      <section class="presence-grid">
+        <section class="presence-main">
+          <section class="human-panel">
+            <h2>Chat Request</h2>
+            <div class="human-panel-sub">Create one update request, attach files, and prepare preview before applying.</div>
             <div class="human-field-grid">
               <div>
-                <label for="human-target">Connector target</label>
+                <label for="human-target">Channel</label>
                 <select id="human-target">
-                  <option value="">Auto-detect from message</option>
+                  <option value="">Auto-select</option>
                 </select>
               </div>
               <div>
-                <label for="human-mode">How should this run?</label>
+                <label for="human-mode">Run mode</label>
                 <select id="human-mode">
-                  <option value="human_guided">Guide a logged-in operator</option>
-                  <option value="prepare_packet">Draft only (no apply)</option>
-                  <option value="approved_connector">Use approved connector</option>
-                  <option value="screen_share">Live handoff session</option>
+                  <option value="human_guided">Guided</option>
+                  <option value="prepare_packet">Draft only</option>
+                  <option value="approved_connector">Approved connector</option>
+                  <option value="screen_share">Live handoff</option>
                 </select>
               </div>
               <div>
-                <label for="human-account">Account, listing, or entity</label>
-                <input id="human-account" placeholder="Business name, listing URL, account id" />
+                <label for="human-account">Account / Listing</label>
+                <input id="human-account" placeholder="Name, URL, or account id" />
               </div>
               <div>
-                <label for="human-login-url">Admin/login URL (optional)</label>
+                <label for="human-login-url">Admin URL</label>
                 <input id="human-login-url" placeholder="https://..." />
               </div>
               <div class="full">
-                <label for="human-prompt">Outcome to achieve</label>
-                <textarea id="human-prompt" placeholder="Describe what must change, expected result, and what proof should be treated as source of truth."></textarea>
+                <label for="human-prompt">What needs to change?</label>
+                <textarea id="human-prompt" placeholder="Example: Update hours, phone number, and menu link across Google + website profile."></textarea>
               </div>
             </div>
             <div class="human-actions">
               <button type="button" class="secondary" onclick="humanPickFiles()">Attach files</button>
               <span id="human-file-status" class="human-file-status">No files attached</span>
               <button id="human-send-button" type="button">Create request</button>
-              <button id="human-review-button" type="button" class="secondary">Create and prepare preview</button>
-              <button id="human-upload-review-button" type="button" class="secondary">Create, upload, and preview</button>
-              <div id="human-status" class="human-status">
-                <strong>Ready.</strong> Define outcome, attach files, and stage the update plan.
-              </div>
+              <button id="human-review-button" type="button" class="secondary">Create + preview</button>
+              <button id="human-upload-review-button" type="button" class="secondary">Create + upload + preview</button>
             </div>
           </section>
 
-          <section class="human-panel" aria-label="Update stage lane">
-            <h2>2) Validate Before Apply</h2>
-            <div class="human-panel-sub">Every change passes checks before any live apply step is allowed.</div>
+          <section class="human-panel">
+            <h2>Request Status</h2>
             <div class="human-plan">
               <div class="human-plan-head">
-                <strong>Update Stages</strong>
-                <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
+                <strong>Progress</strong>
+                <span id="human-plan-meta" class="human-plan-meta">channel: auto</span>
               </div>
               <div id="human-plan-steps" class="human-plan-steps">
-                <div class="human-plan-step" data-step="scope">
-                  <span>Scope intent and map connector lane</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="permissions">
-                  <span>Run policy and permission checks</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="evidence">
-                  <span>Attach files and source details</span>
-                  <span class="status">pending</span>
-                </div>
-                <div class="human-plan-step" data-step="packet">
-                  <span>Create preview plan</span>
-                  <span class="status">pending</span>
-                </div>
+                <div class="human-plan-step" data-step="scope"><span>Match request to channel</span><span class="status">pending</span></div>
+                <div class="human-plan-step" data-step="permissions"><span>Confirm access + approvals</span><span class="status">pending</span></div>
+                <div class="human-plan-step" data-step="evidence"><span>Attach files + notes</span><span class="status">pending</span></div>
+                <div class="human-plan-step" data-step="packet"><span>Build preview</span><span class="status">pending</span></div>
               </div>
             </div>
           </section>
 
-          <section class="human-panel" aria-label="Audit timeline">
-            <h2>3) Audit Timeline</h2>
-            <div class="human-panel-sub">A single timeline for what changed, why, and which files or notes backed it.</div>
+          <section class="human-panel">
+            <h2>Conversation</h2>
             <div class="human-timeline">
               <div id="human-chat-log" class="human-chat-log">
                 <div class="human-bubble assistant">
-                  Start by describing the intended change and adding files or notes. Merlin will stage a preview plan for review.
-                  <span class="meta">merlin-runtime</span>
+                  Tell me what you want changed. I will route it and show each step here.
+                  <span class="meta">merlin</span>
                 </div>
               </div>
             </div>
           </section>
         </section>
 
-        <aside class="human-sidebar" aria-label="Operator context rail">
-          <section class="block">
-            <h2>Control Surface Rules</h2>
-            <div class="human-rail-list">
-              <div>1. One request surface for every online channel.</div>
-              <div>2. Unified files, notes, and status tracking.</div>
-              <div>3. Approval and policy checks before live action.</div>
-            </div>
-          </section>
-
-          <section class="block">
-            <h2>Connector Inventory</h2>
+        <aside class="presence-side">
+          <section class="human-panel">
+            <h2>Connected Apps</h2>
             <div id="human-connectors" class="human-connector-list">
-              <div class="human-connector">
-                <strong>Loading connectors...</strong>
-                <span class="meta">Checking status</span>
-              </div>
+              <div class="human-connector"><strong>Loading apps...</strong><span class="meta">Checking status</span></div>
             </div>
           </section>
 
-          <section class="block">
-            <h2>Starter Templates</h2>
+          <section class="human-panel">
+            <h2>Quick Commands</h2>
             <div class="human-chip-grid">
-              <button type="button" class="human-chip" data-prompt="Update business hours from approved schedule details and keep channel mapping intact.">Hours update draft</button>
-              <button type="button" class="human-chip" data-prompt="Replace menu assets from uploaded files and stage a review-only preview.">Menu update draft</button>
-              <button type="button" class="human-chip" data-prompt="Correct contact details across listings and include screenshot references.">Contact correction draft</button>
-              <button type="button" class="human-chip" data-prompt="Create a dry-run preview from attached screenshots for operator approval.">Dry-run preview draft</button>
+              <button type="button" class="human-chip" data-prompt="Update business hours across all profiles for this week.">Hours</button>
+              <button type="button" class="human-chip" data-prompt="Replace menu and update featured items on listings.">Menu</button>
+              <button type="button" class="human-chip" data-prompt="Fix phone number and contact links everywhere.">Contact</button>
+              <button type="button" class="human-chip" data-prompt="Sync profile description and hero image across all channels.">Profile sync</button>
             </div>
           </section>
         </aside>
