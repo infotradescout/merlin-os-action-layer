@@ -1431,6 +1431,26 @@
         return hit ? hit[1] : '';
       }
 
+      function selectedConnectorName() {
+        const explicit = document.getElementById('human-target')?.value?.trim();
+        if (explicit) return explicit;
+        const prompt = document.getElementById('human-prompt')?.value?.trim() || '';
+        const inferred = inferDestinationFromPrompt(prompt);
+        if (inferred) return inferred;
+        return 'best matching connector';
+      }
+
+      function modeLabel(mode) {
+        if (mode === 'approved_connector') return 'approved connector';
+        if (mode === 'prepare_packet') return 'packet-only workflow';
+        if (mode === 'screen_share') return 'live handoff workflow';
+        return 'human-guided workflow';
+      }
+
+      function pauseHumanProgress(ms = 220) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
       function syncHumanComposer() {
         const prompt = document.getElementById('human-prompt')?.value?.trim() || '';
         const target = document.getElementById('human-target')?.value?.trim() || '';
@@ -1515,26 +1535,36 @@
       async function submitHumanRequest(mode) {
         syncHumanComposer();
         const prompt = document.getElementById('human-prompt')?.value?.trim();
+        const connector = selectedConnectorName();
+        const executionMode = document.getElementById('human-mode')?.value || 'human_guided';
         if (!prompt || prompt.length < 8) {
           setHumanStatus('Type a bit more detail about what needs to change.', 'Need more context.');
           return;
         }
 
-        pushHumanBubble('user', prompt, `Mode: ${humanizeToken(document.getElementById('human-mode')?.value || 'human_guided')}`);
-        const progress = beginHumanProgress('Checking your request details...');
+        pushHumanBubble('user', prompt, `Connector: ${connector} · Mode: ${humanizeToken(executionMode)}`);
+        const progress = beginHumanProgress(`Analyzing request and selecting ${connector}...`, 'Connector runtime');
 
         const files = document.getElementById('local-drive-files')?.files || [];
         try {
+          await pauseHumanProgress(260);
+          progress.update(`Starting ${modeLabel(executionMode)} and validating request scope...`, 'Connector runtime');
+
           if (mode === 'files') {
             if (!files.length) {
               progress.fail('I need at least one file attached before I can upload and prepare review.', 'Merlin assistant');
               setHumanStatus('Attach screenshots or files first, then choose upload.', 'No files yet.');
               return;
             }
-            progress.update('Creating request thread and linking connector context...');
+            await pauseHumanProgress();
+            progress.update(`Connecting to ${connector} and creating the request thread...`, 'Connector runtime');
             setHumanStatus('Uploading files and preparing the request...', 'Working.');
-            progress.update('Uploading files to Drive buffer and extracting evidence...');
+            await pauseHumanProgress();
+            progress.update('Uploading files, extracting evidence text, and linking attachments...', 'Connector runtime');
             await uploadAndStagePreview();
+            await pauseHumanProgress();
+            progress.update('Verifying permissions and assembling final review packet...', 'Connector runtime');
+            await pauseHumanProgress();
             progress.done('Files attached and review staged. You can inspect the packet or add follow-up instructions.', 'Merlin assistant');
             setHumanStatus('Files are attached and a review is prepared.', 'Request ready.');
             const promptInput = document.getElementById('human-prompt');
@@ -1543,18 +1573,22 @@
           }
 
           if (!state.selectedThreadId) {
-            progress.update('Routing to connector and creating a request thread...');
+            await pauseHumanProgress();
+            progress.update(`Routing to ${connector} and opening a new thread...`, 'Connector runtime');
             setHumanStatus('Creating the update request...', 'Working.');
             await createThread();
           } else {
-            progress.update('Using your existing thread and appending instructions...');
+            await pauseHumanProgress();
+            progress.update('Using your existing thread and appending new instructions...', 'Connector runtime');
             await sendThreadMessage();
           }
 
           if (mode === 'review') {
-            progress.update('Building review packet from request context and evidence...');
+            await pauseHumanProgress();
+            progress.update('Checking connector permissions and building an action plan...', 'Connector runtime');
             setHumanStatus('Preparing a review from the request details...', 'Working.');
             await stageThreadPreview();
+            await pauseHumanProgress();
             progress.done('Request captured and review prepared. Add files if you want stronger proof coverage.', 'Merlin assistant');
             setHumanStatus('Review prepared. Check the saved request details below if needed.', 'Request ready.');
             const promptInput = document.getElementById('human-prompt');
@@ -1562,6 +1596,9 @@
             return;
           }
 
+          await pauseHumanProgress();
+          progress.update('Request is saved and queued for your next connector action.', 'Connector runtime');
+          await pauseHumanProgress();
           progress.done('Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
           setHumanStatus('The update request was created. Add files or prepare a review when ready.', 'Request created.');
           const promptInput = document.getElementById('human-prompt');
