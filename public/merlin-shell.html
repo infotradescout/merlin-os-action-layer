@@ -551,8 +551,16 @@
         align-items: stretch;
         display: grid;
         gap: 1rem;
-        grid-template-columns: 360px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) 360px;
         min-height: calc(100vh - 120px);
+      }
+
+      .human-chat {
+        order: 1;
+      }
+
+      .human-sidebar {
+        order: 2;
       }
 
       .human-sidebar {
@@ -571,6 +579,14 @@
         border: 1px solid rgba(126, 161, 222, 0.22);
         border-radius: 14px;
         padding: 0.82rem;
+      }
+
+      .human-rail-list {
+        color: #c8d9f2;
+        display: grid;
+        font-size: 0.85rem;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
       }
 
       .human-sidebar h2 {
@@ -908,6 +924,11 @@
           min-height: 0;
         }
 
+        .human-chat,
+        .human-sidebar {
+          order: initial;
+        }
+
         .human-chat {
           min-height: 66vh;
         }
@@ -935,16 +956,16 @@
     <main class="human-app" aria-label="Merlin connector chat">
       <header class="human-shell-top">
         <div>
-          <div class="human-brand">Merlin Connector Chat</div>
-          <div class="human-note">Chat-first update requests with connector routing</div>
+          <div class="human-brand">Merlin Connectors</div>
+          <div class="human-note">Convert plain-language requests into verified execution packets.</div>
         </div>
-        <div class="human-note">No password needed in this chat</div>
+        <div class="human-note">No credentials entered here. Access stays with your team or approved connector.</div>
       </header>
 
       <section class="human-shell">
-        <aside class="human-sidebar" aria-label="Connector options">
+        <aside class="human-sidebar" aria-label="Connector operations rail">
           <div class="block">
-            <h2>Connected Apps</h2>
+            <h2>Connector Inventory</h2>
             <div id="human-connectors" class="human-connector-list">
               <div class="human-connector">
                 <strong>Loading connectors...</strong>
@@ -954,23 +975,33 @@
           </div>
 
           <div class="block">
-            <h2>Quick Prompts</h2>
+            <h2>Request Templates</h2>
             <div class="human-chip-grid">
-              <button type="button" class="human-chip" data-prompt="Update our business hours for this week and mark holiday hours.">Business hours</button>
-              <button type="button" class="human-chip" data-prompt="Replace our menu with the attached file and keep pricing the same layout.">Replace menu</button>
-              <button type="button" class="human-chip" data-prompt="Fix our phone number and contact links across profile listings.">Fix contact info</button>
-              <button type="button" class="human-chip" data-prompt="Prepare a full update packet from the attached screenshots.">Build packet from files</button>
+              <button type="button" class="human-chip" data-prompt="Update business hours across profiles using this week's schedule.">Hours update</button>
+              <button type="button" class="human-chip" data-prompt="Replace the menu with attached assets and preserve category order.">Menu replacement</button>
+              <button type="button" class="human-chip" data-prompt="Correct phone and contact links across listings.">Contact correction</button>
+              <button type="button" class="human-chip" data-prompt="Build a full execution packet from attached screenshots and notes.">Packet from evidence</button>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Execution Rules</h2>
+            <div class="human-rail-list">
+              <div>1. Match the best connector for the requested outcome.</div>
+              <div>2. Validate execution mode and permission boundaries.</div>
+              <div>3. Bind all evidence to a reproducible packet before action.</div>
+              <div>4. Keep human approval in the loop for final execution.</div>
             </div>
           </div>
         </aside>
 
         <section class="human-chat" aria-label="Chat composer">
           <div class="human-chat-head">
-            <h2>What do you want to update?</h2>
-            <div class="human-note">Describe it naturally, choose a connector target, and Merlin stages the request.</div>
+            <h2>Build a connector-ready request</h2>
+            <div class="human-note">Describe the outcome, attach evidence, then generate an execution packet your team can trust.</div>
             <div class="human-plan" aria-label="Connector action plan">
               <div class="human-plan-head">
-                <strong>Connector Action Plan</strong>
+                <strong>Execution Plan</strong>
                 <span id="human-plan-meta" class="human-plan-meta">target: auto</span>
               </div>
               <div id="human-plan-steps" class="human-plan-steps">
@@ -996,7 +1027,7 @@
 
           <div id="human-chat-log" class="human-chat-log">
             <div class="human-bubble assistant">
-              Tell me what should change, where it should happen, and what proof to use.
+              Describe the outcome you need, the account affected, and the proof source. I will stage a connector-safe execution packet.
               <span class="meta">Merlin assistant</span>
             </div>
           </div>
@@ -1034,11 +1065,11 @@
             <div class="human-actions">
               <button type="button" class="secondary" onclick="humanPickFiles()">Attach screenshots/files</button>
               <span id="human-file-status" class="human-file-status">No files attached</span>
-              <button id="human-send-button" type="button">Send request</button>
-              <button id="human-review-button" type="button" class="secondary">Send + prepare review</button>
-              <button id="human-upload-review-button" type="button" class="secondary">Send + upload + prepare</button>
+              <button id="human-send-button" type="button">Create request</button>
+              <button id="human-review-button" type="button" class="secondary">Create + prepare review</button>
+              <button id="human-upload-review-button" type="button" class="secondary">Create + upload + prepare</button>
               <div id="human-status" class="human-status">
-                <strong>Ready.</strong> Type your request to begin.
+                <strong>Ready.</strong> Start with the desired outcome and connector target.
               </div>
             </div>
           </div>
