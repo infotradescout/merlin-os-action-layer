@@ -532,17 +532,30 @@
               </div>
             </div>
             <div class="chat-message assistant">
-              Tell me the place you can log into, what needs to change, and who has access. Add screenshots or notes below and I will prepare a review packet.
+              Tell me the app or account you can log into, what needs to change, and how you want the update handled. Add screenshots or notes and I will prepare a review packet.
             </div>
             <div class="composer">
               <div class="split">
                 <div>
-                  <label for="destination-name">Where should Merlin help update?</label>
+                  <label for="destination-name">App, site, or portal</label>
                   <input id="destination-name" placeholder="Google Business Profile, Shopify, DoorDash, Instagram, WordPress" />
+                </div>
+                <div>
+                  <label for="login-url">Login or admin URL</label>
+                  <input id="login-url" placeholder="optional: https://..." />
                 </div>
                 <div>
                   <label for="access-context">Who can log in?</label>
                   <input id="access-context" placeholder="I can log in, owner can log in, staff has access" />
+                </div>
+                <div>
+                  <label for="access-mode">How should the update happen?</label>
+                  <select id="access-mode">
+                    <option value="human_guided">Guide a logged-in person</option>
+                    <option value="prepare_packet">Prepare a review packet only</option>
+                    <option value="approved_connector">Use an approved connector if available</option>
+                    <option value="screen_share">Use live screen share/session handoff</option>
+                  </select>
                 </div>
                 <div>
                   <label for="user-hint">What should change?</label>
@@ -947,13 +960,17 @@
 
       function buildRequestContext() {
         const destination = fieldValue('destination-name');
+        const loginUrl = fieldValue('login-url');
         const access = fieldValue('access-context');
+        const accessMode = fieldValue('access-mode');
         const account = fieldValue('entity-id');
         const request = fieldValue('user-hint');
         const parts = [];
         if (destination) parts.push(`Where to update: ${destination}`);
+        if (loginUrl) parts.push(`Login/admin URL: ${loginUrl}`);
         if (account) parts.push(`Account or listing: ${account}`);
         if (access) parts.push(`Access context: ${access}`);
+        if (accessMode) parts.push(`Update mode: ${humanizeToken(accessMode)}`);
         if (request) parts.push(`Requested change: ${request}`);
         return parts.join('\n');
       }
