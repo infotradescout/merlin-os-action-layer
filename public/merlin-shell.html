@@ -542,7 +542,7 @@
       .presence-grid {
         display: grid;
         gap: 1rem;
-        grid-template-columns: minmax(0, 1fr) 320px;
+        grid-template-columns: 320px minmax(0, 1fr);
       }
 
       .presence-main,
@@ -893,7 +893,20 @@
         background: rgba(26, 40, 66, 0.85);
         border: 1px solid rgba(126, 161, 222, 0.24);
         border-radius: 10px;
+        cursor: pointer;
         padding: 0.52rem;
+        transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+      }
+
+      .human-connector:hover {
+        border-color: rgba(126, 161, 222, 0.45);
+        transform: translateY(-1px);
+      }
+
+      .human-connector.active {
+        background: rgba(25, 49, 82, 0.95);
+        border-color: rgba(97, 168, 255, 0.85);
+        box-shadow: inset 0 0 0 1px rgba(97, 168, 255, 0.35);
       }
 
       .human-connector strong {
@@ -965,10 +978,29 @@
           <div class="human-brand">Merlin Chat</div>
           <div class="human-note">One chat surface for updates across your connected apps.</div>
         </div>
-        <div id="human-status" class="human-status"><strong>Ready.</strong> Pick a channel, describe the update, then run.</div>
+        <div id="human-status" class="human-status"><strong>Ready.</strong> Tap a connection, describe the update, then run.</div>
       </header>
 
       <section class="presence-grid">
+        <aside class="presence-side">
+          <section class="human-panel">
+            <h2>Connected Apps</h2>
+            <div id="human-connectors" class="human-connector-list">
+              <div class="human-connector"><strong>Loading apps...</strong><span class="meta">Checking status</span></div>
+            </div>
+          </section>
+
+          <section class="human-panel">
+            <h2>Quick Commands</h2>
+            <div class="human-chip-grid">
+              <button type="button" class="human-chip" data-prompt="Update business hours across all profiles for this week.">Hours</button>
+              <button type="button" class="human-chip" data-prompt="Replace menu and update featured items on listings.">Menu</button>
+              <button type="button" class="human-chip" data-prompt="Fix phone number and contact links everywhere.">Contact</button>
+              <button type="button" class="human-chip" data-prompt="Sync profile description and hero image across all channels.">Profile sync</button>
+            </div>
+          </section>
+        </aside>
+
         <section class="presence-main">
           <section class="human-panel">
             <h2>Chat Request</h2>
@@ -1039,25 +1071,6 @@
             </div>
           </section>
         </section>
-
-        <aside class="presence-side">
-          <section class="human-panel">
-            <h2>Connected Apps</h2>
-            <div id="human-connectors" class="human-connector-list">
-              <div class="human-connector"><strong>Loading apps...</strong><span class="meta">Checking status</span></div>
-            </div>
-          </section>
-
-          <section class="human-panel">
-            <h2>Quick Commands</h2>
-            <div class="human-chip-grid">
-              <button type="button" class="human-chip" data-prompt="Update business hours across all profiles for this week.">Hours</button>
-              <button type="button" class="human-chip" data-prompt="Replace menu and update featured items on listings.">Menu</button>
-              <button type="button" class="human-chip" data-prompt="Fix phone number and contact links everywhere.">Contact</button>
-              <button type="button" class="human-chip" data-prompt="Sync profile description and hero image across all channels.">Profile sync</button>
-            </div>
-          </section>
-        </aside>
       </section>
 
       <input id="human-destination" type="hidden" />
@@ -1772,6 +1785,27 @@
         updateHumanPlanMeta();
       }
 
+      function selectHumanConnector(connectorName, options = {}) {
+        const targetSelect = document.getElementById('human-target');
+        if (!targetSelect) return;
+        const nextValue = String(connectorName || '').trim();
+        targetSelect.value = nextValue;
+        updateHumanPlanMeta();
+        syncHumanComposer();
+        renderHumanConnectors();
+
+        const focusPrompt = Boolean(options.focusPrompt);
+        if (focusPrompt) {
+          const promptInput = document.getElementById('human-prompt');
+          if (promptInput) promptInput.focus();
+        }
+
+        const showStatus = options.showStatus !== false;
+        if (showStatus && nextValue) {
+          setHumanStatus(`Editing ${nextValue}. Describe what needs to change, then run.`, 'Connection selected.');
+        }
+      }
+
       function humanPickFiles() {
         document.getElementById('local-drive-files')?.click();
       }
@@ -1781,23 +1815,30 @@
         const targetSelect = document.getElementById('human-target');
         if (!list || !targetSelect || !state.shell?.shell) return;
         const rows = state.shell.shell.sourceCatalog || [];
+        const selectedTarget = targetSelect.value || '';
         if (!rows.length) {
           list.innerHTML = '<div class="human-connector"><strong>No connectors detected</strong><span class="meta">Use auto-detect and continue.</span></div>';
           targetSelect.innerHTML = '<option value="">Auto-detect from message</option>';
           return;
         }
-        list.innerHTML = rows.slice(0, 8).map((row) => `
-          <div class="human-connector">
-            <strong>${row.label || row.sourceKey}</strong>
+        list.innerHTML = rows.slice(0, 8).map((row) => {
+          const name = row.label || row.sourceKey;
+          const isActive = selectedTarget && selectedTarget === name;
+          return `
+          <div class="human-connector ${isActive ? 'active' : ''}" data-connector="${name}" role="button" tabindex="0" aria-label="Select ${name}">
+            <strong>${name}</strong>
             <span class="meta">${connectionLabel(row.connectionStatus)}</span>
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         const options = ['<option value="">Auto-detect from message</option>'];
         for (const row of rows) {
           options.push(`<option value="${row.label || row.sourceKey}">${row.label || row.sourceKey}</option>`);
         }
         targetSelect.innerHTML = options.join('');
+        const hasSelectedTarget = rows.some((row) => (row.label || row.sourceKey) === selectedTarget);
+        targetSelect.value = hasSelectedTarget ? selectedTarget : '';
       }
 
       async function submitHumanRequest(mode) {
@@ -2730,13 +2771,36 @@
           });
         }
         const humanTarget = document.getElementById('human-target');
-        if (humanTarget) humanTarget.addEventListener('change', updateHumanPlanMeta);
+        if (humanTarget) {
+          humanTarget.addEventListener('change', () => {
+            updateHumanPlanMeta();
+            syncHumanComposer();
+            renderHumanConnectors();
+          });
+        }
         const humanMode = document.getElementById('human-mode');
         if (humanMode) humanMode.addEventListener('change', updateHumanPlanMeta);
         const humanAccount = document.getElementById('human-account');
         if (humanAccount) humanAccount.addEventListener('input', updateHumanPlanMeta);
         const humanLogin = document.getElementById('human-login-url');
         if (humanLogin) humanLogin.addEventListener('input', updateHumanPlanMeta);
+        const humanConnectors = document.getElementById('human-connectors');
+        if (humanConnectors) {
+          humanConnectors.addEventListener('click', (event) => {
+            const card = event.target instanceof Element ? event.target.closest('[data-connector]') : null;
+            if (!card) return;
+            const connectorName = card.getAttribute('data-connector') || '';
+            selectHumanConnector(connectorName, { focusPrompt: true });
+          });
+          humanConnectors.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const card = event.target instanceof Element ? event.target.closest('[data-connector]') : null;
+            if (!card) return;
+            event.preventDefault();
+            const connectorName = card.getAttribute('data-connector') || '';
+            selectHumanConnector(connectorName, { focusPrompt: true });
+          });
+        }
         document.querySelectorAll('.human-chip').forEach((chipButton) => {
           chipButton.addEventListener('click', () => {
             const prompt = chipButton.getAttribute('data-prompt') || '';
