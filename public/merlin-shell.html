@@ -614,6 +614,28 @@
         margin-left: auto;
       }
 
+      .human-bubble.thinking {
+        background: #f2f7f5;
+        border-style: dashed;
+      }
+
+      .human-bubble.thinking::after {
+        animation: human-pulse 1.2s ease-in-out infinite;
+        content: ' ...';
+      }
+
+      @keyframes human-pulse {
+        0% {
+          opacity: 0.25;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.25;
+        }
+      }
+
       .human-bubble .meta {
         display: block;
         font-size: 0.75rem;
@@ -1345,6 +1367,51 @@
         log.scrollTop = log.scrollHeight;
       }
 
+      function beginHumanProgress(message, meta = 'Merlin assistant') {
+        const log = document.getElementById('human-chat-log');
+        if (!log) {
+          return {
+            update: () => undefined,
+            done: () => undefined,
+            fail: () => undefined
+          };
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = 'human-bubble assistant thinking';
+        bubble.textContent = message;
+        const metaLine = document.createElement('span');
+        metaLine.className = 'meta';
+        metaLine.textContent = meta;
+        bubble.appendChild(metaLine);
+        log.appendChild(bubble);
+        log.scrollTop = log.scrollHeight;
+
+        return {
+          update(nextMessage, nextMeta = meta) {
+            bubble.classList.add('thinking');
+            bubble.textContent = nextMessage;
+            metaLine.textContent = nextMeta;
+            bubble.appendChild(metaLine);
+            log.scrollTop = log.scrollHeight;
+          },
+          done(finalMessage, finalMeta = meta) {
+            bubble.classList.remove('thinking');
+            bubble.textContent = finalMessage;
+            metaLine.textContent = finalMeta;
+            bubble.appendChild(metaLine);
+            log.scrollTop = log.scrollHeight;
+          },
+          fail(finalMessage, finalMeta = meta) {
+            bubble.classList.remove('thinking');
+            bubble.textContent = finalMessage;
+            metaLine.textContent = finalMeta;
+            bubble.appendChild(metaLine);
+            log.scrollTop = log.scrollHeight;
+          }
+        };
+      }
+
       function inferDestinationFromPrompt(prompt) {
         const lowered = String(prompt || '').toLowerCase();
         if (!lowered) return '';
@@ -1454,38 +1521,53 @@
         }
 
         pushHumanBubble('user', prompt, `Mode: ${humanizeToken(document.getElementById('human-mode')?.value || 'human_guided')}`);
+        const progress = beginHumanProgress('Checking your request details...');
 
         const files = document.getElementById('local-drive-files')?.files || [];
         try {
           if (mode === 'files') {
             if (!files.length) {
+              progress.fail('I need at least one file attached before I can upload and prepare review.', 'Merlin assistant');
               setHumanStatus('Attach screenshots or files first, then choose upload.', 'No files yet.');
               return;
             }
+            progress.update('Creating request thread and linking connector context...');
             setHumanStatus('Uploading files and preparing the request...', 'Working.');
+            progress.update('Uploading files to Drive buffer and extracting evidence...');
             await uploadAndStagePreview();
-            pushHumanBubble('assistant', 'Files attached and review staged. You can now inspect the packet or add follow-up instructions.', 'Merlin assistant');
+            progress.done('Files attached and review staged. You can inspect the packet or add follow-up instructions.', 'Merlin assistant');
             setHumanStatus('Files are attached and a review is prepared.', 'Request ready.');
+            const promptInput = document.getElementById('human-prompt');
+            if (promptInput) promptInput.value = '';
             return;
           }
 
           if (!state.selectedThreadId) {
+            progress.update('Routing to connector and creating a request thread...');
             setHumanStatus('Creating the update request...', 'Working.');
             await createThread();
+          } else {
+            progress.update('Using your existing thread and appending instructions...');
+            await sendThreadMessage();
           }
 
           if (mode === 'review') {
+            progress.update('Building review packet from request context and evidence...');
             setHumanStatus('Preparing a review from the request details...', 'Working.');
             await stageThreadPreview();
-            pushHumanBubble('assistant', 'Request captured and review prepared. Add files if you want stronger proof coverage.', 'Merlin assistant');
+            progress.done('Request captured and review prepared. Add files if you want stronger proof coverage.', 'Merlin assistant');
             setHumanStatus('Review prepared. Check the saved request details below if needed.', 'Request ready.');
+            const promptInput = document.getElementById('human-prompt');
+            if (promptInput) promptInput.value = '';
             return;
           }
 
-          pushHumanBubble('assistant', 'Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
+          progress.done('Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
           setHumanStatus('The update request was created. Add files or prepare a review when ready.', 'Request created.');
+          const promptInput = document.getElementById('human-prompt');
+          if (promptInput) promptInput.value = '';
         } catch (error) {
-          pushHumanBubble('assistant', error instanceof Error ? error.message : 'Could not complete the request.', 'Merlin assistant');
+          progress.fail(error instanceof Error ? error.message : 'Could not complete the request.', 'Merlin assistant');
           setHumanStatus(error instanceof Error ? error.message : 'Something went wrong while creating the request.', 'Could not finish.');
         }
       }
