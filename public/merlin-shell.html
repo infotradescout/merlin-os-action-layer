@@ -479,10 +479,333 @@
           width: 100%;
         }
       }
+
+      body > .page {
+        display: none;
+      }
+
+      .human-app {
+        margin: 0 auto;
+        max-width: 1200px;
+        padding: 0.95rem 1rem 1.4rem;
+      }
+
+      .human-shell-top {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .human-brand {
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .human-note {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .human-shell {
+        align-items: stretch;
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 300px minmax(0, 1fr);
+        min-height: calc(100vh - 120px);
+      }
+
+      .human-sidebar {
+        background: linear-gradient(165deg, #ffffff 0%, #f2f5f7 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        display: grid;
+        gap: 0.8rem;
+        padding: 0.85rem;
+      }
+
+      .human-sidebar .block {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.7rem;
+      }
+
+      .human-sidebar h2 {
+        font-size: 0.92rem;
+      }
+
+      .human-chip-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+      }
+
+      .human-chip {
+        background: #f4f9f7;
+        border: 1px solid #b8ded3;
+        border-radius: 999px;
+        color: #0f5e49;
+        cursor: pointer;
+        font-size: 0.78rem;
+        padding: 0.26rem 0.55rem;
+      }
+
+      .human-chip:hover {
+        border-color: #0f8a6b;
+      }
+
+      .human-connector-list {
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .human-connector {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.5rem;
+      }
+
+      .human-connector strong {
+        display: block;
+        font-size: 0.85rem;
+      }
+
+      .human-chat {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: 70vh;
+      }
+
+      .human-chat-head {
+        border-bottom: 1px solid var(--line);
+        padding: 0.85rem 0.95rem;
+      }
+
+      .human-chat-log {
+        display: grid;
+        gap: 0.6rem;
+        overflow: auto;
+        padding: 0.95rem;
+      }
+
+      .human-bubble {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        line-height: 1.45;
+        max-width: 88%;
+        padding: 0.7rem 0.78rem;
+        white-space: pre-wrap;
+      }
+
+      .human-bubble.assistant {
+        background: #eef4f2;
+      }
+
+      .human-bubble.user {
+        background: #e3f4ef;
+        margin-left: auto;
+      }
+
+      .human-bubble .meta {
+        display: block;
+        font-size: 0.75rem;
+        margin-top: 0.35rem;
+      }
+
+      .human-composer {
+        border-top: 1px solid var(--line);
+        padding: 0.85rem 0.95rem 0.95rem;
+      }
+
+      .human-composer-row {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: 0.6rem;
+      }
+
+      .human-composer textarea,
+      .human-composer input,
+      .human-composer select {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font: inherit;
+        padding: 0.72rem 0.8rem;
+      }
+
+      .human-composer textarea {
+        min-height: 94px;
+        width: 100%;
+      }
+
+      .human-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.65rem;
+      }
+
+      .human-actions button {
+        border-radius: 12px;
+        flex: 0 1 auto;
+        min-width: 152px;
+      }
+
+      .human-status {
+        background: #f4f6f8;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+        margin-left: auto;
+        max-width: 420px;
+        padding: 0.38rem 0.55rem;
+      }
+
+      .human-status strong {
+        color: var(--ink);
+      }
+
+      .human-file-status {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 960px) {
+        .human-shell {
+          grid-template-columns: 1fr;
+          min-height: 0;
+        }
+
+        .human-chat {
+          min-height: 66vh;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .human-composer-row {
+          grid-template-columns: 1fr;
+        }
+
+        .human-actions button {
+          min-width: 0;
+          width: 100%;
+        }
+
+        .human-status {
+          margin-left: 0;
+          max-width: none;
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="page">
+    <main class="human-app" aria-label="Merlin connector chat">
+      <header class="human-shell-top">
+        <div>
+          <div class="human-brand">Merlin Connector Chat</div>
+          <div class="human-note">Chat-first update requests with connector routing</div>
+        </div>
+        <div class="human-note">No password needed in this chat</div>
+      </header>
+
+      <section class="human-shell">
+        <aside class="human-sidebar" aria-label="Connector options">
+          <div class="block">
+            <h2>Connected Apps</h2>
+            <div id="human-connectors" class="human-connector-list">
+              <div class="human-connector">
+                <strong>Loading connectors...</strong>
+                <span class="meta">Checking status</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Quick Prompts</h2>
+            <div class="human-chip-grid">
+              <button type="button" class="human-chip" data-prompt="Update our business hours for this week and mark holiday hours.">Business hours</button>
+              <button type="button" class="human-chip" data-prompt="Replace our menu with the attached file and keep pricing the same layout.">Replace menu</button>
+              <button type="button" class="human-chip" data-prompt="Fix our phone number and contact links across profile listings.">Fix contact info</button>
+              <button type="button" class="human-chip" data-prompt="Prepare a full update packet from the attached screenshots.">Build packet from files</button>
+            </div>
+          </div>
+        </aside>
+
+        <section class="human-chat" aria-label="Chat composer">
+          <div class="human-chat-head">
+            <h2>What do you want to update?</h2>
+            <div class="human-note">Describe it naturally, choose a connector target, and Merlin stages the request.</div>
+          </div>
+
+          <div id="human-chat-log" class="human-chat-log">
+            <div class="human-bubble assistant">
+              Tell me what should change, where it should happen, and what proof to use.
+              <span class="meta">Merlin assistant</span>
+            </div>
+          </div>
+
+          <div class="human-composer">
+            <div class="human-composer-row">
+              <div>
+                <label for="human-target">Connector target</label>
+                <select id="human-target">
+                  <option value="">Auto-detect from message</option>
+                </select>
+              </div>
+              <div>
+                <label for="human-mode">Execution mode</label>
+                <select id="human-mode">
+                  <option value="human_guided">Guide a logged-in person</option>
+                  <option value="prepare_packet">Prepare packet only</option>
+                  <option value="approved_connector">Use approved connector</option>
+                  <option value="screen_share">Use live handoff</option>
+                </select>
+              </div>
+              <div>
+                <label for="human-account">Account or listing</label>
+                <input id="human-account" placeholder="Business name, profile URL, store, account id" />
+              </div>
+              <div>
+                <label for="human-login-url">Login/admin URL (optional)</label>
+                <input id="human-login-url" placeholder="Optional: https://..." />
+              </div>
+            </div>
+
+            <label for="human-prompt">Message</label>
+            <textarea id="human-prompt" placeholder="Example: Update our Google Business Profile hours for July 4 and replace menu photos using the attached screenshots."></textarea>
+
+            <div class="human-actions">
+              <button type="button" class="secondary" onclick="humanPickFiles()">Attach screenshots/files</button>
+              <span id="human-file-status" class="human-file-status">No files attached</span>
+              <button id="human-send-button" type="button">Send request</button>
+              <button id="human-review-button" type="button" class="secondary">Send + prepare review</button>
+              <button id="human-upload-review-button" type="button" class="secondary">Send + upload + prepare</button>
+              <div id="human-status" class="human-status">
+                <strong>Ready.</strong> Type your request to begin.
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <input id="human-destination" type="hidden" />
+      <input id="human-access" type="hidden" />
+      <textarea id="human-change" hidden></textarea>
+      <textarea id="human-proof" hidden></textarea>
+    </main>
+
+    <div class="page" aria-hidden="true">
       <header class="topbar">
         <div>
           <div class="app-title">
@@ -997,6 +1320,176 @@
         return `${context}${message ? `\n\nNotes:\n${message}` : ''}`;
       }
 
+      function setHumanStatus(message, strong = 'Ready.') {
+        const node = document.getElementById('human-status');
+        if (!node) return;
+        node.replaceChildren();
+        const label = document.createElement('strong');
+        label.textContent = strong;
+        node.append(label, ` ${message}`);
+      }
+
+      function pushHumanBubble(role, text, meta = '') {
+        const log = document.getElementById('human-chat-log');
+        if (!log || !text) return;
+        const bubble = document.createElement('div');
+        bubble.className = `human-bubble ${role === 'user' ? 'user' : 'assistant'}`;
+        bubble.textContent = text;
+        if (meta) {
+          const metaLine = document.createElement('span');
+          metaLine.className = 'meta';
+          metaLine.textContent = meta;
+          bubble.appendChild(metaLine);
+        }
+        log.appendChild(bubble);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function inferDestinationFromPrompt(prompt) {
+        const lowered = String(prompt || '').toLowerCase();
+        if (!lowered) return '';
+        const mapping = [
+          ['google', 'Google Business Profile'],
+          ['shopify', 'Shopify'],
+          ['wordpress', 'WordPress'],
+          ['instagram', 'Instagram'],
+          ['facebook', 'Facebook'],
+          ['doordash', 'DoorDash'],
+          ['grubhub', 'Grubhub'],
+          ['ubereats', 'UberEats'],
+          ['mealscout', 'MealScout'],
+          ['tradescout', 'TradeScout']
+        ];
+        const hit = mapping.find(([needle]) => lowered.includes(needle));
+        return hit ? hit[1] : '';
+      }
+
+      function syncHumanComposer() {
+        const prompt = document.getElementById('human-prompt')?.value?.trim() || '';
+        const target = document.getElementById('human-target')?.value?.trim() || '';
+        const destination = target || inferDestinationFromPrompt(prompt);
+        const accessMode = document.getElementById('human-mode')?.value || 'human_guided';
+        const account = document.getElementById('human-account')?.value?.trim() || '';
+        const loginUrl = document.getElementById('human-login-url')?.value?.trim() || '';
+        const fileCount = Array.from(document.getElementById('local-drive-files')?.files || []).length;
+
+        const humanDestination = document.getElementById('human-destination');
+        if (humanDestination) humanDestination.value = destination;
+        const humanAccess = document.getElementById('human-access');
+        if (humanAccess) humanAccess.value = accessMode === 'approved_connector' ? 'approved connector preferred' : 'logged in human or approved connector';
+        const humanChange = document.getElementById('human-change');
+        if (humanChange) humanChange.value = prompt;
+        const humanProof = document.getElementById('human-proof');
+        if (humanProof) {
+          humanProof.value = fileCount
+            ? `${fileCount} local file(s) attached for proof.`
+            : 'No file attachments yet.';
+        }
+
+        const destinationName = document.getElementById('destination-name');
+        if (destinationName) destinationName.value = destination;
+        const loginUrlInput = document.getElementById('login-url');
+        if (loginUrlInput) loginUrlInput.value = loginUrl;
+        const accessContext = document.getElementById('access-context');
+        if (accessContext) accessContext.value = humanAccess?.value || '';
+        const accessModeInput = document.getElementById('access-mode');
+        if (accessModeInput) accessModeInput.value = accessMode;
+        const userHint = document.getElementById('user-hint');
+        if (userHint) userHint.value = prompt;
+        const entityId = document.getElementById('entity-id');
+        if (entityId && account) entityId.value = account;
+        const threadMessage = document.getElementById('thread-message');
+        if (threadMessage) threadMessage.value = prompt;
+        const quickEvidence = document.getElementById('quick-evidence-text');
+        if (quickEvidence) quickEvidence.value = humanProof?.value || '';
+
+        const change = prompt;
+        const title = destination && change
+          ? `${humanizeToken(change.slice(0, 70))} in ${destination}`
+          : destination
+            ? `Update ${destination}`
+            : change
+              ? humanizeToken(change.slice(0, 80))
+              : '';
+        const titleInput = document.getElementById('thread-title');
+        if (titleInput && title) titleInput.value = title;
+        const noteName = document.getElementById('quick-file-name');
+        if (noteName && destination) noteName.value = `${destination.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'update'}-notes.txt`;
+      }
+
+      function humanPickFiles() {
+        document.getElementById('local-drive-files')?.click();
+      }
+
+      function renderHumanConnectors() {
+        const list = document.getElementById('human-connectors');
+        const targetSelect = document.getElementById('human-target');
+        if (!list || !targetSelect || !state.shell?.shell) return;
+        const rows = state.shell.shell.sourceCatalog || [];
+        if (!rows.length) {
+          list.innerHTML = '<div class="human-connector"><strong>No connectors detected</strong><span class="meta">Use auto-detect and continue.</span></div>';
+          targetSelect.innerHTML = '<option value="">Auto-detect from message</option>';
+          return;
+        }
+        list.innerHTML = rows.slice(0, 8).map((row) => `
+          <div class="human-connector">
+            <strong>${row.label || row.sourceKey}</strong>
+            <span class="meta">${connectionLabel(row.connectionStatus)}</span>
+          </div>
+        `).join('');
+
+        const options = ['<option value="">Auto-detect from message</option>'];
+        for (const row of rows) {
+          options.push(`<option value="${row.label || row.sourceKey}">${row.label || row.sourceKey}</option>`);
+        }
+        targetSelect.innerHTML = options.join('');
+      }
+
+      async function submitHumanRequest(mode) {
+        syncHumanComposer();
+        const prompt = document.getElementById('human-prompt')?.value?.trim();
+        if (!prompt || prompt.length < 8) {
+          setHumanStatus('Type a bit more detail about what needs to change.', 'Need more context.');
+          return;
+        }
+
+        pushHumanBubble('user', prompt, `Mode: ${humanizeToken(document.getElementById('human-mode')?.value || 'human_guided')}`);
+
+        const files = document.getElementById('local-drive-files')?.files || [];
+        try {
+          if (mode === 'files') {
+            if (!files.length) {
+              setHumanStatus('Attach screenshots or files first, then choose upload.', 'No files yet.');
+              return;
+            }
+            setHumanStatus('Uploading files and preparing the request...', 'Working.');
+            await uploadAndStagePreview();
+            pushHumanBubble('assistant', 'Files attached and review staged. You can now inspect the packet or add follow-up instructions.', 'Merlin assistant');
+            setHumanStatus('Files are attached and a review is prepared.', 'Request ready.');
+            return;
+          }
+
+          if (!state.selectedThreadId) {
+            setHumanStatus('Creating the update request...', 'Working.');
+            await createThread();
+          }
+
+          if (mode === 'review') {
+            setHumanStatus('Preparing a review from the request details...', 'Working.');
+            await stageThreadPreview();
+            pushHumanBubble('assistant', 'Request captured and review prepared. Add files if you want stronger proof coverage.', 'Merlin assistant');
+            setHumanStatus('Review prepared. Check the saved request details below if needed.', 'Request ready.');
+            return;
+          }
+
+          pushHumanBubble('assistant', 'Request captured. You can send another message, prepare review, or attach files next.', 'Merlin assistant');
+          setHumanStatus('The update request was created. Add files or prepare a review when ready.', 'Request created.');
+        } catch (error) {
+          pushHumanBubble('assistant', error instanceof Error ? error.message : 'Could not complete the request.', 'Merlin assistant');
+          setHumanStatus(error instanceof Error ? error.message : 'Something went wrong while creating the request.', 'Could not finish.');
+        }
+      }
+
       function currentBrandActions() {
         if (!state.shell) return [];
         const brand = document.getElementById('brand-select').value;
@@ -1111,6 +1604,7 @@
           .map((row) => `<option value="${row.id}" ${row.id === state.selectedThreadId ? 'selected' : ''}>${row.title}</option>`)
           .join('');
         renderThread(showSelectedThread ? payload.shell.selectedThread : null);
+        renderHumanConnectors();
       }
 
       function renderThread(selectedThread) {
@@ -1751,9 +2245,43 @@
           await loadShell({ brand: document.getElementById('brand-select').value });
           syncActionOptions();
         });
+        const humanSendButton = document.getElementById('human-send-button');
+        if (humanSendButton) humanSendButton.addEventListener('click', () => submitHumanRequest('start'));
+        const humanReviewButton = document.getElementById('human-review-button');
+        if (humanReviewButton) humanReviewButton.addEventListener('click', () => submitHumanRequest('review'));
+        const humanUploadReviewButton = document.getElementById('human-upload-review-button');
+        if (humanUploadReviewButton) humanUploadReviewButton.addEventListener('click', () => submitHumanRequest('files'));
+        const humanPromptInput = document.getElementById('human-prompt');
+        if (humanPromptInput) {
+          humanPromptInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              submitHumanRequest('start');
+            }
+          });
+        }
+        document.querySelectorAll('.human-chip').forEach((chipButton) => {
+          chipButton.addEventListener('click', () => {
+            const prompt = chipButton.getAttribute('data-prompt') || '';
+            const promptInput = document.getElementById('human-prompt');
+            if (promptInput) {
+              promptInput.value = prompt;
+              promptInput.focus();
+            }
+          });
+        });
         document.getElementById('action-select').addEventListener('change', syncSelectedActionContext);
         document.getElementById('upload-drive-buffer-button').addEventListener('click', uploadLocalFilesToDriveBuffer);
         document.getElementById('upload-stage-button').addEventListener('click', uploadAndStagePreview);
+        document.getElementById('local-drive-files').addEventListener('change', () => {
+          const files = Array.from(document.getElementById('local-drive-files').files || []);
+          const status = document.getElementById('human-file-status');
+          if (status) {
+            status.textContent = files.length
+              ? `${files.length} file${files.length === 1 ? '' : 's'} attached`
+              : 'No files attached';
+          }
+        });
         document.getElementById('load-drive-status-button').addEventListener('click', loadDriveStatus);
         document.getElementById('load-drive-preview-button').addEventListener('click', loadDrivePreview);
         document.getElementById('load-folder-context-button').addEventListener('click', loadFolderContext);
