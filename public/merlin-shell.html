@@ -1743,7 +1743,9 @@
 
       async function boot() {
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/service-worker.js').catch(() => undefined);
+          navigator.serviceWorker.register('/service-worker.js?v=3').then((registration) => {
+            registration.update().catch(() => undefined);
+          }).catch(() => undefined);
         }
         document.getElementById('brand-select').addEventListener('change', async () => {
           await loadShell({ brand: document.getElementById('brand-select').value });
