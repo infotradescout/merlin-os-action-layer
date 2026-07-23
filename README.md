@@ -6,6 +6,26 @@ Controlled action layer for Merlin OS: brand-safe execution across Google Drive,
 
 The Merlin OS Action Layer turns trusted business intent into safe, auditable actions.
 
+## AI 2.0 doctrine
+
+Merlin is not AI hype.
+Merlin is what comes after AI hype fails.
+
+Merlin does not replace AI.
+Merlin makes constrained AI usable.
+
+AI 1.0 is approaching a reset because delivery is expensive, energy-intensive, compute-constrained, and still too dependent on chat babysitting for normal users.
+
+Core spine:
+
+Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove
+
+See `docs/MERLIN_AI_2_0_DOCTRINE.md` for the one-page thesis and language guardrails.
+See `docs/MERLIN_AI_COUNCIL_MISSION_BLUEPRINT.md` for the full mission execution blueprint.
+See `docs/MERLIN_AI_COUNCIL_6_WEEK_EXECUTION_BOARD.md` for the owner-lane execution board, pass/fail gates, and KPI scoreboard.
+See `docs/MERLIN_WEEKLY_SCOREBOARD_DATA_CONTRACT.md` for the weekly KPI data-source contract and authoritative query/output paths.
+See `docs/merlin/MERLIN_PROJECT_FLIGHT_PLAN_DOCTRINE.md` for the mandatory Project Flight Plan doctrine and anti-drift execution flow.
+
 It is not a chatbot prompt collection. It is the operating contract that decides:
 
 - which brand lane an action belongs to,

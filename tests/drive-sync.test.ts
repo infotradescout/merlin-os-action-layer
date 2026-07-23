@@ -25,15 +25,16 @@ process.env.MERLIN_DRIVE_ALLOW_FOLDER_CREATE = 'false';
 process.env.MERLIN_DRIVE_BOOTSTRAP_ENABLED = 'false';
 process.env.MERLIN_DRIVE_CREATE_MISSING_FOLDERS = 'false';
 
-const { closeLisaStore, resetLisaStore } = await import('../src/lisa.ts');
+const { closeLisaStore, getLisaEventsForBrowser, resetLisaStore } = await import('../src/lisa.ts');
 const { closeDriveManifestStore, createManifestEntry, getManifestEntriesByStatus, getManifestEntryByDriveFileId, resetDriveManifestForTest } = await import('../src/driveManifest.ts');
 const { closeReplayStore, getRecentReplayEvents, resetReplayForTest } = await import('../src/replay.ts');
 const { closeRecommendationsStore, resetRecommendationsForTest } = await import('../src/recommendations.ts');
 const { closeOutcomesStore, resetOutcomesForTest } = await import('../src/outcomes.ts');
-const { closeApprovalQueueStore, resetApprovalQueueForTest } = await import('../src/approvalQueue.ts');
-const { discoverManagedFolders, importDriveFile, routeImportedFile, syncDriveInbox } = await import('../src/driveSync.ts');
+const { closeApprovalQueueStore, getRecentApprovals, resetApprovalQueueForTest } = await import('../src/approvalQueue.ts');
+const { discoverManagedFolders, importDriveFile, planDriveInboxScanTargets, routeImportedFile, syncDriveInbox } = await import('../src/driveSync.ts');
 const { setDriveClientFactory, resetDriveClientFactory } = await import('../src/driveClient.ts');
 const { createDriveBootstrapPlan } = await import('../src/driveManager.ts');
+const { listMealScoutAutoOnboardedProfiles } = await import('../src/mealscoutProfileImport.ts');
 const { createMerlinServer } = await import('../src/server.ts');
 
 let server: Server;
@@ -91,7 +92,7 @@ function createMockDriveClient(initialFolders: FolderRecord[], initialFiles: Fil
   };
 
   const client: DriveClient = {
-async listFilesInFolder(folderId) {
+    async listFilesInFolder(folderId) {
       return Array.from(files.values())
         .filter((file) => file.parents.includes(folderId))
         .map((file) => ({
@@ -103,6 +104,12 @@ async listFilesInFolder(folderId) {
           modified_time: file.modifiedTime,
           entity_id: file.entity_id
         }));
+    },
+
+    async listSubfoldersInFolder(folderId) {
+      return Array.from(foldersById.values())
+        .filter((folder) => folder.parent === folderId)
+        .map((folder) => ({ id: folder.id, name: folder.name }));
     },
 
 async getFileMetadata(fileId) {
@@ -187,7 +194,11 @@ function createSyncFolders(): FolderRecord[] {
     { id: 'entity-files', name: '04_Entity_Files', parent: 'dedicated-root' },
     { id: 'exports', name: '05_Exports', parent: 'dedicated-root' },
     { id: 'audit', name: '06_Audit', parent: 'dedicated-root' },
-    { id: 'system', name: '07_System', parent: 'dedicated-root' }
+    { id: 'system', name: '07_System', parent: 'dedicated-root' },
+    { id: 'mealscout-intake', name: 'MealScout Intake', parent: 'dedicated-root' },
+    { id: 'mealscout-incoming', name: 'incoming', parent: 'mealscout-intake' },
+    { id: 'mealscout-screenshots', name: 'screenshots', parent: 'mealscout-incoming' },
+    { id: 'mealscout-legacy-screenshots', name: 'Legacy Screenshots', parent: 'dedicated-root' }
   );
   return folders;
 }
@@ -224,6 +235,7 @@ beforeEach(() => {
   resetOutcomesForTest();
   resetApprovalQueueForTest();
   process.env.GOOGLE_REFRESH_TOKEN = 'refresh-token';
+  delete process.env.MERLIN_MEALSCOUT_LEGACY_SCREENSHOTS_FOLDER_ID;
 });
 
 after(async () => {
@@ -235,7 +247,11 @@ after(async () => {
   closeOutcomesStore();
   closeApprovalQueueStore();
   resetDriveClientFactory();
-  rmSync(tempDir, { recursive: true, force: true });
+  try {
+    rmSync(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {
+    // SQLite WAL handles can briefly outlive store closure on Windows test runners.
+  }
 });
 
 test('discovers managed folders and reports missing folders before creation', async () => {
@@ -462,6 +478,201 @@ test('routeImportedFile returns expected behavior for supported and unsupported 
 
   assert.equal(routeImportedFile(withEntity).route, 'processed');
   assert.equal(routeImportedFile(unsupported).route === 'needs_review' || routeImportedFile(unsupported).route === 'skipped', true);
+});
+
+test('raw screenshot without entity_id is accepted for MealScout intake queue', () => {
+  const rawScreenshot = createDriveFileRecord({
+    drive_file_id: 'raw-screenshot-no-entity',
+    file_name: 'facebook-profile.png',
+    mime_type: 'image/png',
+    folder_id: 'inbox',
+    folder_path: inboxPath,
+    web_url: 'https://drive.google.com/file/d/raw-screenshot-no-entity',
+    observed_at: '2026-05-24T14:08:00.000Z'
+  });
+
+  const route = routeImportedFile(rawScreenshot);
+  assert.equal(route.route, 'processed');
+  assert.equal(route.moveTo, '01_Processed');
+  assert.equal(route.reason.includes('Raw screenshot/PDF accepted'), true);
+  assert.notEqual(route.reason, 'Missing entity_id for inbox file');
+});
+
+test('raw PDF without entity_id is accepted for MealScout intake queue', () => {
+  const rawPdf = createDriveFileRecord({
+    drive_file_id: 'raw-pdf-no-entity',
+    file_name: 'facebook-profile.pdf',
+    mime_type: 'application/pdf',
+    folder_id: 'inbox',
+    folder_path: inboxPath,
+    web_url: 'https://drive.google.com/file/d/raw-pdf-no-entity',
+    observed_at: '2026-05-24T14:09:00.000Z'
+  });
+
+  const route = routeImportedFile(rawPdf);
+  assert.equal(route.route, 'processed');
+  assert.equal(route.moveTo, '01_Processed');
+});
+
+test('managed non-raw inbox file without entity_id still requires review and does not queue screenshot intake', async () => {
+  const textFile = createDriveFileRecord({
+    drive_file_id: 'managed-text-no-entity',
+    file_name: 'notes.txt',
+    mime_type: 'text/plain',
+    folder_id: 'inbox',
+    folder_path: inboxPath,
+    web_url: 'https://drive.google.com/file/d/managed-text-no-entity',
+    observed_at: '2026-05-24T14:10:00.000Z'
+  });
+
+  const route = routeImportedFile(textFile);
+  assert.equal(route.route, 'needs_review');
+  assert.equal(route.reason, 'Missing entity_id for managed inbox file');
+
+  const { client } = createMockDriveClient(createSyncFolders(), [
+    {
+      id: 'managed-text-no-entity',
+      name: 'notes.txt',
+      mimeType: 'text/plain',
+      modifiedTime: '2026-05-24T14:10:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/managed-text-no-entity',
+      parents: ['inbox']
+    }
+  ]);
+
+  await importDriveFile(
+    {
+      drive_file_id: 'managed-text-no-entity',
+      file_name: 'notes.txt',
+      mime_type: 'text/plain',
+      folder_id: 'inbox',
+      web_url: 'https://drive.google.com/file/d/managed-text-no-entity',
+      modified_time: '2026-05-24T14:10:00.000Z'
+    },
+    {
+      client,
+      folderPath: inboxPath,
+      folderAlias: '00_Inbox',
+      managedFolders: {
+        '00_Inbox': { id: 'inbox', path: inboxPath },
+        '01_Processed': { id: 'processed', path: processedPath },
+        '02_Needs_Review': { id: 'needs-review', path: needsReviewPath },
+        '03_Archived_Sources': { id: 'archived', path: '03_Archived_Sources' },
+        '04_Entity_Files': { id: 'entities', path: '04_Entity_Files' },
+        '05_Exports': { id: 'exports', path: '05_Exports' },
+        '06_Audit': { id: 'audit', path: '06_Audit' },
+        '07_System': { id: 'system', path: '07_System' }
+      }
+    }
+  );
+
+  const replayEvents = getRecentReplayEvents(20);
+  assert.equal(replayEvents.some((event) => event.event_type === 'screenshot_intake_queued'), false);
+});
+
+test('raw screenshot import records drive_file_imported before screenshot_intake_queued without auto-apply side effects', async () => {
+  const beforeProfiles = listMealScoutAutoOnboardedProfiles().length;
+  const { client } = createMockDriveClient(createSyncFolders(), [
+    {
+      id: 'raw-import-order-001',
+      name: 'profile.png',
+      mimeType: 'image/png',
+      modifiedTime: '2026-05-24T14:11:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/raw-import-order-001',
+      parents: ['inbox']
+    }
+  ]);
+
+  const result = await importDriveFile(
+    {
+      drive_file_id: 'raw-import-order-001',
+      file_name: 'profile.png',
+      mime_type: 'image/png',
+      folder_id: 'inbox',
+      web_url: 'https://drive.google.com/file/d/raw-import-order-001',
+      modified_time: '2026-05-24T14:11:00.000Z'
+    },
+    {
+      client,
+      folderPath: inboxPath,
+      folderAlias: '00_Inbox',
+      managedFolders: {
+        '00_Inbox': { id: 'inbox', path: inboxPath },
+        '01_Processed': { id: 'processed', path: processedPath },
+        '02_Needs_Review': { id: 'needs-review', path: needsReviewPath },
+        '03_Archived_Sources': { id: 'archived', path: '03_Archived_Sources' },
+        '04_Entity_Files': { id: 'entities', path: '04_Entity_Files' },
+        '05_Exports': { id: 'exports', path: '05_Exports' },
+        '06_Audit': { id: 'audit', path: '06_Audit' },
+        '07_System': { id: 'system', path: '07_System' }
+      }
+    }
+  );
+
+  assert.equal(result.route, 'processed');
+  assert.equal(result.reason.includes('Raw screenshot/PDF accepted'), true);
+
+  const chronological = getRecentReplayEvents(30).reverse();
+  const importedIndex = chronological.findIndex(
+    (event) => event.event_type === 'drive_file_imported' && event.source_refs.includes('drive:raw-import-order-001')
+  );
+  const queuedIndex = chronological.findIndex(
+    (event) => event.event_type === 'screenshot_intake_queued' && event.source_refs.includes('drive:raw-import-order-001')
+  );
+  assert.equal(importedIndex >= 0, true);
+  assert.equal(queuedIndex > importedIndex, true);
+  assert.equal(chronological.some((event) => event.event_type === 'business_profile_started'), false);
+  assert.equal(chronological.some((event) => event.event_type === 'restaurant_onboarded'), false);
+  assert.equal(getRecentApprovals().length, 0);
+  assert.equal(listMealScoutAutoOnboardedProfiles().length, beforeProfiles);
+
+  const lisaEvents = getLisaEventsForBrowser(20);
+  assert.equal(lisaEvents.some((event) => event.title.includes('profile.png')), true);
+});
+
+test('syncDriveInbox scans canonical inbox, MealScout incoming screenshots, and configured legacy screenshots folder', async () => {
+  process.env.MERLIN_MEALSCOUT_LEGACY_SCREENSHOTS_FOLDER_ID = 'mealscout-legacy-screenshots';
+  const { client } = createMockDriveClient(createSyncFolders(), [
+    {
+      id: 'scan-inbox-001',
+      name: 'inbox-profile.png',
+      mimeType: 'image/png',
+      modifiedTime: '2026-05-24T14:12:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/scan-inbox-001',
+      parents: ['inbox']
+    },
+    {
+      id: 'scan-mealscout-001',
+      name: 'mealscout-profile.png',
+      mimeType: 'image/png',
+      modifiedTime: '2026-05-24T14:13:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/scan-mealscout-001',
+      parents: ['mealscout-screenshots']
+    },
+    {
+      id: 'scan-legacy-001',
+      name: 'legacy-profile.pdf',
+      mimeType: 'application/pdf',
+      modifiedTime: '2026-05-24T14:14:00.000Z',
+      webViewLink: 'https://drive.google.com/file/d/scan-legacy-001',
+      parents: ['mealscout-legacy-screenshots']
+    }
+  ]);
+  setDriveClientFactory(() => client);
+
+  const discovery = await discoverManagedFolders({ client });
+  const targets = await planDriveInboxScanTargets(discovery, client);
+  assert.deepEqual(
+    targets.map((target) => target.id),
+    ['inbox', 'mealscout-screenshots', 'mealscout-legacy-screenshots']
+  );
+
+  const result = await syncDriveInbox({ client });
+  assert.equal(result.status, 'ok');
+  assert.equal(result.processed, 3);
+
+  const queued = getRecentReplayEvents(50).filter((event) => event.event_type === 'screenshot_intake_queued');
+  assert.equal(queued.length, 3);
 });
 
 test('POST /api/drive/sync returns 409 when auth is unhealthy', async () => {

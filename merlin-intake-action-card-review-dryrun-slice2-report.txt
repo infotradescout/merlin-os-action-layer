@@ -1,0 +1,86 @@
+Merlin Intake Action Card Review + Apply Dry Run Slice 2 Report
+Date: 2026-05-31
+
+Goal
+- Add a reviewable action-card queue and dry-run apply simulation.
+- Keep all behavior non-mutating and do not publish/apply live updates.
+
+Files changed
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- tests/merlin-intake-action-cards-dryrun.test.ts
+
+Behavior implemented
+1) Reviewable action-card queue
+- Action cards are stored in a Merlin intake queue.
+- Queue supports global listing and batch-scoped listing.
+- Cards preserve sourceFileIds, confidence, extractedFields, existingEntityMatch, and missingFields.
+
+2) Endpoints added
+- GET /api/mealscout/intake/action-cards
+- GET /api/mealscout/intake/batches/:batchId/action-cards
+- POST /api/mealscout/intake/action-cards/:cardId/dry-run
+
+3) Admin-safe access
+- Endpoints require operator/admin-style roles (same role gate style used by other intake admin routes).
+- Unauthorized role gets 403 forbidden.
+
+4) Dry-run apply simulation (no mutation)
+- Response includes:
+  - cardId
+  - batchId
+  - actionType
+  - entityType
+  - mutationAllowed:false
+  - wouldCreate (nullable)
+  - wouldUpdate (nullable)
+  - wouldClaim (nullable)
+  - skippedReason (nullable)
+  - sourceFileIds
+  - extractedFields
+  - missingFields
+  - existingEntityMatch
+  - confidence
+  - auditWarnings
+- Card behavior:
+  - create_profile_draft -> wouldCreate (if confidence threshold met)
+  - update_existing_profile -> wouldUpdate with field-level before/after diff
+  - claim_existing_profile -> wouldClaim only (no ownership change)
+  - request_missing_info -> skippedReason + missingFields
+  - defer_unclassified -> skippedReason
+- Low confidence cards are blocked from create/update with skippedReason: confidence_below_threshold.
+
+5) Backward compatibility
+- Existing /api/mealscout/intake/preview response remains backward compatible.
+- actionCards remains additive; no existing fields removed.
+
+6) No live writes
+- No publish/apply endpoint was called.
+- No live profile mutation path was added.
+- No notifications added.
+- No Drive cleanup/delete added.
+
+Tests added
+- tests/merlin-intake-action-cards-dryrun.test.ts
+  - batch action cards retrieval count/types
+  - dry-run create_profile_draft -> wouldCreate + mutationAllowed:false
+  - dry-run update_existing_profile -> field-level before/after diff
+  - dry-run request_missing_info/defer_unclassified -> skippedReason behavior
+  - invalid card id -> 404
+  - non-admin role denied -> 403
+  - dry-run does not mutate publish execution audit
+
+Validation
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (330/330)
+- npm run build: PASS
+
+Safety confirmations
+- publish execution called: no
+- live mutation occurred: no
+- cleanup/delete called: no
+
+Notes
+- Cards are persisted in Merlin runtime queue memory for this slice.
+- Batch-scoped retrieval uses stored batch-linked cards when available.
+- Live apply/publish remains out of scope and disabled.

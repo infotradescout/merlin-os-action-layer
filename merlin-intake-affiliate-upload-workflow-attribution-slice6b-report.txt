@@ -1,0 +1,78 @@
+# Merlin Intake Affiliate Upload Workflow + Attribution Slice 6B Report
+
+## Scope Result
+Implemented Slice 6B attribution lineage for MealScout intake batches, action cards, apply audit, notifications, and open tracking.
+
+## Files Changed
+- src/server.ts
+- src/merlin/intake/actionCardQueue.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+## Backend Changes
+- Added durable attribution fields to intake action-card storage and row mapping:
+  - submittedByUserId
+  - affiliateId
+  - affiliateCode
+  - submissionSource
+  - attributionSnapshot
+- Added DB-safe columns in action-card ledger with migration-safe `ensureColumn` behavior.
+- Added action-card batch attribution propagation helper:
+  - `updateActionCardsBatchAttribution(...)`
+- Extended MealScout drive automation batch model with attribution metadata:
+  - submittedByUserId / submittedByRole
+  - affiliateId / affiliateName / affiliateCode
+  - submissionSource / submissionChannel / submissionNotes
+  - attributionLockedAt / attributionLockedBy
+  - attributionWarnings
+- `POST /api/mealscout/intake/drive/sync` now accepts attribution payload metadata and stores it on created batches.
+- `POST /api/mealscout/intake/batches/:batchId/process` now propagates batch attribution into generated cards.
+- Added `PATCH /api/mealscout/intake/batches/:batchId/attribution`:
+  - admin/operator/staff gated
+  - attribution-only update
+  - no apply/notify/profile mutation
+  - guarded against post-apply mutation
+- Added `GET /api/mealscout/intake/affiliates/attribution-summary`:
+  - admin/operator/staff gated
+  - aggregate batch/file/card/applied/notification/open/claim counts
+  - no payout math
+- Apply and notification/open tracking now preserve attribution lineage metadata in responses/audit paths.
+
+## UI Changes
+- Drive automation batch display now shows attribution details and warnings.
+- Added batch attribution edit control (admin/operator/staff pathway).
+- Added filters by affiliate and submission source.
+- Action card rendering now includes attribution details.
+- Added Attribution Summary panel with non-payout operational counts.
+
+## Safety / Policy
+- Attribution is audit lineage only (no payout logic).
+- No automatic apply.
+- No automatic notifications.
+- No Drive cleanup/delete/archive/suppress.
+- No TradeScout mutation path added.
+- Duplicate/replacement warning behavior unchanged.
+- Mutation flags remain read-safe where required.
+
+## Validation
+- `npm run check` ✅
+- `npm run test -- --runInBand` ✅
+- `npm run build` ✅
+
+## Test Coverage Additions
+- Added/updated tests for:
+  - batch attribution patch behavior
+  - summary counts and payout exclusion
+  - card attribution propagation and preservation
+  - UI client attribution endpoints usage
+  - UI safety envelopes (`mutationAllowed:false`) for attribution APIs
+
+## Runtime Mutation Confirmation
+- Publish execution called: **no**
+- Live profile mutation from attribution endpoints: **no**
+- Cleanup/delete/suppress called by this slice: **no**
+
+## Canonical Line
+Attribution is evidence lineage, not payout approval.

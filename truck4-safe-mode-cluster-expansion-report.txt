@@ -1,0 +1,67 @@
+Truck #4 Safe-Mode Cluster Expansion Report
+Date: 2026-05-31T09:55:30.7644719-05:00
+
+Request payload:
+{
+  "safeMode": true,
+  "processByCluster": true,
+  "maxFiles": 10,
+  "mode": "process",
+  "repId": "MANUAL_OPERATOR",
+  "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+  "sourceChannel": "admin_safe_mode_review"
+}
+
+Batch result:
+- endpoint: POST /api/mealscout/intake/batches/run
+- status: 200
+- ok: True
+- batchId: ms-intake-batch-e53e8829-e140-4af9-a949-fe5f0718a894
+- mutationAllowed: False
+- total files selected (eligible): 3
+- total processed: 2
+- skipped count: 1
+- failed count: 0
+- cluster count (run context): 3
+- draft count: 2
+- safeMode: True
+- warnings: safe_mode_max_files_capped_to_8 | processing_cluster:ctx-cluster-1
+
+Processed files:
+- 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM | 705770904_918342954569744_6077113333953277063_n.jpg | class=profile | ocrAttempted=True | ocrSucceeded=True
+- 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl | 706216881_1495538075647692_5427253878307980612_n.jpg | class=profile | ocrAttempted=True | ocrSucceeded=True
+
+Skipped files and reasons:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD | 707990078_2109431996279825_93215142009434330_n.jpg | reason=already_processed
+
+Per-draft source files and detected truck names:
+- draftId=ms-draft-7f87da4fa7e32ba0 | type=create_new | truckName=powk DIES | reviewStatus=missing_required
+  sourceFiles=18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+  phone= email= website= facebook= instagram= cityArea= cuisine=
+  menuItems=0 attachedMedia=0
+- draftId=ms-draft-57de1c837c0dd82e | type=create_new | truckName=Lettys Backyard | reviewStatus=missing_required
+  sourceFiles=1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM,1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+  phone= email= website= facebook= instagram= cityArea=all authentic fresh filipino cuisine=
+  menuItems=0 attachedMedia=0
+
+Existing-truck match results:
+- none detected (no update_existing records)
+
+Missing fields / blockers:
+- recordId=ms-plan-record-ms-draft-7f87da4fa7e32ba0 blockedReasons=missing_city_or_service_area|missing_contact_or_web_or_social warnings=
+- recordId=ms-plan-record-ms-draft-57de1c837c0dd82e blockedReasons=missing_contact_or_web_or_social|missing_menu_or_menu_deferred warnings=menu missing and not deferred
+
+Mutation and publish safety:
+- mutationAllowed (preview): False
+- publish execution called: no
+
+Endpoint stability checks:
+- POST /api/mealscout/intake/preview => status=200, ok=True
+- GET /api/mealscout/intake/file-audit => status=200, ok=True
+- GET /api/mealscout/intake/batches => status=200, ok=True
+- GET /api/health => status=200, ok=True
+- server alive: True
+
+Duplicate-draft fail-safe check:
+- repeated truck names across drafts: 
+- no obvious duplicate draft names detected.

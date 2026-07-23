@@ -1,0 +1,1 @@
+pilot7l smoke summary\nbatch run status: completed\nhistory count: 1\ndetail found: true\ndetail processed files: 2\ndetail skipped files: 1\nhistory attribution sources: drive_metadata,request_context\nfilter by affiliate draft count: 1\npreview mutationAllowed: false\npublish execution called: false\n

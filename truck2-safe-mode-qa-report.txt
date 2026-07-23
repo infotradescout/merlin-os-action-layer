@@ -1,0 +1,14 @@
+Truck #2 Safe Mode QA Report
+- batchId: ms-intake-batch-c6a9258e-b97d-476d-a972-1b6c5b87e63b
+- scanned / processed / skipped / failed: 38 / 0 / 38 / 0
+- processed file list:
+- OCR success/failure: 0/0
+- attribution count: request_context=0, unknown=0
+- draft count: 0
+- publishReady count: 0
+- blocked count: 0
+- needsReview count: 0
+- unattached media count: 0
+- wrong grouping observed yes/no: no
+- menu-like truckName warnings: 0
+- recommendation: NEEDS_MORE_FILES

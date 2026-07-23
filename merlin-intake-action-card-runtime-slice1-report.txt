@@ -1,0 +1,69 @@
+Merlin Intake Action Card Runtime Slice 1 Report
+Date: 2026-05-31
+
+Goal
+- Convert extracted intake evidence into actionable review cards in preview responses.
+- Keep behavior non-mutating and backward compatible.
+
+Files changed
+- src/merlin/intake/actionCards.ts
+- src/server.ts
+- tests/merlin-intake-action-cards-runtime.test.ts
+
+Runtime behavior added
+- /api/mealscout/intake/preview now includes `actionCards`.
+- Action cards are derived from extracted evidence + draft matching state only.
+- No invented fields are added.
+- No publish/apply/mutation path was added.
+
+Action card types implemented
+- create_profile_draft
+- update_existing_profile
+- claim_existing_profile
+- request_missing_info
+- defer_unclassified
+
+Action card fields included
+- id
+- type
+- title
+- entityType
+- confidence
+- sourceFileIds
+- extractedFields
+- missingFields
+- existingEntityMatch (nullable)
+- recommendedAction
+- mutationAllowed:false
+
+Matching behavior
+- Uses existing draft matching results from preview pipeline.
+- If existing entity match is present, cards prefer update_existing_profile.
+- Low-identity/low-signal evidence yields defer_unclassified.
+- Missing required fields yields request_missing_info.
+
+Consolidation behavior
+- Multiple screenshots for one truck produce a single draft card when clustering merges evidence.
+- Menu + logo + profile evidence can consolidate into one action card with multiple sourceFileIds.
+
+Backward compatibility
+- Existing preview response fields remain intact (evidenceFiles, clusters, drafts, mergeAssist, publishPlan, etc.).
+- actionCards is additive only.
+
+Tests added
+- tests/merlin-intake-action-cards-runtime.test.ts
+  1) Multiple screenshots consolidate into one action card.
+  2) Existing match yields update_existing_profile.
+  3) Missing menu keeps missingFields and does not invent menu items.
+  4) Unknown screenshot yields defer_unclassified.
+
+Validation
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (324/324)
+- npm run build: PASS
+
+Safety confirmations
+- mutationAllowed remains false in action cards and preview envelope.
+- publish execution called: no
+- live profile mutation occurred: no
+- file delete/cleanup called: no

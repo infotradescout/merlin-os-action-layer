@@ -473,9 +473,9 @@ test('merlin daily includes internal admin navigation link to drive review queue
   });
 
   await page.goto('/');
-  const link = page.locator('a[href="/admin/drive-review-queue"]');
+  await expect(page.getByText("Current task: scan today's command center.")).toBeVisible();
+  const link = page.getByRole('link', { name: 'Open Drive Review inbox' });
   await expect(link).toBeVisible();
-  await expect(link).toContainText('Open admin operational inbox');
 });
 
 test('audit export endpoint returns metadata-only records', async ({ page }) => {

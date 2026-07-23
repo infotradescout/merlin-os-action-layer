@@ -1,0 +1,223 @@
+{
+  "repo": "Merlin / merlin-os-action-layer",
+  "branch": "mealscout-screenshot-profile-completion",
+  "baselineSha": "798dab5f22b05ee9946eb93825b230ec6e65064e",
+  "auditType": "merlin_current_ux_operator_flow_qa_audit",
+  "verdict": "PASS_WITH_CONDITIONS",
+  "scope": {
+    "merlinOnly": true,
+    "refactorPerformed": false,
+    "newFeatureCreated": false,
+    "mealScoutLiveProductionEdited": false,
+    "approvedExportGenerated": false,
+    "productionMutationPerformed": false
+  },
+  "artifactSnapshot": {
+    "draftPackets": 100,
+    "cleanDraftCandidates": 65,
+    "blockedByConflict": 7,
+    "ownerConfirmationBucket": 28,
+    "ownerConfirmationsRequired": 35,
+    "unknownHeld": 224,
+    "nonFoodQuarantine": 181,
+    "approvedDraftExportPresentAtBaseline": true,
+    "approvedDraftExportMutationAllowed": false,
+    "approvedDraftExportProductionApplied": false
+  },
+  "validationSnapshot": {
+    "npmRunCheck": "passed",
+    "targetedArtifactDriveApprovalDiscordTests": "41/41 passed after excluding merlin-intake-engine",
+    "merlinIntakeEngineTest": "8/9 failed",
+    "merlinIntakeEngineFailurePattern": "Expected Merlin intake endpoints under /api/merlin/intake/upload-intents and related paths returned 404; server currently dispatches /api/merlin/intake.",
+    "gitDiffCheck": "pending_at_artifact_write"
+  },
+  "operatorFlowsAudited": [
+    {
+      "area": "Merlin screenshot intake flow",
+      "status": "covered_by_tests_and_artifacts",
+      "evidence": [
+        "tests/mealscout-screenshot-extraction.test.ts",
+        "tests/mealscout-screenshot-processing-validation.test.ts",
+        "tests/merlin-intake-action-cards-runtime.test.ts",
+        "tests/merlin-intake-action-cards-dryrun.test.ts"
+      ],
+      "condition": "Preview and dry-run safety are tested, but real browser walkthrough coverage of the full operator decision path is thin."
+    },
+    {
+      "area": "Drive intake and file movement flow",
+      "status": "covered_with_safety_conditions",
+      "evidence": [
+        "tests/drive-sync.test.ts",
+        "tests/drive-safety.test.ts",
+        "tests/drive-folder-sequential-inventory.test.ts",
+        "tests/screenshots-manifest-move-and-seed.test.ts"
+      ],
+      "condition": "Movement and rename utilities are guarded, but full-folder real Drive dry-run evidence should be attached before execute use."
+    },
+    {
+      "area": "Evidence classification outputs",
+      "status": "covered_by_unit_and_artifact_tests",
+      "evidence": [
+        "tests/mealscout-menu-artifact-classification.test.ts",
+        "tests/mealscout-evidence-clustering.test.ts",
+        "artifacts/mealscout-draft-profile-packets/non-food-quarantine.json",
+        "artifacts/mealscout-draft-profile-packets/unknown-held.json"
+      ],
+      "condition": "Held and quarantined records are preserved; visual sampling remains manual."
+    },
+    {
+      "area": "Draft packet generation outputs",
+      "status": "covered",
+      "evidence": [
+        "tests/mealscout-draft-packet-generation.test.ts",
+        "artifacts/mealscout-draft-profile-packets/draft-packets.json",
+        "artifacts/mealscout-draft-profile-packets/manifest-summary.json"
+      ],
+      "condition": "100 draft packets exist and are review-only."
+    },
+    {
+      "area": "Thomas review queue outputs",
+      "status": "covered",
+      "evidence": [
+        "tests/mealscout-thomas-review-queue.test.ts",
+        "tests/mealscout-thomas-approval-sweep.test.ts",
+        "artifacts/mealscout-draft-profile-packets/thomas-review-queue.md",
+        "artifacts/mealscout-draft-profile-packets/thomas-clean-candidate-approval-sweep.md"
+      ],
+      "condition": "The markdown is usable, but 65 entries are still a long manual pass without checkbox/status capture."
+    },
+    {
+      "area": "Approval/export guard behavior",
+      "status": "guarded_with_process_risk",
+      "evidence": [
+        "tests/mealscout-thomas-approved-draft-export.test.ts",
+        "src/mealscoutThomasApprovedDraftExport.ts",
+        "artifacts/mealscout-draft-profile-packets/thomas-approved-draft-export.json"
+      ],
+      "condition": "The code refuses missing explicit decisions, but baseline contains a blanket approved export artifact; it is non-production yet should not be treated as visual review evidence."
+    },
+    {
+      "area": "Merlin intake endpoint contract",
+      "status": "failing_current_targeted_test",
+      "evidence": [
+        "tests/merlin-intake-engine.test.ts",
+        "src/server.ts",
+        "src/merlin/routes/merlinIntakeRoutes.ts"
+      ],
+      "condition": "The isolated merlin-intake-engine suite fails 8/9 because expected upload-intent endpoints return 404. This looks like endpoint contract drift or stale test expectations and should be resolved before intake refactors."
+    },
+    {
+      "area": "Discord runtime bridge routes and evidence behavior",
+      "status": "covered_for_authority_boundaries",
+      "evidence": [
+        "tests/roundtable-discord.test.ts",
+        "src/roundtableDiscord.ts"
+      ],
+      "condition": "Discord bridge is tested for signature, allowlist, and scope checks; it remains a mixed-responsibility file for future cleanup."
+    },
+    {
+      "area": "Server route error handling",
+      "status": "behavior_covered_but_maintainability_risk",
+      "evidence": [
+        "src/server.ts",
+        "src/merlin/routes/merlinApprovalRoutes.ts",
+        "src/merlin/routes/merlinWorkspaceRoutes.ts"
+      ],
+      "condition": "Repeated route try/catch and response shaping should be refactored only after route-level parity tests are pinned."
+    },
+    {
+      "area": "Scripts with duplicated logic",
+      "status": "maintainability_risk",
+      "evidence": [
+        "scripts/screenshots-manifest-move-and-seed.ts",
+        "scripts/mealscout-draft-profile-packet-generator.ts",
+        "scripts/mealscout-thomas-review-queue-generator.ts",
+        "scripts/mealscout-thomas-clean-candidate-approval-sweep-generator.ts",
+        "scripts/mealscout-thomas-approved-draft-export-generator.ts"
+      ],
+      "condition": "Artifact IO, summary writing, markdown rendering, and safety flags are repeated across scripts."
+    },
+    {
+      "area": "Large or mixed-responsibility Merlin files",
+      "status": "high_dry_srp_risk",
+      "evidence": [
+        "src/server.ts",
+        "src/lisa.ts",
+        "src/merlin/affiliateScreenshotFolderProcessing.ts",
+        "src/merlin/intake/actionCardQueue.ts",
+        "public/mealscout-review-queue.html"
+      ],
+      "condition": "These files need staged parity tests and extraction plans before edits."
+    },
+    {
+      "area": "Test coverage gaps",
+      "status": "gaps_identified",
+      "evidence": [
+        "npm run check",
+        "targeted MealScout and Merlin tests listed in package/test tree"
+      ],
+      "condition": "No single Zachary-style release gate currently inventories every operator screen, clickable, loading/empty/error/success state, responsive layout, console health, and API failure."
+    },
+    {
+      "area": "Markdown/JSON artifact usability",
+      "status": "usable_with_conditions",
+      "evidence": [
+        "artifacts/mealscout-draft-profile-packets/summary.md",
+        "artifacts/mealscout-draft-profile-packets/top-down-audit.md",
+        "artifacts/mealscout-draft-profile-packets/thomas-review-queue.md",
+        "artifacts/mealscout-draft-profile-packets/thomas-clean-candidate-approval-sweep.md"
+      ],
+      "condition": "Artifacts are readable, but there is no unified operator index with status, owner, next decision, and source artifact links."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "critical",
+      "count": 0,
+      "summary": "No critical production mutation or live apply issue found in this audit."
+    },
+    {
+      "severity": "high",
+      "id": "MERLIN-QA-001",
+      "summary": "Approved export artifact is present from a blanket approval state, even though it is non-production.",
+      "impact": "Operators may confuse export presence with completed visual review.",
+      "recommendation": "Add an operator-visible review-decision ledger or require per-candidate decision annotations before treating the export as ready for downstream review."
+    },
+    {
+      "severity": "high",
+      "id": "MERLIN-QA-002",
+      "summary": "No unified Zachary release gate exists for Merlin operator surfaces.",
+      "impact": "Screen inventory, clickables, loading/empty/error/success states, responsive checks, console checks, and API-failure checks are spread across tests and manual artifacts.",
+      "recommendation": "Create a Merlin QA evidence packet generator before refactoring UI or routes."
+    },
+    {
+      "severity": "high",
+      "id": "MERLIN-QA-003",
+      "summary": "Server routing is concentrated in a 4597-line src/server.ts file.",
+      "impact": "Route behavior is harder to audit, and repeated error handling increases regression risk.",
+      "recommendation": "Pin route parity tests, then extract route groups and shared response/error helpers incrementally."
+    },
+    {
+      "severity": "high",
+      "id": "MERLIN-QA-004",
+      "summary": "Large static operator pages carry mixed UI, state, and API behavior.",
+      "impact": "Review screens can drift without a full real-user QA inventory.",
+      "recommendation": "Inventory and test public review screens before extracting shared browser helpers."
+    },
+    {
+      "severity": "high",
+      "id": "MERLIN-QA-005",
+      "summary": "Merlin intake engine endpoint contract is failing current targeted tests.",
+      "impact": "Upload intent, flags, actions, route, and preview endpoint expectations return 404 in the isolated suite, so current operator intake behavior is not proven by that test.",
+      "recommendation": "Before refactoring intake, decide whether the current route contract is /api/merlin/intake or the upload-intents contract should be restored, then update code/tests with behavior-parity evidence."
+    }
+  ],
+  "recommendedNextMerlinLanes": [
+    "Create a Merlin QA evidence packet schema and generator for operator flows.",
+    "Resolve Merlin intake endpoint contract drift shown by tests/merlin-intake-engine.test.ts.",
+    "Run a real-user browser QA pass across public operator screens and capture screenshots/console/API failures.",
+    "Add route parity tests around high-risk src/server.ts route groups.",
+    "Plan behavior-preserving extraction of route response/error helpers.",
+    "Plan behavior-preserving extraction of shared artifact IO and markdown rendering helpers."
+  ]
+}

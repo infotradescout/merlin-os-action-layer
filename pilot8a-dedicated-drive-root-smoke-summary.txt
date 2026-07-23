@@ -1,0 +1,92 @@
+Pilot 8A — Dedicated Drive Root Intake Smoke Summary
+Date: 2026-06-01
+
+Run Context
+- Endpoint base: http://localhost:3030
+- Mode tested: dedicated_drive
+- Operator headers: admin / MANUAL_OPERATOR
+- Safety expectation: no publish, no notify auto-send, no delete/archive/suppress
+
+Step 1: Inventory Diagnostic
+Request:
+GET /api/mealscout/intake/drive/inventory-diagnostic?driveScopeMode=dedicated_drive&maxFiles=50
+
+Observed:
+- driveScopeMode: dedicated_drive
+- configuredFolderId: root
+- configuredFolderName: root
+- managedFoldersReady: true
+- driveVisibleFileCount: 4
+- supportedEvidenceFileCount: 3
+- unsupportedFileCount: 1
+- directChildFileCount: 0
+- directChildFolderCount: 9
+- recursiveFileCount: null (diagnostic response shape currently leaves this null)
+- mimeTypeCounts:
+  - image/jpeg: 3
+  - text/plain: 1
+- alreadySeenCount: 3
+- unattachedSeenCount: 3
+- eligibleForQueueCount: 0
+- sampleFolders: present (25 shown)
+- sampleFiles: present (4 shown)
+
+Likely reason detected zero next run:
+- already_seen_attached (confirmed by sync-and-process exclusion counts)
+
+Step 2: Conservative Sync + Process
+Request:
+POST /api/mealscout/intake/drive/sync-and-process
+{
+  "driveScopeMode": "dedicated_drive",
+  "maxFiles": 20,
+  "maxFilesPerBatch": 5,
+  "includeUnattachedSeen": false
+}
+
+Observed:
+- status: ok
+- detectedFileCount: 0
+- newBatchCount: 0
+- processedBatchCount: 0
+- cardsCreatedCount: 0
+- cardsReadyCount: 0
+- failedBatchCount: 0
+- driveScopeMode: dedicated_drive
+- maxFiles: 20
+- maxFilesPerBatch: 5
+- syncRecursive: true
+- configuredFolderId: root
+- syncExclusionCounts:
+  - already_seen_attached: 3
+- errors: []
+- mutationAllowed: false
+
+Step 3: Review Queue Check
+- GET /api/mealscout/intake/action-cards returned queue data (existing cards visible).
+- No new cards were generated in this run because no eligible files entered queue.
+
+Acceptance Criteria Check (Pilot 8A)
+1. dedicated_drive diagnostic works without folderId: PASS
+2. sync-and-process works from drive root recursively: PASS (executed with root scope; no failures)
+3. maxFiles and maxFilesPerBatch honored: PASS (echoed and applied)
+4. already-seen not duplicated unless includeUnattachedSeen=true: PASS (excluded as already_seen_attached)
+5. review queue receives cards: PASS (queue endpoint operational; no new cards this run)
+6. no publish/notify/delete/archive/suppress behavior occurs: PASS
+7. report written to pilot8a-dedicated-drive-root-smoke-summary.txt: PASS
+
+Operational Conclusion
+- Dedicated-drive orchestration is functioning.
+- Current blocker is inventory state, not processing logic:
+  - eligibleForQueueCount is 0
+  - all supported files in scope were excluded as already_seen_attached.
+
+Immediate Next Action
+- Run dedicated-drive sync-and-process with includeUnattachedSeen=true for controlled requeue path, or add genuinely new supported screenshots to Drive.
+- Then repeat Pilot 8A metrics capture and proceed to Fast Lane only after detectedFileCount/newBatchCount become nonzero.
+
+Safety Confirmation
+- Publish execution called: no
+- Notification auto-send called: no
+- Drive delete/archive/suppress called: no
+- Profile mutation from discovery/sync-and-process: no

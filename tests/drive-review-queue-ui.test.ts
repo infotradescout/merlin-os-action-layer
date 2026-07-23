@@ -77,6 +77,13 @@ test('admin review queue page renders operational inbox envelope', async () => {
   const response = await requestText('/admin/drive-review-queue');
   assert.equal(response.status, 200);
   assert.ok(response.body.includes('Drive Review Queue'));
+  assert.ok(response.body.includes('href="/admin/operator-workspace.css"'));
+  assert.ok(response.body.includes('aria-label="Operator workspace"'));
+  assert.ok(response.body.includes('href="/"'));
+  assert.ok(response.body.includes('href="/admin/mealscout-review-queue"'));
+  assert.ok(response.body.includes('aria-current="page">Drive Review'));
+  assert.ok(response.body.includes('Current task: reconcile Drive drift.'));
+  assert.ok(response.body.includes('Next: open MealScout OCR Review'));
   assert.ok(response.body.includes('Auth Health Strip'));
   assert.ok(response.body.includes('Reconciliation Summary'));
   assert.ok(response.body.includes('Decision Audit Trail'));
@@ -89,6 +96,48 @@ test('admin review queue page renders operational inbox envelope', async () => {
   assert.ok(response.body.includes('Mark false positive'));
   assert.ok(response.body.includes('Defer'));
   assert.ok(response.body.includes('Decision History'));
+});
+
+test('main command center links to active operator review surfaces', async () => {
+  const response = await requestText('/');
+  assert.equal(response.status, 200);
+  assert.ok(response.body.includes('href="/admin/operator-workspace.css"'));
+  assert.ok(response.body.includes('aria-label="Operator workspace"'));
+  assert.ok(response.body.includes('aria-current="page">Daily Command Center'));
+  assert.ok(response.body.includes('Merlin is not AI hype. Merlin is what comes after AI hype fails.'));
+  assert.ok(response.body.includes('Merlin does not replace AI. Merlin makes constrained AI usable with proof-backed execution.'));
+  assert.ok(response.body.includes('Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove'));
+  assert.ok(response.body.includes('Current task: scan today'));
+  assert.ok(response.body.includes('operator-link'));
+  assert.ok(response.body.includes('href="/admin/drive-review-queue"'));
+  assert.ok(response.body.includes('href="/admin/mealscout-review-queue"'));
+  assert.ok(response.body.includes('Open Drive Review inbox'));
+  assert.ok(response.body.includes('Open MealScout OCR review'));
+});
+
+test('main command center doctrine copy avoids banned hype language', async () => {
+  const response = await requestText('/');
+  assert.equal(response.status, 200);
+  const body = response.body.toLowerCase();
+  const blocked = [
+    /magic ai/i,
+    /fully autonomous/i,
+    /guaranteed/i,
+    /replaces humans/i
+  ];
+  for (const pattern of blocked) {
+    assert.equal(pattern.test(body), false, `unexpected wording: ${pattern}`);
+  }
+});
+
+test('shared operator workspace stylesheet is served for existing pages', async () => {
+  const response = await requestText('/admin/operator-workspace.css');
+  assert.equal(response.status, 200);
+  assert.ok(response.body.includes('.panel'));
+  assert.ok(response.body.includes('.item'));
+  assert.ok(response.body.includes('.workspace-nav'));
+  assert.ok(response.body.includes('.operator-task-strip'));
+  assert.ok(response.body.includes('.operator-link'));
 });
 
 test('admin review queue page does not expose remediation commands', async () => {

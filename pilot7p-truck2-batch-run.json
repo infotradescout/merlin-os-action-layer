@@ -1,0 +1,285 @@
+{
+  "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+  "safeMode": true,
+  "safeModeLimits": {
+    "defaultMaxFiles": 5,
+    "hardMaxFiles": 8,
+    "groupingMode": "strict"
+  },
+  "warnings": [],
+  "status": "completed",
+  "startedAt": "2026-05-30T17:30:03.448Z",
+  "completedAt": "2026-05-30T17:30:38.044Z",
+  "mutationAllowed": false,
+  "folderId": "1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF",
+  "scannedFileCount": 38,
+  "eligibleFileCount": 38,
+  "processedFileCount": 5,
+  "skippedFileCount": 33,
+  "skippedAlreadyProcessedCount": 0,
+  "skippedNotSelectedCount": 33,
+  "skippedUnsupportedCount": 0,
+  "failedFileCount": 0,
+  "skippedFiles": [
+    {
+      "fileId": "1ZSODmteznUWR8MHthOfzuGkC15AEP4ps",
+      "fileName": "FB_IMG_1779901042554.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq",
+      "fileName": "Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1LZeL9BVo6T-_G0KIXFFpU8u6bk1N4ox6",
+      "fileName": "FB_IMG_1779901152240.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1_-iEpevo96ebLgnQkdsxVd2h1lPQV4XP",
+      "fileName": "Screenshot_20260527_115921_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "112tux2RDB_as7ST0yn0mefXPaBCn3xiN",
+      "fileName": "FB_IMG_1779901502920.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1Iwo2sgbuiML03fZU1J-uP8m7uaPapR6t",
+      "fileName": "Screenshot_20260527_120628_Samsung Notes.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "14SqKIYjikkaFx_qMmGBhGaRp4QzIkOKf",
+      "fileName": "FB_IMG_1779901690175.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1hXTBs9lA18FiP3VZ3sm0QRiFIFX6UV_Y",
+      "fileName": "FB_IMG_1779901701593.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "108R6KFN94DyDgGBRq7t06KBAplJQdIse",
+      "fileName": "Screenshot_20260527_120828_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1RYEaInNh2KTjcFVeNA8y7fun2x6uGIBS",
+      "fileName": "FB_IMG_1779901808128.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1xpvAdxn-2jlanynFNpMLdH99BckuxaK3",
+      "fileName": "Screenshot_20260527_121014_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1iPBpaZSjwCOEvkYt9Rg3MrlJvWOIxB2S",
+      "fileName": "FB_IMG_1779901870805.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "16GQzDTLmvLyoAdTCiG9S4wHD59AKY8oF",
+      "fileName": "FB_IMG_1779901877293.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1rvQdeUI-FfXoxJGrjsCgaF4smjfn28-F",
+      "fileName": "FB_IMG_1779902116310.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1jw3BNUEXz5ZCd8AM8Fdj6RI7MRU64n4z",
+      "fileName": "Screenshot_20260527_121520_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "13eeB8N0NMh6Af0jXAyZi8cbb-K8OqQrr",
+      "fileName": "Screenshot_20260527_121622_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1hoVZCr1LD64jLk4ov7YtQheDJXjUwN3r",
+      "fileName": "FB_IMG_1779902334307.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1xTHCo8BHPo_g5hS3R-GNM9z4cgLfNarA",
+      "fileName": "Screenshot_20260527_121901_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1WbW0IL2jDYlBH44x8vJBNmWa53Qr1K0F",
+      "fileName": "Screenshot_20260527_121943_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "12EpdaHPjC6bDbDg_z1Sf0Cbo3mSzNNJO",
+      "fileName": "Screenshot_20260527_122734_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1VILbx0Fv997d75YPvIHJ5Mh_nUo--cRK",
+      "fileName": "FB_IMG_1779902860463.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1BSmr_Izmi3mmW7G0kUk32YUtu1aTIvcO",
+      "fileName": "FB_IMG_1779903196706.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1LF_8c1w0oS05hHxS65A7YLc2ypSAtgJe",
+      "fileName": "Screenshot_20260527_123343_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1j6CVSpJJOgQthQ7adbd0TI3m2JEE8U2P",
+      "fileName": "FB_IMG_1779903384173.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1wRh-6iq_Y2gIzkYxCNfXhLEhVEJxWrXc",
+      "fileName": "Screenshot_20260527_123632_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1UTWmAQtYG3HkUlemO_1HoZFTq4w4mID2",
+      "fileName": "FB_IMG_1779903593737.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1Vgf1MnEmOpNQGnXfZ2oi7rPlPhy5SxaL",
+      "fileName": "Screenshot_20260527_124005_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1XbvvAUSE7_35e2SxzJNK-G6C6EA3wD8w",
+      "fileName": "FB_IMG_1779903845998.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1-D6aPdPpvk2x5YtTQiwfq0g_wksVoPIu",
+      "fileName": "Screenshot_20260527_124411_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1J3ZUyp_y6GpXVa3cQMartyLeifWY7Fp0",
+      "fileName": "Screenshot_20260527_124437_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1ntaA71Lj5zQOPvmC6zS8dWup30BuLH59",
+      "fileName": "FB_IMG_1779903985369.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1-Xd1YGFYDuZ3ZcY6aiu9KQq-UANGs6Ol",
+      "fileName": "Screenshot_20260527_124633_Facebook.jpg",
+      "reason": "not_selected"
+    },
+    {
+      "fileId": "1sfrQKABz63wMGB1P-Fcdh-wR-hdeSrSs",
+      "fileName": "FB_IMG_1779904002143.jpg",
+      "reason": "not_selected"
+    }
+  ],
+  "processedFiles": [
+    {
+      "fileId": "1aN5oxymvN9GMWlHBIr5I4K_yls3opsmf",
+      "fileName": "FB_IMG_1779900506791.jpg",
+      "byteLength": 60061,
+      "ocrAttempted": true,
+      "ocrSucceeded": false,
+      "extractedTextLength": 0,
+      "classification": "unknown",
+      "sourceFileAttribution": {
+        "attributionSource": "request_context",
+        "modifiedAt": "2026-05-27T18:10:35.655Z",
+        "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+        "repId": "MANUAL_OPERATOR",
+        "sourceChannel": "drive_upload",
+        "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+        "capturedAt": "2026-05-30T17:30:14.446Z"
+      }
+    },
+    {
+      "fileId": "1khJvon3PghE7QPvOVMovc8bjpMSdWpaO",
+      "fileName": "Screenshot_20260527_114835_Facebook.jpg",
+      "byteLength": 488713,
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 317,
+      "classification": "profile",
+      "sourceFileAttribution": {
+        "attributionSource": "request_context",
+        "modifiedAt": "2026-05-27T18:10:35.62Z",
+        "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+        "repId": "MANUAL_OPERATOR",
+        "sourceChannel": "drive_upload",
+        "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+        "capturedAt": "2026-05-30T17:30:16.163Z"
+      }
+    },
+    {
+      "fileId": "1j1vO-zqg0pFLKrfdJyv-BYM-hZJcAxDD",
+      "fileName": "FB_IMG_1779900598703.jpg",
+      "byteLength": 413836,
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 372,
+      "classification": "profile",
+      "sourceFileAttribution": {
+        "attributionSource": "request_context",
+        "modifiedAt": "2026-05-27T18:10:35.581Z",
+        "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+        "repId": "MANUAL_OPERATOR",
+        "sourceChannel": "drive_upload",
+        "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+        "capturedAt": "2026-05-30T17:30:21.402Z"
+      }
+    },
+    {
+      "fileId": "1-W39no0GJPdrOVkMx2QOuAz_FVr-q8HC",
+      "fileName": "Screenshot_20260527_115443_Samsung Notes.jpg",
+      "byteLength": 110000,
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 102,
+      "classification": "profile",
+      "sourceFileAttribution": {
+        "attributionSource": "request_context",
+        "modifiedAt": "2026-05-27T18:10:35.544Z",
+        "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+        "repId": "MANUAL_OPERATOR",
+        "sourceChannel": "drive_upload",
+        "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+        "capturedAt": "2026-05-30T17:30:29.379Z"
+      }
+    },
+    {
+      "fileId": "1OLhdistMCVhMqyxbys4lHYhHXfmuQU97",
+      "fileName": "Screenshot_20260527_115713_Facebook.jpg",
+      "byteLength": 576350,
+      "ocrAttempted": true,
+      "ocrSucceeded": true,
+      "extractedTextLength": 734,
+      "classification": "profile",
+      "sourceFileAttribution": {
+        "attributionSource": "request_context",
+        "modifiedAt": "2026-05-27T18:10:35.502Z",
+        "affiliateCode": "UNKNOWN_SOURCE_REVIEW",
+        "repId": "MANUAL_OPERATOR",
+        "sourceChannel": "drive_upload",
+        "batchId": "ms-intake-batch-7fc934b0-2fd9-45ba-88ef-7829b43a993b",
+        "capturedAt": "2026-05-30T17:30:38.04Z"
+      }
+    }
+  ],
+  "draftCount": 4,
+  "reviewQueueUrl": "/admin/mealscout-review-queue",
+  "errors": []
+}

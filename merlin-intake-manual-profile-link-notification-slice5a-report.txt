@@ -1,0 +1,144 @@
+Decision
+
+Slice 5A is implemented and validated as manual-send only.
+
+Report: merlin-intake-manual-profile-link-notification-slice5a-report.txt
+Date: 2026-06-01
+Status: PASS
+
+Goal
+
+Add a manual operator-triggered profile-link notification layer for applied MealScout action cards, with durable notification state and no automatic delivery.
+
+Files Changed
+
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-dryrun.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+Implemented
+
+1. Durable notification state in action-card ledger
+Added durable fields to stored action cards:
+- notificationState: not_ready | ready | sent | failed | blocked
+- notificationRecipient
+- notificationChannel
+- notificationPreview
+- notificationSentBy
+- notificationSentAt
+- notificationResult
+- notificationError
+
+Migration-safe behavior:
+- Existing DBs are upgraded with add-column checks via PRAGMA table_info + ALTER TABLE.
+- Existing records default to notificationState:not_ready.
+
+2. New endpoints
+- POST /api/mealscout/intake/action-cards/:cardId/notification/preview
+- POST /api/mealscout/intake/action-cards/:cardId/notification/send
+
+Preview response includes:
+- eligible
+- notificationState
+- recipientCandidate
+- profileLink
+- channelOptions
+- messagePreview
+- blockedReason
+- duplicateWarnings/conflictWarnings/replacementCandidate
+- mutationAllowed:false
+
+Send response includes:
+- notificationState
+- recipient
+- channel
+- profileLink
+- messageSent
+- sentBy/sentAt
+- notificationResult
+- notificationError
+- blockedReason
+- mutationAllowed:false
+
+3. Eligibility and safety gates
+Preview/send require:
+- admin/operator/staff role
+- applied card (applyState === applied)
+- resolvable profile link from applied entity
+- recipient candidate from extracted fields (email/phone/ownerContact)
+
+Hard blocks:
+- unapplied card -> card_not_applied
+- missing profile link -> profile_link_missing
+- missing recipient -> recipient_missing
+- duplicate/conflict/replacement present -> conflict_override_required unless explicit allowConflictNotification:true
+
+No contact info is invented.
+
+4. Manual-send only behavior
+- manual_copy is always available.
+- email/sms require explicit env enable flags:
+  - MERLIN_NOTIFICATION_EMAIL_ENABLED=true
+  - MERLIN_NOTIFICATION_SMS_ENABLED=true
+- If channel unavailable, send is blocked with channel_not_available.
+- No external provider send path added in this slice.
+- No auto-send on apply.
+
+State convention in this slice:
+- manual_copy stores notificationState:ready and returns copyable message (does not claim external delivery).
+
+5. Message framing
+Manual message text now uses:
+"We created or updated your MealScout profile from available public or submitted information... You can review, claim, and maintain it."
+
+It does not frame as "join our platform" and includes profile link.
+
+6. UI + client
+Client additions:
+- previewActionCardNotification(cardId)
+- sendActionCardNotification(cardId, payload)
+
+Admin UI additions (/admin/mealscout-review-queue):
+- notification status row on cards
+- Preview Notification button (after apply)
+- Send / Copy Notification button (after apply)
+- explicit conflict override confirmation prompt before send when warnings exist
+- renders notification result/error details
+
+No publish/apply auto-trigger added.
+
+Validation
+
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (345/345)
+- npm run build: PASS
+
+Key tests added/updated
+
+Backend tests (merlin-intake-action-cards-dryrun.test.ts):
+- notification preview denied for unapplied card
+- notification preview ready for applied card with valid recipient/link
+- notification preview blocks missing recipient
+- notification send blocks conflict cards unless override
+- manual_copy returns copy text and does not claim external delivery
+- channel_not_available enforced when email/sms infra not enabled
+
+UI/client tests (mealscout-review-queue-ui.test.ts):
+- client notification preview/send methods exercised
+- notification endpoints called and responses handled
+
+Safety confirmations
+
+- No automatic notifications implemented.
+- No Drive cleanup/delete/archive behavior added.
+- No TradeScout notification behavior added.
+- Duplicate/replacement warning behavior preserved.
+- No notification path mutates TradeScout records.
+- mutationAllowed remains false for notification preview/send.
+
+KPI outcome
+
+Applied MealScout card -> operator preview -> manual send/copy notification -> durable notification audit state.

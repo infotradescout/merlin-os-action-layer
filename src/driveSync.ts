@@ -15,6 +15,7 @@ import { getDriveAuthConfig, getDriveAuthProfile, type DriveAuthConfig } from '.
 import { getDriveClient, type DriveClient, type DriveFileInfo } from './driveClient.js';
 import { recordReplayEvent } from './replay.js';
 import { extractSupportedFile } from './fileExtraction.js';
+import { discoverMealScoutIntakeFolders } from './mealscoutDriveIntake.js';
 
 type FolderAlias =
   | '00_Inbox'
@@ -39,10 +40,12 @@ const FOLDER_NAMES: FolderAlias[] = [
 const BOOTSTRAP_ENABLED_ENV = 'MERLIN_DRIVE_BOOTSTRAP_ENABLED';
 const CREATE_MISSING_ENV = 'MERLIN_DRIVE_CREATE_MISSING_FOLDERS';
 const LEGACY_ALLOW_CREATE_ENV = 'MERLIN_DRIVE_ALLOW_FOLDER_CREATE';
+const MEALSCOUT_LEGACY_SCREENSHOTS_FOLDER_ENV = 'MERLIN_MEALSCOUT_LEGACY_SCREENSHOTS_FOLDER_ID';
 
 type DriveSyncBlockReason = 'setup_required' | 'folder_conflict';
 
 type RouteDecision = 'processed' | 'needs_review' | 'skipped';
+type ScanTarget = { id: string; path: string; folderAlias: FolderAlias };
 
 function buildPath(name: string, usePrefix: boolean, rootFolderName: string): string {
   return usePrefix ? `${normalizeDriveFolderName(rootFolderName)}/${name}` : name;
@@ -121,6 +124,37 @@ export interface DriveSyncSummary {
 
 function envTrue(value: string | undefined): boolean {
   return (value || '').toLowerCase() === 'true';
+}
+
+function fileExtension(fileName: string): string {
+  const index = fileName.lastIndexOf('.');
+  return index >= 0 ? fileName.slice(index).toLowerCase() : '';
+}
+
+function isRawScreenshotOrPdf(file: Pick<ReturnType<typeof createDriveFileRecord>, 'mime_type' | 'file_name'>): boolean {
+  const mime = file.mime_type.toLowerCase();
+  const extension = fileExtension(file.file_name);
+  return (
+    mime === 'application/pdf' ||
+    mime.startsWith('image/') ||
+    ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.heic', '.heif'].includes(extension)
+  );
+}
+
+function isMealScoutScreenshotIntakePath(folderPath: string): boolean {
+  const normalized = normalizeDriveFolderName(folderPath).toLowerCase();
+  return (
+    normalized.includes('mealscout intake/incoming/screenshots') ||
+    normalized.includes('mealscout intake/screenshots') ||
+    normalized === 'mealscout legacy screenshots'
+  );
+}
+
+function isRawIntakeFile(fileRecord: ReturnType<typeof createDriveFileRecord>): boolean {
+  return (
+    (classifyDriveManagedPath(fileRecord.folder_path) === 'inbox' || isMealScoutScreenshotIntakePath(fileRecord.folder_path)) &&
+    isRawScreenshotOrPdf(fileRecord)
+  );
 }
 
 export interface DriveSyncImportResult {
@@ -265,11 +299,19 @@ export function routeImportedFile(fileRecord: ReturnType<typeof createDriveFileR
     };
   }
 
-  if (managedPath === 'inbox') {
+  if (managedPath === 'inbox' || isMealScoutScreenshotIntakePath(fileRecord.folder_path)) {
     if (!fileRecord.entity_id) {
+      if (isRawScreenshotOrPdf(fileRecord)) {
+        return {
+          route: 'processed',
+          reason: 'Raw screenshot/PDF accepted for MealScout intake queue',
+          moveTo: '01_Processed'
+        };
+      }
+
       return {
         route: 'needs_review',
-        reason: 'Missing entity_id for inbox file',
+        reason: 'Missing entity_id for managed inbox file',
         moveTo: '02_Needs_Review'
       };
     }
@@ -420,8 +462,10 @@ export async function importDriveFile(
 
   try {
     if (routing.route === 'processed') {
+      const eventEntityId = fileRecord.entity_id || 'mealscout-raw-intake';
+      const rawIntake = isRawIntakeFile(fileRecord);
       const eventId = ingestDriveImportEvent({
-        entity_id: fileRecord.entity_id || 'unknown-entity',
+        entity_id: eventEntityId,
         event_type: 'drive_file_imported',
         origin_surface: 'drive',
         observed_at: fileRecord.observed_at,
@@ -449,8 +493,38 @@ export async function importDriveFile(
       }
 
       recordReplayEvent({
+        event_type: 'drive_file_imported',
+        entity_id: eventEntityId,
+        signal_id: eventId,
+        summary: `Drive file ${fileRecord.drive_file_id} imported into LISA`,
+        source_refs: [`manifest:${updated.id}`, `lisa:${eventId}`, `drive:${fileRecord.drive_file_id}`],
+        payload: {
+          manifest_id: updated.id,
+          raw_intake: rawIntake
+        }
+      });
+
+      if (rawIntake) {
+        recordReplayEvent({
+          event_type: 'screenshot_intake_queued',
+          entity_id: eventEntityId,
+          signal_id: eventId,
+          summary: `Raw screenshot/PDF ${fileRecord.drive_file_id} queued for MealScout review intake`,
+          source_refs: [`manifest:${updated.id}`, `lisa:${eventId}`, `drive:${fileRecord.drive_file_id}`],
+          payload: {
+            drive_file_id: fileRecord.drive_file_id,
+            file_name: fileRecord.file_name,
+            mime_type: fileRecord.mime_type,
+            folder_path: fileRecord.folder_path,
+            review_required: true,
+            auto_apply: false
+          }
+        });
+      }
+
+      recordReplayEvent({
         event_type: 'drive_import_processed',
-        entity_id: fileRecord.entity_id,
+        entity_id: eventEntityId,
         signal_id: eventId,
         summary: `Drive file ${fileRecord.drive_file_id} imported`,
         source_refs: [`manifest:${updated.id}`, `lisa:${eventId}`],
@@ -463,7 +537,7 @@ export async function importDriveFile(
         route: 'processed',
         manifest_id: manifest.id,
         event_id: eventId,
-        replay_events: 2,
+        replay_events: rawIntake ? 4 : 3,
         manifest_failed: false,
         reason: routing.reason
       };
@@ -566,8 +640,8 @@ export async function syncDriveInbox(
     };
   }
 
-  const inboxFolder = discovery.managed_folders['00_Inbox'];
-  if (!inboxFolder?.id) {
+  const scanTargets = await planDriveInboxScanTargets(discovery, client);
+  if (!scanTargets.some((target) => target.folderAlias === '00_Inbox' && target.id === discovery.managed_folders['00_Inbox']?.id)) {
     return {
       status: 'error',
       processed: 0,
@@ -580,31 +654,87 @@ export async function syncDriveInbox(
     };
   }
 
-  const files = await client.listFilesInFolder(inboxFolder.id);
-  for (const file of files) {
-    if (getManifestEntryByDriveFileId(file.drive_file_id)) {
-      continue;
-    }
+  const seenThisRun = new Set<string>();
+  for (const target of scanTargets) {
+    const files = await client.listFilesInFolder(target.id);
+    for (const file of files) {
+      if (seenThisRun.has(file.drive_file_id) || getManifestEntryByDriveFileId(file.drive_file_id)) {
+        continue;
+      }
+      seenThisRun.add(file.drive_file_id);
 
-    const result = await importDriveFile(file, {
-      client,
-      folderPath: inboxFolder.path,
-      folderAlias: '00_Inbox',
-      managedFolders: discovery.managed_folders
-    });
+      const result = await importDriveFile(file, {
+        client,
+        folderPath: target.path,
+        folderAlias: target.folderAlias,
+        managedFolders: discovery.managed_folders
+      });
 
-    summary.manifest_updates += 1;
-    summary.replay_events += result.replay_events;
-    if (result.manifest_failed) {
-      summary.failed += 1;
-    } else if (result.route === 'processed') {
-      summary.processed += 1;
-    } else if (result.route === 'needs_review') {
-      summary.needs_review += 1;
-    } else {
-      summary.skipped += 1;
+      summary.manifest_updates += 1;
+      summary.replay_events += result.replay_events;
+      if (result.manifest_failed) {
+        summary.failed += 1;
+      } else if (result.route === 'processed') {
+        summary.processed += 1;
+      } else if (result.route === 'needs_review') {
+        summary.needs_review += 1;
+      } else {
+        summary.skipped += 1;
+      }
     }
   }
 
   return summary;
+}
+
+export async function planDriveInboxScanTargets(
+  discovery: Pick<DriveSyncDiscovery, 'managed_folders'>,
+  client: DriveClient
+): Promise<ScanTarget[]> {
+  const targets: ScanTarget[] = [];
+  const seenIds = new Set<string>();
+  const addTarget = (target: ScanTarget): void => {
+    if (!target.id || seenIds.has(target.id)) return;
+    seenIds.add(target.id);
+    targets.push(target);
+  };
+
+  const inboxFolder = discovery.managed_folders['00_Inbox'];
+  addTarget({
+    id: inboxFolder?.id || '',
+    path: inboxFolder?.path || '00_Inbox',
+    folderAlias: '00_Inbox'
+  });
+
+  const intakeDiscovery = await discoverMealScoutIntakeFolders({ client, createMissing: false });
+  const screenshotsFolder = intakeDiscovery.folders?.['incoming/screenshots'];
+  addTarget({
+    id: screenshotsFolder?.id || '',
+    path: screenshotsFolder?.path || 'Merlin OR Storage/MealScout Intake/incoming/screenshots',
+    folderAlias: '00_Inbox'
+  });
+
+  const legacyScreenshotsFolderId = (process.env[MEALSCOUT_LEGACY_SCREENSHOTS_FOLDER_ENV] || '').trim();
+  if (legacyScreenshotsFolderId) {
+    addTarget({
+      id: legacyScreenshotsFolderId,
+      path: 'MealScout legacy screenshots',
+      folderAlias: '00_Inbox'
+    });
+  }
+
+  if (intakeDiscovery.root?.mealscout_intake.id && typeof client.listSubfoldersInFolder === 'function') {
+    const folders = await client.listSubfoldersInFolder(intakeDiscovery.root.mealscout_intake.id);
+    for (const folder of folders) {
+      if (/^screenshots?$/i.test(folder.name)) {
+        addTarget({
+          id: folder.id,
+          path: `${intakeDiscovery.root.mealscout_intake.path}/${folder.name}`,
+          folderAlias: '00_Inbox'
+        });
+      }
+    }
+  }
+
+  return targets;
 }

@@ -1,0 +1,12 @@
+Pilot 7U Gemini Candidate Import Assist Summary
+status: 200
+mutationAllowed: false
+parsedCandidateCount: 2
+matchedCandidateCount: 0
+unmatchedCandidateCount: 0
+traciParsed: true
+birrieriaParsed: true
+traciEvidenceStatus: partially_matched
+birrieriaEvidenceStatus: partially_matched
+noPublishExecution: true
+mutationAllowedFalsePreview: true

@@ -1,0 +1,17 @@
+Pilot 7I Controlled Publish Execution Smoke Summary
+Generated: 2026-05-29T14:42:22
+previewStatus: ok
+previewMutationAllowed: False
+planId: ms-plan-683d8b83-e644-42a8-9f7a-239ffbf8865f
+planRecordCount: 2
+eligibleRecordCount: 0
+blockedCount: 2
+needsReviewCount: 0
+confirmationFalseResult: not_tested
+executionMutationAllowed: n/a
+executionResults: 0
+auditEntries: 0
+Safety checks:
+- Preview endpoint remained mutationAllowed:false
+- Execution required explicit confirmation
+- No publish/update/merge/delete route reused; only guarded /publish-plan/execute called

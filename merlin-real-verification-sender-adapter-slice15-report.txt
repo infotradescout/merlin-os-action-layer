@@ -1,0 +1,122 @@
+Merlin Real Verification Sender Adapter Slice 15 Report
+
+generated_at: 2026-06-02T21:05:17.260Z
+sender_adapter: MERLIN_PRODUCT_VERIFICATION_EMAIL_WEBHOOK_URL
+transport: configured product verification webhook when env is present
+message_type: product_verification_email
+marketing_email: false
+
+unconfigured_transport_counts:
+screenshots_processed_count: 3
+mealscout_created_count: 1
+mealscout_updated_count: 1
+tradescout_created_count: 1
+tradescout_updated_count: 0
+blocked_ambiguous_count: 0
+blocked_missing_identity_count: 0
+affiliate_ledger_rows_written: 3
+verification_email_sent_count: 0
+verification_email_failed_count: 2
+verification_email_not_available_count: 1
+
+configured_local_webhook_counts:
+screenshots_processed_count: 3
+mealscout_created_count: 1
+mealscout_updated_count: 1
+tradescout_created_count: 1
+tradescout_updated_count: 0
+blocked_ambiguous_count: 0
+blocked_missing_identity_count: 0
+affiliate_ledger_rows_written: 3
+verification_email_sent_count: 2
+verification_email_failed_count: 0
+verification_email_not_available_count: 1
+
+configured_webhook_received_count: 2
+configured_webhook_recipients: truck@example.com, apex@example.com
+configured_provider_message_ids: smoke-provider-1, smoke-provider-2
+
+safety_confirmations:
+- verification email goes only to extracted business/profile email
+- affiliate folder email is not used as recipient
+- email_verified remains false until user verifies
+- failed sends create verification email audit records with failure_reason
+- sent sends record provider message ID when returned by transport
+- no custom marketing email path was added
+- no payout/cleanup/delete/archive path was added
+
+configured_verification_email_records:
+[
+  {
+    "id": "verification-email-798aab09-e35d-49ba-9a31-112a8461dbca",
+    "brand_lane": "MEALSCOUT",
+    "profile_id": "ms-profile-c6696dad-c652-46a3-b39a-5b4990cff5cc",
+    "profile_type": "food_truck",
+    "profile_name": "Lucky Tacos Food Truck",
+    "recipient_email": "truck@example.com",
+    "status": "sent",
+    "sent_at": "2026-06-02T21:05:17.233Z",
+    "attempted_at": "2026-06-02T21:05:17.233Z",
+    "provider_message_id": "smoke-provider-1",
+    "source_file_id": "slice15-smoke-mealscout-email"
+  },
+  {
+    "id": "verification-email-49befb90-b9f0-4025-ba82-405d7326be32",
+    "brand_lane": "TRADESCOUT",
+    "profile_id": "ts-profile-6ed9ce37-7b39-4ea7-8ea1-7a35a84ed984",
+    "profile_type": "contractor_business",
+    "profile_name": "Apex Roofing",
+    "recipient_email": "apex@example.com",
+    "status": "sent",
+    "sent_at": "2026-06-02T21:05:17.238Z",
+    "attempted_at": "2026-06-02T21:05:17.238Z",
+    "provider_message_id": "smoke-provider-2",
+    "source_file_id": "slice15-smoke-tradescout-email"
+  }
+]
+
+configured_results:
+[
+  {
+    "seedId": "profile-seed-53c6f94a-08f3-45c4-a9a4-d77371aa866d",
+    "brand_lane": "MEALSCOUT",
+    "sourceFileId": "slice15-smoke-mealscout-email",
+    "sourceFileName": "meal-profile.png",
+    "seed_status": "seeded",
+    "profile_action": "create",
+    "target_profile_id": "ms-profile-c6696dad-c652-46a3-b39a-5b4990cff5cc",
+    "target_profile_type": "food_truck",
+    "profile_name": "Lucky Tacos Food Truck",
+    "profile_email": "truck@example.com",
+    "verification_email_status": "sent",
+    "mutationAllowed": true
+  },
+  {
+    "seedId": "profile-seed-d2cdea31-68b1-4804-a3b6-971b3e0c1d49",
+    "brand_lane": "TRADESCOUT",
+    "sourceFileId": "slice15-smoke-tradescout-email",
+    "sourceFileName": "trade-profile.png",
+    "seed_status": "seeded",
+    "profile_action": "create",
+    "target_profile_id": "ts-profile-6ed9ce37-7b39-4ea7-8ea1-7a35a84ed984",
+    "target_profile_type": "contractor_business",
+    "profile_name": "Apex Roofing",
+    "profile_email": "apex@example.com",
+    "verification_email_status": "sent",
+    "mutationAllowed": true
+  },
+  {
+    "seedId": "profile-seed-6c8369fa-5d1a-4f72-a877-90d806622417",
+    "brand_lane": "MEALSCOUT",
+    "sourceFileId": "slice15-smoke-phone-only",
+    "sourceFileName": "meal-phone-only.png",
+    "seed_status": "seeded",
+    "profile_action": "update",
+    "target_profile_id": "ms-profile-c6696dad-c652-46a3-b39a-5b4990cff5cc",
+    "target_profile_type": "food_truck",
+    "profile_name": "Bayou Bites Food Truck",
+    "profile_email": "truck@example.com",
+    "verification_email_status": "not_available",
+    "mutationAllowed": true
+  }
+]

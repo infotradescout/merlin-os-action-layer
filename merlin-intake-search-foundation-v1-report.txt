@@ -1,0 +1,109 @@
+Merlin Intake + Search Foundation v1 Report
+Date: 2026-05-31
+
+MERLIN definition confirmed:
+- MERLIN = Most Every Real Live Input Node
+- docs/merlin-prd-v1.md updated with intake+search framing and operating chain.
+
+Files changed:
+- docs/merlin-prd-v1.md
+- src/server.ts
+- src/merlin/intake/intakeTypes.ts
+- src/merlin/intake/intakeFeatureFlags.ts
+- src/merlin/intake/uploadIntentStore.ts
+- src/merlin/intake/previewBuilder.ts
+- src/merlin/routes/merlinIntakeRoutes.ts
+- src/merlin/index/evidenceIndex.ts
+- src/merlin/search/merlinSearch.ts
+- src/merlin/routes/merlinSearchRoutes.ts
+- tests/merlin-intake-search-foundation.test.ts
+
+Feature flags added/confirmed:
+- MERLIN_INTAKE_ENABLED
+- MERLIN_SEARCH_ENABLED
+- MERLIN_INTAKE_MEALSCOUT_ENABLED
+- MERLIN_INTAKE_TRADESCOUT_ENABLED
+- MERLIN_INTAKE_HOMEID_ENABLED
+- MERLIN_INTAKE_ADMIN_ENABLED
+- MERLIN_INTAKE_APPLY_ENABLED
+- MERLIN_INTAKE_CLEANUP_ENABLED
+
+Default flag behavior:
+- Intake/search disabled unless explicitly enabled.
+- Apply disabled by default.
+- Cleanup disabled by default.
+
+Merlin intake modules added/updated:
+- upload intent typing expanded with sourceChannel/repId/affiliateCode/operatorNote and mutationAllowed:false.
+- preview packet expanded with uploadId/brand/actionId and linkedEvidenceIds.
+- upload intent creation snapshots safe defaults:
+  - previewRequired:true
+  - approvalRequired:true
+  - implementationAllowed:false
+  - mutationAllowed:false
+
+Merlin index/search modules added:
+- src/merlin/index/evidenceIndex.ts
+  - indexes evidence per routed file
+  - stores sourceFileRefs, detectedSignals, snippets, confidence, status
+  - links uploadId -> evidenceIds
+- src/merlin/search/merlinSearch.ts
+  - product-scoped search over indexed evidence
+- src/merlin/routes/merlinSearchRoutes.ts
+  - GET /api/merlin/search?brand=...&q=...
+  - guarded by MERLIN_INTAKE_ENABLED + MERLIN_SEARCH_ENABLED
+
+MealScout adapter registration:
+- MealScout adapter remains registry-backed in Merlin intake bootstrap.
+- No MealScout-specific upload processor added outside Merlin.
+
+Endpoints added/confirmed:
+- GET /api/merlin/intake/flags
+- GET /api/merlin/intake/actions?brand=MEALSCOUT
+- POST /api/merlin/intake/upload-intents
+- GET /api/merlin/intake/upload-intents/:uploadId
+- POST /api/merlin/intake/upload-intents/:uploadId/files
+- POST /api/merlin/intake/upload-intents/:uploadId/route
+  - now returns evidenceRecords
+- POST /api/merlin/intake/upload-intents/:uploadId/preview
+  - now links preview to linkedEvidenceIds
+- GET /api/merlin/search?brand=MEALSCOUT&q=...
+
+Search/index behavior:
+- Evidence records are created from routing decisions and remain linked to upload/source files.
+- Search is brand-scoped and returns only evidence for requested brand.
+- Empty index returns empty results (no fake data).
+- Search responses include sourceFileRefs and are non-mutating.
+
+Product-scope safety behavior:
+- Intake can be disabled globally or per product.
+- Search can be disabled globally via MERLIN_SEARCH_ENABLED.
+- Search does not cross-leak evidence across brands.
+
+Preview/evidence-link behavior:
+- Preview remains draft-only and non-mutating.
+- Preview now includes linkedEvidenceIds for traceability.
+- mutationAllowed:false and implementationAllowed:false are preserved.
+
+Tests added/updated:
+- Added tests/merlin-intake-search-foundation.test.ts
+  - search disabled blocks endpoint
+  - routing/indexing creates evidence records
+  - preview links evidence IDs
+  - product-scoped search returns source refs and prevents cross-brand leakage
+- Existing Merlin intake tests continue to pass.
+
+Validation results:
+- npm run check: PASS
+- npx tsx --test tests/merlin-intake-engine.test.ts tests/upload-intent-packet.test.ts tests/merlin-intake-search-foundation.test.ts: PASS (19/19)
+- npm run test -- --runInBand: PASS (320/320)
+- npm run build: PASS
+
+Safety confirmations:
+- publish execution called: no
+- live mutation yes/no: no
+- cleanup/delete called yes/no: no
+
+Notes:
+- This slice stops at Intake -> Evidence -> Index -> Search -> Preview.
+- No approval/apply execution paths were added.

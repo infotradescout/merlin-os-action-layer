@@ -1,0 +1,47 @@
+﻿{
+    "health":  {
+                   "error":  "Unable to connect to the remote server",
+                   "ok":  false
+               },
+    "authHealth":  {
+                       "error":  "Unable to connect to the remote server",
+                       "ok":  false
+                   },
+    "recon":  {
+                  "error":  "Unable to connect to the remote server",
+                  "ok":  false
+              },
+    "folders":  {
+                    "error":  "Unable to connect to the remote server",
+                    "ok":  false
+                },
+    "activeFolder":  {
+                         "id":  null,
+                         "name":  null
+                     },
+    "fileAuditActive":  {
+                            "error":  "No active folder id",
+                            "ok":  false
+                        },
+    "fileAuditTarget":  {
+                            "error":  "Unable to connect to the remote server",
+                            "ok":  false
+                        },
+    "previewTarget":  {
+                          "error":  "Unable to connect to the remote server",
+                          "ok":  false
+                      },
+    "traciHits":  {
+
+                  },
+    "currentCandidateMatch":  {
+                                  "found":  false,
+                                  "recordId":  null,
+                                  "matchMethod":  null,
+                                  "details":  null
+                              },
+    "publishExecutionCalled":  false,
+    "liveMutation":  false,
+    "mutationAllowedPreview":  null,
+    "mutationAllowedFileAudit":  null
+}

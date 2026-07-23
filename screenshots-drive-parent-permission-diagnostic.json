@@ -1,0 +1,132 @@
+{
+  "mode": "diagnose",
+  "generated_at": "2026-06-06T23:20:16.730Z",
+  "rows": [
+    {
+      "source_file_id": "1pINtlCkdodyujJ2U4kJ_uKsWeunTIfot",
+      "source_file_name": "Screenshot_20260601_154620_Facebook.jpg",
+      "batch_id": "BATCH-004-TRADESCOUT-CONTRACTORS",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1pINtlCkdodyujJ2U4kJ_uKsWeunTIfot",
+        "name": "Screenshot_20260601_154620_Facebook.jpg",
+        "mimeType": "image/jpeg",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "TradeScout_Contractors/Roofing",
+        "destination_folder_id": "1bnuNcczRSqpZ13YJmIAhavkTit5LQCNR",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Contractor screenshot; explicitly excluded from MealScout/Merlin food seeding"
+    },
+    {
+      "source_file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
+      "source_file_name": "IMG_5982.PNG",
+      "batch_id": "BATCH-001-MEALSCOUT-MERLIN-SEED",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
+        "name": "IMG_5982.PNG",
+        "mimeType": "image/png",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "MealScout_Merlin_Evidence_Seeds",
+        "destination_folder_id": "1dl0sLA-vF9kuf5TwWo1blIthsrHJe45w",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Food business evidence seed route only after move"
+    },
+    {
+      "source_file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
+      "source_file_name": "IMG_5980.PNG",
+      "batch_id": "BATCH-001-MEALSCOUT-MERLIN-SEED",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
+        "name": "IMG_5980.PNG",
+        "mimeType": "image/png",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "MealScout_Merlin_Evidence_Seeds",
+        "destination_folder_id": "1dl0sLA-vF9kuf5TwWo1blIthsrHJe45w",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Food business evidence seed route only after move"
+    },
+    {
+      "source_file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
+      "source_file_name": "IMG_5979.PNG",
+      "batch_id": "BATCH-002-MEALSCOUT-REVIEW",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
+        "name": "IMG_5979.PNG",
+        "mimeType": "image/png",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "Restaurants_Needs_Review",
+        "destination_folder_id": "1Rg39XOT2Fo-Ggewg0LrPTRZrPqkxtlBJ",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Requires manual review before any seed action"
+    },
+    {
+      "source_file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
+      "source_file_name": "IMG_5981.PNG",
+      "batch_id": "BATCH-003-MEALSCOUT-BLOCKED",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
+        "name": "IMG_5981.PNG",
+        "mimeType": "image/png",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "MealScout_Blocked_From_Seed",
+        "destination_folder_id": "1vIs-b5sWyGxKQfZop8urysYy105zRZ0X",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Invalid extraction identity blocked from seed"
+    },
+    {
+      "source_file_id": "1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm",
+      "source_file_name": "IMG_5983.PNG",
+      "batch_id": "BATCH-006-UNKNOWN-MANUAL-CLASSIFICATION",
+      "input_move_status": "blocked_missing_current_parent",
+      "classification": "parent_missing",
+      "source_metadata": {
+        "file_id": "1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm",
+        "name": "IMG_5983.PNG",
+        "mimeType": "image/png",
+        "parents": []
+      },
+      "destination_check": {
+        "destination_folder_name": "Unknown_Project",
+        "destination_folder_id": "1PZ1_ZSInZ77Kz4Zae64h-VHCc4LkUenc",
+        "visible": true,
+        "writable": true
+      },
+      "controlled_retry_state_applied": false,
+      "notes": "Missing identity signals hold for manual classification"
+    }
+  ]
+}

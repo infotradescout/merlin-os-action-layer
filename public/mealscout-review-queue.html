@@ -1,0 +1,1340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MealScout OCR Review Queue</title>
+    <link rel="stylesheet" href="/admin/operator-workspace.css" />
+    <style>
+      :root {
+        --bg: #f7f2e8;
+        --panel: #fffdf8;
+        --ink: #1c1f18;
+        --muted: #6a6d63;
+        --line: #dfd6c2;
+        --accent: #bb4f2f;
+        --warn: #9a5f00;
+        --danger: #9f2a2a;
+        --ok: #2e7d58;
+        --operator-panel-padding: 0.8rem;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #fef8ec 0%, var(--bg) 100%);
+      }
+      .wrap { max-width: 1320px; margin: 0 auto; padding: 1rem; }
+      h1, h2, h3, h4 { margin: 0; }
+      .subtitle { color: var(--muted); font-size: 0.95rem; }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin: 0.8rem 0;
+      }
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.55rem;
+        background: #fff9ef;
+      }
+      .metric .k { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; }
+      .metric .v { margin-top: 0.25rem; font-weight: 700; font-size: 1.2rem; }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 0.8rem;
+      }
+      .list { display: grid; gap: 0.7rem; }
+      .draft-card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.7rem;
+        background: #fffefb;
+      }
+      .pill {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.12rem 0.5rem;
+        margin-right: 0.35rem;
+        font-size: 0.75rem;
+      }
+      .pill.warn { color: var(--warn); border-color: #e7c68e; }
+      .pill.danger { color: var(--danger); border-color: #e3aaaa; }
+      .pill.ok { color: var(--ok); border-color: #9fd8ba; }
+      .grid-two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+      }
+      .field-row { border-top: 1px dashed var(--line); padding-top: 0.45rem; margin-top: 0.45rem; }
+      .mini { color: var(--muted); font-size: 0.82rem; }
+      .mono { font-family: Consolas, "Courier New", monospace; }
+      .actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap; }
+      button {
+        border: 1px solid var(--line);
+        background: #fff6e8;
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 0.35rem 0.6rem;
+        cursor: pointer;
+      }
+      button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+      .danger-box {
+        border: 1px solid #e3aaaa;
+        background: #fff4f4;
+        border-radius: 8px;
+        padding: 0.45rem;
+      }
+      @media (max-width: 1000px) {
+        .layout { grid-template-columns: 1fr; }
+        .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-two { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1>MealScout OCR Review Queue</h1>
+        <p class="subtitle">Preview-only operator station. No auto-merge, no publish, no production mutation.</p>
+        <nav class="workspace-nav" aria-label="Operator workspace">
+          <a href="/">Daily Command Center</a>
+          <a href="/admin/drive-review-queue">Drive Review</a>
+          <a href="/admin/mealscout-review-queue" aria-current="page">MealScout OCR Review</a>
+        </nav>
+      </div>
+
+      <div class="operator-task-strip" role="note">
+        <strong>Current task: review OCR-derived MealScout intake.</strong>
+        <span>Next: return to Daily Command Center after decisions, or Drive Review when source files need reconciliation.</span>
+      </div>
+
+      <section class="summary" id="summary-grid"></section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Drive Batch Intake</h2>
+        <p class="subtitle">Operator-controlled batch intake. Batch intake does not publish records.</p>
+        <p class="subtitle">Safe Mode processes tiny batches with stricter grouping. Best for today's real intake.</p>
+        <div class="actions">
+          <label class="mini"><input id="batch-safe-mode" type="checkbox" checked /> Safe Mode</label>
+          <label class="mini">maxFiles <input id="batch-max-files" type="number" min="1" max="500" value="5" /></label>
+          <label class="mini"><input id="batch-reprocess" type="checkbox" /> reprocess files</label>
+          <button id="run-batch-intake-btn">Run batch intake</button>
+        </div>
+        <div id="batch-safe-mode-warning" class="mini" style="margin-top:0.25rem;color:#9a5f00;"></div>
+        <div id="batch-intake-summary" class="mini" style="margin-top:0.5rem;">No batch run yet.</div>
+        <div id="batch-intake-lists" class="grid-two" style="margin-top:0.6rem;">
+          <div class="draft-card">
+            <h4>Processed Files</h4>
+            <ul id="batch-processed-files" class="list"><li class="mini">None</li></ul>
+          </div>
+          <div class="draft-card">
+            <h4>Skipped Files</h4>
+            <ul id="batch-skipped-files" class="list"><li class="mini">None</li></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Batch History</h2>
+        <p class="subtitle">Batch history is read-only and does not publish records.</p>
+        <div class="actions">
+          <label class="mini">Batch
+            <select id="filter-batch"><option value="">All</option></select>
+          </label>
+          <label class="mini">Rep
+            <input id="filter-rep" type="text" placeholder="rep id" />
+          </label>
+          <label class="mini">Affiliate
+            <input id="filter-affiliate" type="text" placeholder="affiliate code" />
+          </label>
+          <label class="mini">Attribution
+            <select id="filter-attribution-source">
+              <option value="">All</option>
+              <option value="drive_metadata">drive_metadata</option>
+              <option value="request_context">request_context</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </label>
+          <label class="mini">Classification
+            <select id="filter-classification">
+              <option value="">All</option>
+              <option value="profile">profile</option>
+              <option value="menu">menu</option>
+              <option value="logo">logo</option>
+              <option value="truck_photo">truck_photo</option>
+              <option value="food_photo">food_photo</option>
+              <option value="social">social</option>
+              <option value="unknown">unknown</option>
+            </select>
+          </label>
+          <label class="mini">Decision
+            <select id="filter-decision">
+              <option value="">All</option>
+              <option value="same_truck">same_truck</option>
+              <option value="keep_separate">keep_separate</option>
+              <option value="needs_review">needs_review</option>
+            </select>
+          </label>
+          <button id="clear-filters-btn">Clear filters</button>
+        </div>
+        <div id="active-filter-chips" class="mini" style="margin-top:0.4rem;">No active filters.</div>
+        <ul id="batch-history-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No batches yet.</li></ul>
+      </section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>File Audit</h2>
+        <p class="subtitle">Duplicate/file assumption audit is read-only and does not rename, move, or delete files.</p>
+        <div class="actions">
+          <button id="refresh-file-audit-btn">Refresh file audit</button>
+        </div>
+        <ul id="file-audit-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">Loading file audit...</li></ul>
+      </section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Candidate Import Assist</h2>
+        <p class="subtitle">Candidate summaries are not evidence. Source files must confirm every field.</p>
+        <textarea id="candidate-import-text" rows="7" style="width:100%;" placeholder="Paste Gemini vendor markdown here..."></textarea>
+        <div class="actions">
+          <button id="candidate-import-btn">Parse Candidate Summary</button>
+        </div>
+        <div id="candidate-import-summary" class="mini" style="margin-top:0.5rem;">No candidate import yet.</div>
+        <ul id="candidate-import-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No candidates loaded.</li></ul>
+      </section>
+
+      <section class="panel" style="margin-bottom:0.8rem;">
+        <h2>Folder Context Assist</h2>
+        <p class="subtitle">Probable truck clusters from whole-folder context. Preview only.</p>
+        <div class="actions">
+          <button id="refresh-folder-context-btn">Refresh Folder Context</button>
+        </div>
+        <ul id="folder-context-list" class="list" style="margin-top:0.6rem;"><li class="draft-card">No folder context loaded.</li></ul>
+      </section>
+
+      <div class="layout">
+        <section class="panel">
+          <h2>OCR Draft Profiles</h2>
+          <p class="subtitle">Draft cards from screenshot OCR with field evidence and source files.</p>
+          <div id="draft-list" class="list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Duplicate / Merge Assist</h2>
+          <p class="subtitle">Evidence-based recommendations only. Operator decides.</p>
+          <div id="merge-list" class="list"></div>
+          <div class="field-row">
+            <h3>Unattached Media</h3>
+            <p class="subtitle">Media that did not have safe linkage to a truck draft.</p>
+            <div id="unattached-media-list" class="list"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="layout" style="margin-top:0.8rem;">
+        <section class="panel" style="grid-column: 1 / -1;">
+          <h2>Publish Plan Preview</h2>
+          <p class="subtitle"><strong>Preview only - no records will be published.</strong></p>
+          <div id="plan-summary" class="mini">Loading plan...</div>
+          <div id="plan-list" class="list" style="margin-top:0.6rem;"></div>
+          <button id="publish-disabled" disabled title="Disabled in preview mode">Publish (Disabled)</button>
+          <h3 style="margin-top:0.75rem;">Execution Audit History</h3>
+          <ul id="publish-audit-list" class="list"><li class="draft-card">Loading audit history...</li></ul>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createMealScoutReviewQueueClient } from '/admin/mealscout-review-queue-client.js';
+
+      const client = createMealScoutReviewQueueClient();
+      const draftReviewState = {};
+      const mergeReviewState = {};
+      const draftDecisionIndex = new Map();
+      const mergeDecisionIndex = new Map();
+      const executionState = {
+        planId: '',
+        planSignature: '',
+        selectedRecordIds: new Set(),
+        confirmed: false,
+        latestResult: null,
+        latestError: ''
+      };
+      const batchState = {
+        lastResult: null,
+        lastError: '',
+        history: [],
+        activeBatchId: ''
+      };
+      const filterState = {
+        batchId: '',
+        repId: '',
+        affiliateCode: '',
+        attributionSource: '',
+        classification: '',
+        reviewDecision: ''
+      };
+      let candidateImportResult = null;
+      let folderContextResult = null;
+
+      const safe = (value) => (value === undefined || value === null || value === '' ? 'Not found in screenshot' : String(value));
+      const sourceClassByFileId = new Map();
+      const ocrByFileId = new Map();
+      const draftMetaById = new Map();
+
+      function renderSummary(payload) {
+        const summary = payload.summary || {};
+        const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
+        const ocrSucceeded = debugOcr.filter((row) => row.ocrSucceeded === true).length;
+        const sourceFileCount = (payload.evidenceFiles || []).length;
+        const items = [
+          { k: 'draft count', v: summary.draftCount ?? 0 },
+          { k: 'source file count', v: sourceFileCount },
+          { k: 'ocr success count', v: ocrSucceeded },
+          { k: 'cluster count', v: summary.clusterCount ?? 0 },
+          { k: 'mutationAllowed', v: String(payload.mutationAllowed) }
+        ];
+        const container = document.getElementById('summary-grid');
+        container.innerHTML = '';
+        for (const item of items) {
+          const card = document.createElement('div');
+          card.className = 'metric';
+          card.innerHTML = `<div class="k">${item.k}</div><div class="v">${item.v}</div>`;
+          container.appendChild(card);
+        }
+      }
+
+      function renderCandidateImport() {
+        const summaryNode = document.getElementById('candidate-import-summary');
+        const listNode = document.getElementById('candidate-import-list');
+        if (!summaryNode || !listNode) return;
+        if (!candidateImportResult) {
+          summaryNode.textContent = 'No candidate import yet.';
+          listNode.innerHTML = '<li class="draft-card">No candidates loaded.</li>';
+          return;
+        }
+        summaryNode.textContent = `parsed:${safe(candidateImportResult.parsedCandidateCount)} matched:${safe(candidateImportResult.matchedCandidateCount)} unmatched:${safe(candidateImportResult.unmatchedCandidateCount)} mutationAllowed:${safe(candidateImportResult.mutationAllowed)}`;
+        const candidates = Array.isArray(candidateImportResult.candidates) ? candidateImportResult.candidates : [];
+        listNode.innerHTML = '';
+        for (const candidate of candidates) {
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(candidate.evidenceStatus)}</span> <span class="pill">${safe(candidate.source)}</span></div>
+            <div><strong>${safe(candidate.businessName)}</strong></div>
+            <div class="mini">phone:${safe(candidate.extractedCandidateFields?.phone)} email:${safe(candidate.extractedCandidateFields?.email)} location:${safe(candidate.extractedCandidateFields?.location)}</div>
+            <div class="mini">cuisine:${safe(candidate.extractedCandidateFields?.cuisine)} social:${safe(candidate.extractedCandidateFields?.socialHandle)}</div>
+            <div class="mini">menuItems:${safe((candidate.extractedCandidateFields?.menuItems || []).length)}</div>
+            <div class="mini">matches:${safe((candidate.matches || []).map((m) => `${m.fileName}(${m.matchScore})`).join(' | '))}</div>
+          `;
+          listNode.appendChild(li);
+        }
+      }
+
+      function renderFolderContext() {
+        const listNode = document.getElementById('folder-context-list');
+        if (!listNode) return;
+        if (!folderContextResult) {
+          listNode.innerHTML = '<li class="draft-card">No folder context loaded.</li>';
+          return;
+        }
+        const clusters = Array.isArray(folderContextResult.probableTruckClusters) ? folderContextResult.probableTruckClusters : [];
+        listNode.innerHTML = '';
+        if (!clusters.length) {
+          listNode.innerHTML = '<li class="draft-card">No probable clusters found.</li>';
+          return;
+        }
+        for (const cluster of clusters) {
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(cluster.status)}</span> <span class="pill">confidence:${safe(cluster.confidence)}</span></div>
+            <div><strong>${safe(cluster.assumedTruckName)}</strong> · <span class="mono">${safe(cluster.clusterId)}</span></div>
+            <div class="mini">files:${safe((cluster.sourceFileIds || []).join(', '))}</div>
+            <div class="mini">profile:${safe((cluster.profileFiles || []).length)} menu:${safe((cluster.menuFiles || []).length)} logo:${safe((cluster.logoCandidates || []).length)} social:${safe((cluster.socialFiles || []).length)}</div>
+            <div class="mini">duplicates:${safe((cluster.duplicateFileIds || []).length)} reps:${safe((cluster.attributionSummary?.repIds || []).join(', '))} affiliates:${safe((cluster.attributionSummary?.affiliateCodes || []).join(', '))}</div>
+            <div class="mini">reasons:${safe((cluster.reasons || []).join(' | '))}</div>
+            <div class="mini">blockers:${safe((cluster.blockers || []).join(' | '))}</div>
+            <div class="actions"><button data-process-cluster-id="${safe(cluster.clusterId)}">Process this cluster</button></div>
+          `;
+          listNode.appendChild(li);
+        }
+        for (const btn of document.querySelectorAll('button[data-process-cluster-id]')) {
+          btn.addEventListener('click', async () => {
+            const clusterId = btn.getAttribute('data-process-cluster-id');
+            if (!clusterId) return;
+            const safeMode = document.getElementById('batch-safe-mode')?.checked !== false;
+            const maxFilesRaw = Number(document.getElementById('batch-max-files')?.value || '5');
+            const maxFiles = Number.isFinite(maxFilesRaw) && maxFilesRaw > 0 ? Math.floor(maxFilesRaw) : 5;
+            const reprocess = document.getElementById('batch-reprocess')?.checked === true;
+            const result = await client.runBatchIntake({ mode: 'process', safeMode, maxFiles, reprocess, processByCluster: true, clusterId });
+            batchState.lastResult = result;
+            batchState.lastError = '';
+            renderBatchResult(result);
+            await hydrate();
+          });
+        }
+      }
+
+      async function refreshFolderContext() {
+        try {
+          folderContextResult = await client.getFolderContext({});
+        } catch (error) {
+          folderContextResult = {
+            probableTruckClusters: [],
+            mutationAllowed: false,
+            error: error instanceof Error ? error.message : 'folder context failed'
+          };
+        }
+        renderFolderContext();
+      }
+
+      function updateFilterStateFromInputs() {
+        filterState.batchId = document.getElementById('filter-batch')?.value || '';
+        filterState.repId = (document.getElementById('filter-rep')?.value || '').trim();
+        filterState.affiliateCode = (document.getElementById('filter-affiliate')?.value || '').trim();
+        filterState.attributionSource = document.getElementById('filter-attribution-source')?.value || '';
+        filterState.classification = document.getElementById('filter-classification')?.value || '';
+        filterState.reviewDecision = document.getElementById('filter-decision')?.value || '';
+      }
+
+      function renderActiveFilterChips() {
+        const node = document.getElementById('active-filter-chips');
+        if (!node) return;
+        const chips = [];
+        if (filterState.batchId) chips.push(`batch:${filterState.batchId}`);
+        if (filterState.repId) chips.push(`rep:${filterState.repId}`);
+        if (filterState.affiliateCode) chips.push(`affiliate:${filterState.affiliateCode}`);
+        if (filterState.attributionSource) chips.push(`source:${filterState.attributionSource}`);
+        if (filterState.classification) chips.push(`classification:${filterState.classification}`);
+        if (filterState.reviewDecision) chips.push(`decision:${filterState.reviewDecision}`);
+        node.textContent = chips.length ? `Active filters: ${chips.join(' | ')}` : 'No active filters.';
+      }
+
+      function matchesDraftFilters(draft) {
+        const meta = draftMetaById.get(draft.draftId) || {};
+        if (filterState.batchId && meta.batchId !== filterState.batchId) return false;
+        if (filterState.repId) {
+          const hasRep = (draft.sourceFiles || []).some((file) =>
+            String(file.sourceAttribution?.repId || file.sourceAttribution?.driveUploaderEmail || '').includes(filterState.repId)
+          );
+          if (!hasRep) return false;
+        }
+        if (filterState.affiliateCode) {
+          const hasAffiliate = (draft.sourceFiles || []).some((file) =>
+            String(file.sourceAttribution?.affiliateCode || '').includes(filterState.affiliateCode)
+          );
+          if (!hasAffiliate) return false;
+        }
+        if (filterState.attributionSource) {
+          const hasSource = (draft.sourceFiles || []).some((file) => file.sourceAttribution?.attributionSource === filterState.attributionSource);
+          if (!hasSource) return false;
+        }
+        if (filterState.classification) {
+          const hasClass = (draft.sourceFiles || []).some((file) => (sourceClassByFileId.get(file.sourceFileId) || 'unknown') === filterState.classification);
+          if (!hasClass) return false;
+        }
+        if (filterState.reviewDecision) {
+          const decision = draftReviewState[draft.draftId]?.decision || draftDecisionIndex.get(draft.draftId)?.decision;
+          if (decision !== filterState.reviewDecision) return false;
+        }
+        return true;
+      }
+
+      function renderBatchResult(result) {
+        const summaryNode = document.getElementById('batch-intake-summary');
+        const processedNode = document.getElementById('batch-processed-files');
+        const skippedNode = document.getElementById('batch-skipped-files');
+        if (!summaryNode || !processedNode || !skippedNode) return;
+        if (!result) {
+          summaryNode.textContent = 'No batch run yet.';
+          processedNode.innerHTML = '<li class="mini">None</li>';
+          skippedNode.innerHTML = '<li class="mini">None</li>';
+          return;
+        }
+        summaryNode.textContent =
+          `status:${safe(result.status)} safeMode:${safe(result.safeMode)} scanned:${safe(result.scannedFileCount)} eligible:${safe(result.eligibleFileCount)} processed:${safe(result.processedFileCount)} skipped:${safe(result.skippedFileCount)} failed:${safe(result.failedFileCount)} drafts:${safe(result.draftCount)} mutationAllowed:${safe(result.mutationAllowed)}`;
+        if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+          summaryNode.textContent += ` warnings:${result.warnings.join('|')}`;
+        }
+        processedNode.innerHTML = '';
+        const processed = Array.isArray(result.processedFiles) ? result.processedFiles : [];
+        if (!processed.length) {
+          processedNode.innerHTML = '<li class="mini">None</li>';
+        } else {
+          for (const row of processed) {
+            const li = document.createElement('li');
+            li.className = 'mini';
+            li.textContent = `${safe(row.fileName)} (${safe(row.fileId)}) class:${safe(row.classification)} ocr:${safe(row.ocrSucceeded)} bytes:${safe(row.byteLength)} by:${safe(row.sourceFileAttribution?.driveUploaderEmail || row.sourceFileAttribution?.repId)} aff:${safe(row.sourceFileAttribution?.affiliateCode)} source:${safe(row.sourceFileAttribution?.attributionSource)}`;
+            processedNode.appendChild(li);
+          }
+        }
+        skippedNode.innerHTML = '';
+        const skipped = Array.isArray(result.skippedFiles) ? result.skippedFiles : [];
+        if (!skipped.length) {
+          skippedNode.innerHTML = '<li class="mini">None</li>';
+        } else {
+          for (const row of skipped) {
+            const li = document.createElement('li');
+            li.className = 'mini';
+            li.textContent = `${safe(row.fileName)} (${safe(row.fileId)}) reason:${safe(row.reason)}`;
+            skippedNode.appendChild(li);
+          }
+        }
+      }
+
+      function renderBatchHistory() {
+        const listNode = document.getElementById('batch-history-list');
+        const batchSelect = document.getElementById('filter-batch');
+        if (!listNode || !batchSelect) return;
+        const batches = Array.isArray(batchState.history) ? batchState.history : [];
+        listNode.innerHTML = '';
+        batchSelect.innerHTML = '<option value="">All</option>';
+        if (!batches.length) {
+          listNode.innerHTML = '<li class="draft-card">No batches yet.</li>';
+          return;
+        }
+        for (const batch of batches) {
+          const option = document.createElement('option');
+          option.value = batch.batchId;
+          option.textContent = `${batch.batchId} (${batch.status})`;
+          batchSelect.appendChild(option);
+          const li = document.createElement('li');
+          li.className = 'draft-card';
+          li.innerHTML = `
+            <div><span class="pill">${safe(batch.status)}</span> <span class="pill">drafts:${safe(batch.draftCount)}</span></div>
+            <div class="mini"><strong>${safe(batch.batchId)}</strong> folder:${safe(batch.folderId)}</div>
+            <div class="mini">safeMode:${safe(batch.safeMode)}</div>
+            <div class="mini">scanned:${safe(batch.scannedFileCount)} processed:${safe(batch.processedFileCount)} skipped:${safe(batch.skippedFileCount)} failed:${safe(batch.failedFileCount)}</div>
+            <div class="mini">ocrFailure:${safe(batch.ocrFailureCount)} unknownAttrib:${safe(batch.unknownAttributionCount)} unattachedMedia:${safe(batch.unattachedMediaCount)}</div>
+            <div class="mini">reps:${safe((batch.repIds || []).join(', '))} · affiliates:${safe((batch.affiliateCodes || []).join(', '))}</div>
+            <div class="mini">attribution:${safe((batch.attributionSources || []).join(', '))}</div>
+            <button data-batch-select="${safe(batch.batchId)}">Filter to batch</button>
+          `;
+          listNode.appendChild(li);
+        }
+        if (filterState.batchId) {
+          batchSelect.value = filterState.batchId;
+        }
+        for (const button of document.querySelectorAll('button[data-batch-select]')) {
+          button.addEventListener('click', () => {
+            filterState.batchId = button.getAttribute('data-batch-select') || '';
+            const select = document.getElementById('filter-batch');
+            if (select) select.value = filterState.batchId;
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
+      }
+
+      async function loadBatchHistory() {
+        try {
+          const payload = await client.getBatchHistory();
+          batchState.history = Array.isArray(payload.batches) ? payload.batches : [];
+        } catch (_error) {
+          batchState.history = [];
+        }
+        renderBatchHistory();
+      }
+
+      function wireBatchControls() {
+        const runButton = document.getElementById('run-batch-intake-btn');
+        const safeModeNode = document.getElementById('batch-safe-mode');
+        const maxFilesNode = document.getElementById('batch-max-files');
+        const warningNode = document.getElementById('batch-safe-mode-warning');
+        const syncSafeModeWarning = () => {
+          const safeMode = Boolean(safeModeNode?.checked);
+          const maxFiles = Number(maxFilesNode?.value || 0);
+          if (warningNode) {
+            warningNode.textContent =
+              safeMode && maxFiles > 8
+                ? 'Safe Mode caps maxFiles to 8. Reduce to 8 or lower for strict low-batch processing.'
+                : '';
+          }
+        };
+        if (safeModeNode) safeModeNode.addEventListener('change', syncSafeModeWarning);
+        if (maxFilesNode) maxFilesNode.addEventListener('input', syncSafeModeWarning);
+        syncSafeModeWarning();
+        if (!runButton) return;
+        runButton.addEventListener('click', async () => {
+          const reprocessNode = document.getElementById('batch-reprocess');
+          const safeMode = Boolean(safeModeNode?.checked);
+          const maxFiles = Number(maxFilesNode?.value || 50);
+          const reprocess = Boolean(reprocessNode?.checked);
+          batchState.lastError = '';
+          try {
+            const result = await client.runBatchIntake({
+              mode: 'process',
+              safeMode,
+              maxFiles,
+              reprocess,
+              operatorId: 'operator'
+            });
+            batchState.lastResult = result;
+            renderBatchResult(batchState.lastResult);
+            await hydrate();
+          } catch (error) {
+            batchState.lastResult = null;
+            batchState.lastError = error instanceof Error ? error.message : 'Batch intake failed';
+            renderBatchResult({
+              status: 'failed',
+              scannedFileCount: 0,
+              eligibleFileCount: 0,
+              processedFileCount: 0,
+              skippedFileCount: 0,
+              failedFileCount: 1,
+              draftCount: 0,
+              mutationAllowed: false,
+              processedFiles: [],
+              skippedFiles: [],
+              errors: [{ message: batchState.lastError }]
+            });
+          }
+        });
+      }
+
+      function wireFilterControls() {
+        const controls = [
+          'filter-batch',
+          'filter-rep',
+          'filter-affiliate',
+          'filter-attribution-source',
+          'filter-classification',
+          'filter-decision'
+        ];
+        for (const id of controls) {
+          const node = document.getElementById(id);
+          if (!node) continue;
+          node.addEventListener('change', () => {
+            updateFilterStateFromInputs();
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+          node.addEventListener('input', () => {
+            updateFilterStateFromInputs();
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
+        const clearButton = document.getElementById('clear-filters-btn');
+        if (clearButton) {
+          clearButton.addEventListener('click', () => {
+            filterState.batchId = '';
+            filterState.repId = '';
+            filterState.affiliateCode = '';
+            filterState.attributionSource = '';
+            filterState.classification = '';
+            filterState.reviewDecision = '';
+            const ids = ['filter-batch', 'filter-rep', 'filter-affiliate', 'filter-attribution-source', 'filter-classification', 'filter-decision'];
+            for (const id of ids) {
+              const node = document.getElementById(id);
+              if (!node) continue;
+              if (node.tagName === 'SELECT') node.value = '';
+              else node.value = '';
+            }
+            renderActiveFilterChips();
+            renderDrafts(window.__latestPayload || {});
+          });
+        }
+      }
+
+      function renderEvidence(field, evidence) {
+        if (!evidence) return '';
+        return `
+          <div class="field-row">
+            <div><strong>${field}</strong>: ${safe(evidence.value)}</div>
+            <div class="mini">confidence: ${safe(evidence.confidence)} · extraction: ${safe(evidence.extractionMethod)}</div>
+            <div class="mini">snippet: ${safe(evidence.rawSnippet)}</div>
+            <div class="mini">source: ${safe(evidence.sourceFileName)} · <span class="mono">${safe(evidence.sourceFileId)}</span></div>
+            <div class="mini">attribution: rep ${safe(evidence.sourceAttribution?.repId)} · affiliate ${safe(evidence.sourceAttribution?.affiliateCode)} · uploader ${safe(evidence.sourceAttribution?.driveUploaderEmail)} · source ${safe(evidence.sourceAttribution?.attributionSource)}</div>
+          </div>
+        `;
+      }
+
+      function wireDraftActions(draftId) {
+        for (const node of document.querySelectorAll(`button[data-draft-id="${draftId}"]`)) {
+          node.addEventListener('click', async () => {
+            const decision = node.getAttribute('data-decision');
+            const note = document.getElementById(`draft-reason-${draftId}`)?.value?.trim() || undefined;
+            draftReviewState[draftId] = { decision, status: 'pending', updatedAt: new Date().toISOString() };
+            renderDraftActionState(draftId);
+            try {
+              const existing = draftDecisionIndex.get(draftId);
+              const payload = {
+                draftIds: [draftId],
+                decision,
+                reason: note,
+                sourceFileIds: (window.__draftSourceFilesByDraftId?.[draftId] || []),
+                evidenceRefs: (window.__draftEvidenceRefsByDraftId?.[draftId] || []),
+                decidedBy: 'operator'
+              };
+              const saved = existing
+                ? await client.updateReviewDecision(existing.decisionId, payload)
+                : await client.saveReviewDecision(payload);
+              draftReviewState[draftId] = {
+                decision,
+                status: 'saved',
+                updatedAt: saved.decision?.decidedAt || new Date().toISOString()
+              };
+              draftDecisionIndex.set(draftId, saved.decision);
+            } catch (error) {
+              draftReviewState[draftId] = {
+                decision,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'save failed',
+                updatedAt: new Date().toISOString()
+              };
+            }
+            renderDraftActionState(draftId);
+          });
+        }
+      }
+
+      function renderDraftActionState(draftId) {
+        const entry = draftReviewState[draftId];
+        for (const node of document.querySelectorAll(`button[data-draft-id="${draftId}"]`)) {
+          node.classList.toggle('active', node.getAttribute('data-decision') === entry?.decision);
+        }
+        const stamp = document.getElementById(`draft-state-${draftId}`);
+        if (stamp) {
+          stamp.textContent = entry
+            ? `Review state: ${entry.decision} (${entry.status || 'local'})`
+            : 'Review state: none';
+          if (entry?.error) {
+            stamp.textContent += ` · ${entry.error}`;
+          }
+        }
+      }
+
+      function renderDrafts(payload) {
+        const drafts = Array.isArray(payload.drafts) ? payload.drafts : [];
+        const container = document.getElementById('draft-list');
+        container.innerHTML = '';
+        const filteredDrafts = drafts.filter((draft) => matchesDraftFilters(draft));
+        if (!filteredDrafts.length) {
+          container.innerHTML = '<div class="draft-card">No drafts returned from preview.</div>';
+          return;
+        }
+        for (const draft of filteredDrafts) {
+          const evidence = draft.extractedFieldEvidence || {};
+          const menuEvidence = Array.isArray(evidence.menuItems) ? evidence.menuItems : [];
+          const sourceFiles = Array.isArray(draft.sourceFiles) ? draft.sourceFiles : [];
+          const sourceRows = sourceFiles.map((file) => {
+            const detected = sourceClassByFileId.get(file.sourceFileId) || 'unknown';
+            const ocr = ocrByFileId.get(file.sourceFileId);
+            const ocrStatus = ocr ? `${ocr.ocrSucceeded ? 'ocr_ok' : 'ocr_fail'}:${ocr.extractedTextLength || 0}` : 'ocr_n/a';
+            return `<li class="mini"><span class="mono">${safe(file.sourceFileId)}</span> · ${safe(file.sourcePath)} · class:${safe(detected)} · ${ocrStatus}<div class="mini">by:${safe(file.sourceAttribution?.driveUploaderEmail || file.sourceAttribution?.repId)} · affiliate:${safe(file.sourceAttribution?.affiliateCode)} · source:${safe(file.sourceAttribution?.attributionSource)}</div></li>`;
+          }).join('');
+
+          const menuRows = Array.isArray(draft.menu) && draft.menu.length
+            ? draft.menu.map((item) => `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}</li>`).join('')
+            : '<li class="mini">Not found in screenshot</li>';
+          const attachedMedia = Array.isArray(draft.attachedMedia) ? draft.attachedMedia : [];
+          const mediaRows = attachedMedia.length
+            ? attachedMedia.map((item) => `<li class="mini">${safe(item.mediaType)} · <span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName)}<div class="mini">by:${safe(item.sourceAttribution?.driveUploaderEmail || item.sourceAttribution?.repId)} · affiliate:${safe(item.sourceAttribution?.affiliateCode)} · source:${safe(item.sourceAttribution?.attributionSource)}</div></li>`).join('')
+            : '<li class="mini">No media attached.</li>';
+
+          const evidenceRefs = Object.keys(evidence || {});
+          const sourceFileIds = sourceFiles.map((file) => file.sourceFileId).filter(Boolean);
+          const batchId = (sourceFiles.find((file) => file.sourceAttribution?.batchId)?.sourceAttribution?.batchId) || '';
+          draftMetaById.set(draft.draftId, { batchId });
+          window.__draftSourceFilesByDraftId = window.__draftSourceFilesByDraftId || {};
+          window.__draftEvidenceRefsByDraftId = window.__draftEvidenceRefsByDraftId || {};
+          window.__draftSourceFilesByDraftId[draft.draftId] = sourceFileIds;
+          window.__draftEvidenceRefsByDraftId[draft.draftId] = evidenceRefs;
+
+          const block = document.createElement('div');
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill">${safe(draft.draftType)}</span>
+              <span class="pill">${safe(draft.reviewStatus)}</span>
+              <span class="pill ${draft.mutationAllowed ? 'danger' : 'ok'}">mutationAllowed:${safe(draft.mutationAllowed)}</span>
+            </div>
+            <h3 style="margin-top:0.4rem;">${safe(draft.truckName)}</h3>
+            <div class="mini">draftId: <span class="mono">${safe(draft.draftId)}</span> · confidence: ${safe(draft.confidence)}</div>
+            <div class="grid-two" style="margin-top:0.45rem;">
+              <div><strong>Phone</strong>: ${safe(draft.phone)}</div>
+              <div><strong>Email</strong>: ${safe(draft.email)}</div>
+              <div><strong>Website</strong>: ${safe(draft.website)}</div>
+              <div><strong>Socials</strong>: IG ${safe(draft.socials?.instagram)} · FB ${safe(draft.socials?.facebook)}</div>
+              <div><strong>City / Service Area</strong>: ${safe(draft.cityArea)}</div>
+              <div><strong>Cuisine</strong>: ${safe(draft.cuisine)}</div>
+            </div>
+            <div class="field-row">
+              <h4>Menu Items</h4>
+              <ul>${menuRows}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Extracted Field Evidence</h4>
+              ${renderEvidence('truckName', evidence.truckName)}
+              ${renderEvidence('phone', evidence.phone)}
+              ${renderEvidence('email', evidence.email)}
+              ${renderEvidence('website', evidence.website)}
+              ${renderEvidence('facebook', evidence.facebook)}
+              ${renderEvidence('instagram', evidence.instagram)}
+              ${renderEvidence('cityArea', evidence.cityArea)}
+              ${renderEvidence('cuisine', evidence.cuisine)}
+              ${menuEvidence.map((entry) => renderEvidence('menuItem', entry)).join('')}
+            </div>
+            <div class="field-row">
+              <h4>Source Files</h4>
+              <ul>${sourceRows || '<li class="mini">No source files listed.</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Attached Media</h4>
+              <ul>${mediaRows}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Operator Review Action</h4>
+              <textarea id="draft-reason-${safe(draft.draftId)}" class="mini" placeholder="Optional reason for decision"></textarea>
+              <div class="actions">
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="same_truck">Mark as same truck</button>
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="keep_separate">Keep separate</button>
+                <button data-draft-id="${safe(draft.draftId)}" data-decision="needs_review">Needs review</button>
+              </div>
+              <div id="draft-state-${safe(draft.draftId)}" class="mini">Review state: none</div>
+            </div>
+          `;
+          container.appendChild(block);
+          wireDraftActions(draft.draftId);
+          renderDraftActionState(draft.draftId);
+        }
+      }
+
+      function renderUnattachedMedia(payload) {
+        const container = document.getElementById('unattached-media-list');
+        if (!container) return;
+        const rows = Array.isArray(payload.unattachedMedia) ? payload.unattachedMedia : [];
+        if (!rows.length) {
+          container.innerHTML = '<div class="draft-card mini">No unattached media.</div>';
+          return;
+        }
+        container.innerHTML = rows.map((item) => `
+          <div class="draft-card">
+            <div><span class="pill warn">${safe(item.mediaType || 'unknown_media')}</span> <span class="pill">${safe(item.reason || 'weak_linkage')}</span></div>
+            <div class="mini"><span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName || '')}</div>
+            <div class="mini">source:${safe(item.sourceAttribution?.attributionSource)} · by:${safe(item.sourceAttribution?.driveUploaderEmail || item.sourceAttribution?.repId)} · affiliate:${safe(item.sourceAttribution?.affiliateCode)}</div>
+            <div class="actions">
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="mark_as_logo_candidate">Mark logo candidate</button>
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="mark_as_menu">Mark menu evidence</button>
+              <button data-attach-source-file-id="${safe(item.sourceFileId)}" data-attach-action="leave_unattached">Leave unattached</button>
+            </div>
+          </div>
+        `).join('');
+        wireMediaAttachActions();
+      }
+
+      function wireMediaAttachActions() {
+        for (const node of document.querySelectorAll('button[data-attach-source-file-id]')) {
+          node.addEventListener('click', async () => {
+            const sourceFileId = node.getAttribute('data-attach-source-file-id');
+            const action = node.getAttribute('data-attach-action');
+            if (!sourceFileId || !action) return;
+            const draftId = window.prompt('Enter target draftId for this file (required for attach decisions):', '');
+            if (!draftId) return;
+            await client.saveAttachmentDecision({
+              draftId,
+              sourceFileId,
+              action,
+              mediaType: action === 'mark_as_logo_candidate' ? 'logo' : action === 'mark_as_menu' ? 'menu' : 'unknown_media',
+              reason: 'manual_review_queue_attachment',
+              operatorId: 'MANUAL_OPERATOR'
+            });
+            await refreshPreview();
+          });
+        }
+      }
+
+      function wireMergeActions(groupId) {
+        for (const node of document.querySelectorAll(`button[data-group-id="${groupId}"]`)) {
+          node.addEventListener('click', async () => {
+            const decision = node.getAttribute('data-decision');
+            const reason = document.getElementById(`merge-reason-${groupId}`)?.value?.trim() || undefined;
+            mergeReviewState[groupId] = { decision, status: 'pending', updatedAt: new Date().toISOString() };
+            renderMergeActionState(groupId);
+            try {
+              const existing = mergeDecisionIndex.get(groupId);
+              const payload = {
+                draftIds: window.__mergeDraftIdsByGroupId?.[groupId] || [],
+                decision,
+                reason,
+                sourceFileIds: window.__mergeSourceFilesByGroupId?.[groupId] || [],
+                evidenceRefs: window.__mergeEvidenceRefsByGroupId?.[groupId] || [],
+                decidedBy: 'operator'
+              };
+              const saved = existing
+                ? await client.updateReviewDecision(existing.decisionId, payload)
+                : await client.saveReviewDecision(payload);
+              mergeReviewState[groupId] = {
+                decision,
+                status: 'saved',
+                updatedAt: saved.decision?.decidedAt || new Date().toISOString()
+              };
+              mergeDecisionIndex.set(groupId, saved.decision);
+            } catch (error) {
+              mergeReviewState[groupId] = {
+                decision,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'save failed',
+                updatedAt: new Date().toISOString()
+              };
+            }
+            renderMergeActionState(groupId);
+          });
+        }
+      }
+
+      function renderMergeActionState(groupId) {
+        const entry = mergeReviewState[groupId];
+        for (const node of document.querySelectorAll(`button[data-group-id="${groupId}"]`)) {
+          node.classList.toggle('active', node.getAttribute('data-decision') === entry?.decision);
+        }
+        const stamp = document.getElementById(`merge-state-${groupId}`);
+        if (stamp) {
+          stamp.textContent = entry
+            ? `Review state: ${entry.decision} (${entry.status || 'local'})`
+            : 'Review state: none';
+          if (entry?.error) {
+            stamp.textContent += ` · ${entry.error}`;
+          }
+        }
+      }
+
+      function renderMergeAssist(payload) {
+        const groups = payload.mergeAssist?.candidateGroups || [];
+        const container = document.getElementById('merge-list');
+        container.innerHTML = '';
+        if (!groups.length) {
+          container.innerHTML = '<div class="draft-card">No duplicate candidates returned for this preview batch.</div>';
+          return;
+        }
+        for (const group of groups) {
+          const reasons = (group.reasons || []).map((reason) =>
+            `<li><strong>${safe(reason.type)}</strong>: ${safe(reason.detail)}<div class="mini">drafts: ${safe(reason.sourceDraftIds?.join(', '))} · files: ${safe(reason.sourceFileIds?.join(', '))}</div></li>`
+          ).join('');
+          const conflicts = (group.conflicts || []).map((conflict) =>
+            `<li><strong>${safe(conflict.field)}</strong>: ${safe((conflict.values || []).join(' vs '))}<div class="mini">drafts: ${safe((conflict.sourceDraftIds || []).join(', '))}</div></li>`
+          ).join('');
+          const recommendationClass = group.recommendation === 'merge_recommended' ? 'ok' : group.recommendation === 'possible_match' ? 'warn' : 'danger';
+          const block = document.createElement('div');
+          window.__mergeDraftIdsByGroupId = window.__mergeDraftIdsByGroupId || {};
+          window.__mergeSourceFilesByGroupId = window.__mergeSourceFilesByGroupId || {};
+          window.__mergeEvidenceRefsByGroupId = window.__mergeEvidenceRefsByGroupId || {};
+          window.__mergeDraftIdsByGroupId[group.groupId] = group.draftIds || [];
+          window.__mergeSourceFilesByGroupId[group.groupId] = Array.from(new Set(
+            (group.reasons || []).flatMap((reason) => reason.sourceFileIds || [])
+          ));
+          window.__mergeEvidenceRefsByGroupId[group.groupId] = (group.reasons || []).map((reason) => reason.type);
+
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill ${recommendationClass}">${safe(group.recommendation)}</span>
+              <span class="pill">confidence:${safe(group.confidence)}</span>
+            </div>
+            <div class="mini">groupId: <span class="mono">${safe(group.groupId)}</span></div>
+            <div class="mini">draftIds: ${safe((group.draftIds || []).join(', '))}</div>
+            <div class="field-row">
+              <h4>Reasons</h4>
+              <ul>${reasons || '<li class="mini">No reasons provided.</li>'}</ul>
+            </div>
+            <div class="field-row ${group.conflicts?.length ? 'danger-box' : ''}">
+              <h4>Conflicts</h4>
+              <ul>${conflicts || '<li class="mini">No conflicts reported.</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Operator Review Action</h4>
+              <textarea id="merge-reason-${safe(group.groupId)}" class="mini" placeholder="Optional reason for decision"></textarea>
+              <div class="actions">
+                <button data-group-id="${safe(group.groupId)}" data-decision="same_truck">Mark as same truck</button>
+                <button data-group-id="${safe(group.groupId)}" data-decision="keep_separate">Keep separate</button>
+                <button data-group-id="${safe(group.groupId)}" data-decision="needs_review">Needs review</button>
+              </div>
+              <div id="merge-state-${safe(group.groupId)}" class="mini">Review state: none</div>
+            </div>
+          `;
+          container.appendChild(block);
+          wireMergeActions(group.groupId);
+          renderMergeActionState(group.groupId);
+        }
+      }
+
+      function renderPublishPlan(payload) {
+        const plan = payload.publishPlan || { records: [], mutationAllowed: false };
+        executionState.planId = plan.planId || '';
+        executionState.planSignature = plan.signature || '';
+        const records = Array.isArray(plan.records) ? plan.records : [];
+        const summary = {
+          total: records.length,
+          create_new: records.filter((row) => row.plannedAction === 'create_new').length,
+          update_existing: records.filter((row) => row.plannedAction === 'update_existing').length,
+          blocked: records.filter((row) => row.plannedAction === 'blocked').length,
+          needs_review: records.filter((row) => row.plannedAction === 'needs_review').length
+        };
+        const summaryNode = document.getElementById('plan-summary');
+        summaryNode.textContent =
+          `records:${summary.total} create:${summary.create_new} update:${summary.update_existing} blocked:${summary.blocked} needs_review:${summary.needs_review} mutationAllowed:${plan.mutationAllowed}`;
+
+        const list = document.getElementById('plan-list');
+        list.innerHTML = '';
+        if (!records.length) {
+          list.innerHTML = '<div class="draft-card">No plan records generated.</div>';
+          return;
+        }
+
+        const isSelectableRecord = (record) =>
+          record.publishReady === true &&
+          (record.plannedAction === 'create_new' || record.plannedAction === 'update_existing') &&
+          (!record.conflicts || record.conflicts.length === 0) &&
+          (!record.blockedReasons || record.blockedReasons.length === 0);
+
+        for (const record of records) {
+          const fields = Object.entries(record.profileFields || {}).map(([key, value]) => {
+            return `<li><strong>${safe(key)}</strong>: ${safe(value.value)}<div class="mini">confidence:${safe(value.confidence)} · evidence:${safe((value.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((value.sourceFileIds || []).join(', '))}</div><div class="actions"><button data-correction-record-id="${safe(record.recordId)}" data-correction-field="${safe(key)}" data-correction-action="reject_field">Reject</button><button data-correction-record-id="${safe(record.recordId)}" data-correction-field="${safe(key)}" data-correction-action="replace_field">Replace</button></div></li>`;
+          }).join('');
+          const menu = (record.menuItems || []).map((item) => {
+            return `<li>${safe(item.name)} ${item.price ? `(${item.price})` : ''}<div class="mini">evidence:${safe((item.evidenceRefs || []).join(' | '))} · sourceFiles:${safe((item.sourceFileIds || []).join(', '))}</div></li>`;
+          }).join('');
+          const media = (record.attachedMedia || []).map((item) => {
+            return `<li>${safe(item.mediaType)} · <span class="mono">${safe(item.sourceFileId)}</span> · ${safe(item.sourceFileName)}<div class="mini">confidence:${safe(item.confidence)} · evidence:${safe((item.evidenceRefs || []).join(' | '))}</div></li>`;
+          }).join('');
+          const selectable = isSelectableRecord(record);
+          const checked = executionState.selectedRecordIds.has(record.recordId) ? 'checked' : '';
+          const block = document.createElement('div');
+          block.className = 'draft-card';
+          block.innerHTML = `
+            <div>
+              <span class="pill">${safe(record.plannedAction)}</span>
+              <span class="pill ${record.publishReady ? 'ok' : 'danger'}">publishReady:${safe(record.publishReady)}</span>
+              <span class="pill">mutationAllowed:false</span>
+              <span class="pill ${selectable ? 'ok' : 'warn'}">selectable:${selectable}</span>
+            </div>
+            <div class="field-row">
+              <label class="mini">
+                <input type="checkbox" data-plan-record-select="${safe(record.recordId)}" ${checked} ${selectable ? '' : 'disabled'} />
+                Select for controlled execution
+              </label>
+            </div>
+            <div class="mini">draftIds: ${safe((record.draftIds || []).join(', '))}</div>
+            <div class="mini">existingTruckId: ${safe(record.existingTruckId)}</div>
+            <div class="field-row"><h4>Planned Fields</h4><ul>${fields || '<li class="mini">No fields</li>'}</ul></div>
+            <div class="field-row"><h4>Menu Items</h4><ul>${menu || '<li class="mini">No menu items</li>'}</ul></div>
+            <div class="field-row"><h4>Attached Media</h4><ul>${media || '<li class="mini">No attached media</li>'}</ul></div>
+            <div class="field-row">
+              <h4>Blocked Reasons</h4>
+              <ul>${(record.blockedReasons || []).map((item) => `<li>${safe(item)}</li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Warnings</h4>
+              <ul>${(record.warnings || []).map((item) => `<li>${safe(item)}</li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+            <div class="field-row">
+              <h4>Conflicts</h4>
+              <ul>${(record.conflicts || []).map((item) => `<li>${safe(item.field)}: ${safe((item.values || []).join(' vs '))}<div class="mini">sourceDraftIds:${safe((item.sourceDraftIds || []).join(', '))}</div></li>`).join('') || '<li class="mini">None</li>'}</ul>
+            </div>
+          `;
+          list.appendChild(block);
+        }
+        wireCorrectionActions(records);
+
+        const controls = document.createElement('div');
+        controls.className = 'draft-card';
+        controls.innerHTML = `
+          <div class="field-row">
+            <label>
+              <input type="checkbox" id="plan-confirmation" ${executionState.confirmed ? 'checked' : ''} />
+              I confirm these records are approved for publish/update.
+            </label>
+          </div>
+          <div class="field-row">
+            <button id="execute-plan-btn" ${executionState.selectedRecordIds.size > 0 && executionState.confirmed ? '' : 'disabled'}>
+              Execute Selected Records
+            </button>
+          </div>
+          <div id="execute-plan-status" class="mini"></div>
+        `;
+        list.appendChild(controls);
+        wirePlanControls(records);
+        renderExecutionStatus();
+      }
+
+      function wireCorrectionActions(records) {
+        const byRecordId = new Map((records || []).map((item) => [item.recordId, item]));
+        for (const node of document.querySelectorAll('button[data-correction-record-id]')) {
+          node.addEventListener('click', async () => {
+            const recordId = node.getAttribute('data-correction-record-id');
+            const fieldName = node.getAttribute('data-correction-field');
+            const action = node.getAttribute('data-correction-action');
+            if (!recordId || !fieldName || !action) return;
+            const record = byRecordId.get(recordId);
+            const originalValue = record?.profileFields?.[fieldName]?.value;
+            let correctedValue;
+            if (action === 'replace_field') {
+              correctedValue = window.prompt(`Replacement value for ${fieldName}`, originalValue || '');
+              if (!correctedValue) return;
+            }
+            await client.saveFieldCorrection({
+              recordId,
+              draftIds: record?.draftIds || [],
+              fieldName,
+              action,
+              originalValue,
+              correctedValue,
+              reason: 'manual_operator_correction',
+              evidenceRef: 'review queue correction',
+              sourceFileId: record?.profileFields?.[fieldName]?.sourceFileIds?.[0],
+              operatorId: 'MANUAL_OPERATOR'
+            });
+            await refreshPreview();
+          });
+        }
+      }
+
+      function renderExecutionStatus() {
+        const node = document.getElementById('execute-plan-status');
+        if (!node) return;
+        if (executionState.latestError) {
+          node.textContent = `Execution error: ${executionState.latestError}`;
+          return;
+        }
+        if (executionState.latestResult) {
+          const result = executionState.latestResult;
+          node.textContent = `executionId:${safe(result.executionId)} results:${safe((result.results || []).length)} audits:${safe((result.auditEntries || []).length)}`;
+          return;
+        }
+        node.textContent = `Selected: ${executionState.selectedRecordIds.size} · confirmation:${executionState.confirmed}`;
+      }
+
+      function wirePlanControls(records) {
+        for (const node of document.querySelectorAll('input[data-plan-record-select]')) {
+          node.addEventListener('change', () => {
+            const id = node.getAttribute('data-plan-record-select');
+            if (!id) return;
+            if (node.checked) executionState.selectedRecordIds.add(id);
+            else executionState.selectedRecordIds.delete(id);
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
+        }
+        const confirmationNode = document.getElementById('plan-confirmation');
+        if (confirmationNode) {
+          confirmationNode.addEventListener('change', () => {
+            executionState.confirmed = confirmationNode.checked;
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
+        }
+        const executeButton = document.getElementById('execute-plan-btn');
+        if (executeButton) {
+          executeButton.addEventListener('click', async () => {
+            if (executionState.selectedRecordIds.size === 0 || !executionState.confirmed) return;
+            executionState.latestError = '';
+            try {
+              const result = await client.executePublishPlan({
+                planId: executionState.planId,
+                expectedSignature: executionState.planSignature,
+                recordIds: Array.from(executionState.selectedRecordIds),
+                confirmation: true,
+                operatorId: 'operator'
+              });
+              executionState.latestResult = result;
+              await refreshPublishAudit();
+            } catch (error) {
+              executionState.latestResult = null;
+              executionState.latestError = error instanceof Error ? error.message : 'Execution failed';
+            }
+            renderPublishPlan({ publishPlan: { ...window.__latestPublishPlan } });
+          });
+        }
+      }
+
+      function hydrateSavedDecisions(payload, decisions) {
+        draftDecisionIndex.clear();
+        mergeDecisionIndex.clear();
+        const draftSet = new Set((payload.drafts || []).map((draft) => draft.draftId));
+        const mergeGroups = payload.mergeAssist?.candidateGroups || [];
+        for (const record of decisions) {
+          const recordDraftIds = new Set(record.draftIds || []);
+          for (const draftId of record.draftIds || []) {
+            if (draftSet.has(draftId)) {
+              draftDecisionIndex.set(draftId, record);
+              draftReviewState[draftId] = {
+                decision: record.decision,
+                status: 'saved',
+                updatedAt: record.decidedAt
+              };
+            }
+          }
+          for (const group of mergeGroups) {
+            const groupSet = new Set(group.draftIds || []);
+            const sameSize = groupSet.size === recordDraftIds.size;
+            const sameMembers = sameSize && [...groupSet].every((value) => recordDraftIds.has(value));
+            if (sameMembers) {
+              mergeDecisionIndex.set(group.groupId, record);
+              mergeReviewState[group.groupId] = {
+                decision: record.decision,
+                status: 'saved',
+                updatedAt: record.decidedAt
+              };
+            }
+          }
+        }
+      }
+
+      async function hydrate() {
+        const [payload, decisionsPayload] = await Promise.all([
+          client.getPreview({ loadFromDriveFolder: true, includeDebugOcr: true }),
+          client.getReviewDecisions()
+        ]);
+        window.__latestPayload = payload;
+        const evidenceFiles = Array.isArray(payload.evidenceFiles) ? payload.evidenceFiles : [];
+        const debugOcr = Array.isArray(payload.debugOcr) ? payload.debugOcr : [];
+        const decisions = Array.isArray(decisionsPayload.decisions) ? decisionsPayload.decisions : [];
+        window.__latestPublishPlan = payload.publishPlan || { records: [], mutationAllowed: false };
+        for (const file of evidenceFiles) {
+          sourceClassByFileId.set(file.fileId, file.detectedType || 'unknown');
+        }
+        for (const row of debugOcr) {
+          ocrByFileId.set(row.fileId, row);
+        }
+        hydrateSavedDecisions(payload, decisions);
+        renderSummary(payload);
+        renderDrafts(payload);
+        renderMergeAssist(payload);
+        renderUnattachedMedia(payload);
+        renderPublishPlan(payload);
+        await refreshPublishAudit();
+        renderBatchResult(batchState.lastResult);
+        await loadBatchHistory();
+        await refreshFileAudit();
+        await refreshFolderContext();
+        renderActiveFilterChips();
+      }
+
+      async function refreshFileAudit() {
+        const listNode = document.getElementById('file-audit-list');
+        if (!listNode) return;
+        try {
+          const audit = await client.getFileAudit({});
+          const groups = Array.isArray(audit.duplicateGroups) ? audit.duplicateGroups : [];
+          const assumptions = Array.isArray(audit.fileAssumptions) ? audit.fileAssumptions : [];
+          listNode.innerHTML = '';
+          if (!groups.length && !assumptions.length) {
+            listNode.innerHTML = '<li class="draft-card">No file audit data returned.</li>';
+            return;
+          }
+          if (groups.length) {
+            const groupHeader = document.createElement('li');
+            groupHeader.className = 'draft-card';
+            groupHeader.innerHTML = `<strong>Duplicate Groups</strong><div class="mini">count:${safe(groups.length)}</div>`;
+            listNode.appendChild(groupHeader);
+            for (const group of groups) {
+              const li = document.createElement('li');
+              li.className = 'draft-card';
+              const rows = (group.files || []).map((file) => {
+                return `<li><span class="mono">${safe(file.fileId)}</span> · ${safe(file.originalFileName)} · action:${safe(file.recommendedAction)} · role:${safe(file.assumedRole)}</li>`;
+              }).join('');
+              li.innerHTML = `
+                <div><span class="pill warn">${safe(group.duplicateType)}</span> <span class="pill">confidence:${safe(group.confidence)}</span></div>
+                <div class="mini">recommendedPrimary:${safe(group.recommendedPrimaryFileId)}</div>
+                <div class="mini">reasons:${safe((group.reasons || []).join(' | '))}</div>
+                <ul>${rows || '<li class="mini">No files</li>'}</ul>
+              `;
+              listNode.appendChild(li);
+            }
+          }
+          const assumptionHeader = document.createElement('li');
+          assumptionHeader.className = 'draft-card';
+          assumptionHeader.innerHTML = `<strong>File Assumptions</strong><div class="mini">count:${safe(assumptions.length)} · mutationAllowed:${safe(audit.mutationAllowed)}</div>`;
+          listNode.appendChild(assumptionHeader);
+          for (const row of assumptions.slice(0, 30)) {
+            const li = document.createElement('li');
+            li.className = 'draft-card';
+            li.innerHTML = `
+              <div><span class="pill">${safe(row.role)}</span> <span class="pill">${safe(row.status)}</span> <span class="pill">renameSafe:${safe(row.renameSafe)}</span></div>
+              <div class="mini">fileId:<span class="mono">${safe(row.fileId)}</span> · original:${safe(row.originalFileName)}</div>
+              <div class="mini">assumedTruck:${safe(row.assumedTruckName)} · confidence:${safe(row.confidence)}</div>
+              <div class="mini">proposed:${safe(row.proposedFileName)}</div>
+              <div class="mini">attribution:${safe(row.sourceAttribution?.attributionSource)}</div>
+            `;
+            listNode.appendChild(li);
+          }
+        } catch (_error) {
+          listNode.innerHTML = '<li class="draft-card">File audit unavailable for current permissions.</li>';
+        }
+      }
+
+      async function refreshPublishAudit() {
+        const listNode = document.getElementById('publish-audit-list');
+        if (!listNode) return;
+        try {
+          const auditPayload = await client.getPublishAudit({ planId: executionState.planId || undefined });
+          const records = Array.isArray(auditPayload.records) ? auditPayload.records : [];
+          listNode.innerHTML = '';
+          if (!records.length) {
+            listNode.innerHTML = '<li class="draft-card">No audit entries yet.</li>';
+            return;
+          }
+          for (const row of records) {
+            const li = document.createElement('li');
+            li.className = 'draft-card';
+            li.innerHTML = `
+              <div><span class="pill">${safe(row.result)}</span> <span class="pill">${safe(row.action)}</span></div>
+              <div class="mini">auditId:${safe(row.auditId)} · executionId:${safe(row.executionId)} · recordId:${safe(row.recordId)}</div>
+              <div class="mini">targetId:${safe(row.targetId)} · operator:${safe(row.operatorId)} · at:${safe(row.executedAt)}</div>
+              <div class="mini">failureReason:${safe(row.failureReason)}</div>
+            `;
+            listNode.appendChild(li);
+          }
+        } catch (_error) {
+          listNode.innerHTML = '<li class="draft-card">Audit history unavailable for current permissions.</li>';
+        }
+      }
+
+      hydrate().catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unable to load MealScout review queue';
+        alert(message);
+      });
+      wireBatchControls();
+      wireFilterControls();
+      const candidateImportBtn = document.getElementById('candidate-import-btn');
+      if (candidateImportBtn) {
+        candidateImportBtn.addEventListener('click', async () => {
+          const text = document.getElementById('candidate-import-text')?.value || '';
+          if (!text.trim()) return;
+          try {
+            candidateImportResult = await client.importCandidateSummary({
+              markdownText: text,
+              sourceLabel: 'gemini_drive_summary'
+            });
+          } catch (error) {
+            candidateImportResult = {
+              parsedCandidateCount: 0,
+              matchedCandidateCount: 0,
+              unmatchedCandidateCount: 0,
+              mutationAllowed: false,
+              candidates: [],
+              error: error instanceof Error ? error.message : 'candidate import failed'
+            };
+          }
+          renderCandidateImport();
+        });
+      }
+      renderCandidateImport();
+      const refreshFileAuditBtn = document.getElementById('refresh-file-audit-btn');
+      if (refreshFileAuditBtn) {
+        refreshFileAuditBtn.addEventListener('click', () => {
+          refreshFileAudit().catch(() => {});
+        });
+      }
+      const refreshFolderContextBtn = document.getElementById('refresh-folder-context-btn');
+      if (refreshFolderContextBtn) {
+        refreshFolderContextBtn.addEventListener('click', () => {
+          refreshFolderContext().catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

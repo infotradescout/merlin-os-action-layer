@@ -1,0 +1,65 @@
+MealScout Admin Draft Menu-Defer Eligibility Patch Report
+
+Status: completed
+
+Files changed:
+- src/mealscoutProfileImport.ts
+- src/merlin/intake/actionCards.ts
+- tests/merlin-intake-action-cards-runtime.test.ts
+- tests/mealscout-profile-import.test.ts
+
+What changed:
+1) Admin-draft menu-defer eligibility
+- Added strong identity/context evaluation for drafts.
+- For admin/drive-context evidence, missing menu can be deferred when identity bundle is strong.
+- menuDeferred can now be set true for identity-strong, menu-missing admin/drive drafts.
+
+2) Missing field behavior
+- menu remains in missingFields as a warning even when menuDeferred is true.
+- This preserves incompleteness visibility while allowing draft creation path.
+
+3) Action-card classification
+- Added rule: if missingFields is only ['menu'] AND menuDeferred=true AND source is admin/drive-context,
+  card type becomes create_profile_draft (instead of request_missing_info).
+
+4) Confidence adjustment
+- Added modest confidence boost (+0.06) for strong identity bundle (name + >=2 support signals).
+- No threshold changes.
+
+5) Safety preserved
+- Fast Lane threshold unchanged (0.85).
+- Low-confidence cards still not auto-applied.
+- No publish/apply expansion beyond existing logic.
+- No notification automation added.
+- No Drive cleanup/delete/archive/suppress added.
+- Duplicate/replacement warning behavior unchanged.
+
+Validation:
+- npm run check: PASS
+- npm run test -- --runInBand: PASS
+- npm run build: PASS
+
+Live reprocess verification (same three files):
+Requeue/process request:
+POST /api/mealscout/intake/drive/requeue-files
+sourceFileIds:
+- 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+- 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+- 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+reason: ocr_patch_validation
+forceNewBatch: true
+processNow: true
+
+Result summary:
+- action-card-ms-draft-7f87da4fa7e32ba0 remains request_missing_info, confidence 0.27
+- action-card-ms-draft-57de1c837c0dd82e becomes create_profile_draft, confidence 0.56
+
+Dry-run outcomes:
+- powk DIES card: skippedReason=missing_required_fields
+- Lettys card: wouldCreate present, skippedReason=null, menuDeferred=true, missingFields includes ['menu']
+
+Fast Lane check (0.85):
+- autoAppliedCount: 0
+- manualReviewCount: 2
+- Lettys card remains manual due below_confidence_threshold
+

@@ -1,0 +1,60 @@
+MealScout Real Batch OCR Hydration + Field Classification Patch Report
+
+Status: completed
+
+Files changed in this patch:
+- src/mealscoutScreenshotExtraction.ts
+- src/mealscoutProfileImport.ts
+- src/merlin/intake/actionCards.ts
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- tests/mealscout-screenshot-extraction.test.ts
+- tests/merlin-intake-action-cards-runtime.test.ts
+
+Implemented:
+1) OCR hydration visibility in action cards
+- Added extraction debug payload in action-card extracted fields:
+  - extractionDebug.sourceTextSnippets
+  - extractionDebug.rawTextEvidence
+- Persisted/retrieved through action-card queue store via extracted_fields_json.
+- Dry-run now exposes the same debug evidence through card.extractedFields.
+
+2) Field classification hardening
+- Added cuisine keywords:
+  - Filipino, Desserts, Coffee (plus existing set)
+- City extraction now validates location-like phrases and rejects cuisine/tagline strings.
+- Phrase like "all authentic fresh filipino" now maps to cuisine and not cityArea.
+
+3) OCR noise handling
+- Added truck-name cleanup normalization.
+- Added noisy menu-line filter to avoid promoting OCR-garbled price lines as clean menu items.
+
+4) Required-field handling for draft intake safety
+- Added conditional contact relaxation for draft creation when identity support is strong enough (draft-stage only).
+- Did not change publish execution gates.
+- Menu defer heuristic tightened to profile/contact-like screenshots (not truck-name-only inputs).
+
+5) Safe-mode weak OCR hardening
+- Expanded weak OCR name detection for "Title ..." patterns to keep weak-name drafts in needs_review in safe mode.
+
+Test updates added:
+- mealscout-screenshot-extraction:
+  - cuisine tagline not misclassified as cityArea
+  - location-like phrase still classified as cityArea
+- merlin-intake-action-cards-runtime:
+  - extraction debug visible on action cards
+  - strong-identity no-contact operator/admin-style case can create draft card (no publish/mutation)
+  - profile/menu defer expectations updated for new defer behavior
+
+Validation run:
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (358 pass, 0 fail)
+- npm run build: PASS
+
+Safety confirmation:
+- Fast Lane threshold unchanged.
+- Low-confidence cards still not auto-applied.
+- Duplicate/replacement warning behavior unchanged.
+- No notification send behavior added/changed in this patch.
+- No Drive cleanup/delete/archive/suppress behavior added/changed in this patch.
+- No publish execution behavior added/changed in this patch.

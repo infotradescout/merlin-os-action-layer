@@ -120,7 +120,51 @@ test('logo unmatched remains uncertain cluster', () => {
 
   const clusters = clusterMealScoutEvidenceFiles([logo]);
   assert.equal(clusters.length, 1);
-  assert.equal(clusters[0].reviewStatus, 'missing_required');
+  assert.equal(clusters[0].reviewStatus, 'uncertain_match');
+});
+
+test('single-truck mixed profile menu logo consolidates into one cluster', () => {
+  const files = [
+    createMealScoutEvidenceFile({
+      fileId: 'pilot-1-profile',
+      fileName: 'IMG_1021.PNG',
+      drivePath: '/incoming/unknown/IMG_1021.PNG',
+      sourceFolder: '/incoming/unknown',
+      extractedSignals: {
+        truckName: 'Big Mikes Taco Truck',
+        phone: '985-111-2222',
+        email: 'bigmikes@example.com',
+        cityArea: 'New Orleans',
+        cuisine: 'Mexican'
+      }
+    }),
+    createMealScoutEvidenceFile({
+      fileId: 'pilot-1-menu',
+      fileName: 'IMG_1033.PNG',
+      drivePath: '/incoming/unknown/IMG_1033.PNG',
+      sourceFolder: '/incoming/unknown',
+      extractedSignals: {
+        menuItems: [
+          { name: 'Brisket Taco', price: '$4.50' },
+          { name: 'Chicken Taco', price: '$4.00' }
+        ]
+      }
+    }),
+    createMealScoutEvidenceFile({
+      fileId: 'pilot-1-logo',
+      fileName: 'IMG_1044.PNG',
+      drivePath: '/incoming/unknown/IMG_1044.PNG',
+      sourceFolder: '/incoming/unknown',
+      extractedSignals: {
+        truckName: 'Big Mikes Taco Truck'
+      },
+      visualHints: { hasLogo: true }
+    })
+  ];
+
+  const clusters = clusterMealScoutEvidenceFiles(files);
+  assert.equal(clusters.length, 1);
+  assert.equal(clusters[0].files.length, 3);
 });
 
 test('duplicate possible cluster is marked when matching existing profiles', () => {

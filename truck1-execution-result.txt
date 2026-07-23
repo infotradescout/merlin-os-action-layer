@@ -1,0 +1,45 @@
+Truck #1 Execution Result
+- executionId: ms-exec-6073f50d-f04e-45d4-8b97-7ff731b39bcb
+- planId: ms-plan-20f99ac6-0aae-4400-9e01-8d3cf9a15d6c
+- recordId: ms-plan-record-ms-draft-1a927d96-fff0-4884-a33d-87cca97f6b5b
+- result: success
+- targetId: ms-profile-8daae7b9-cee2-4497-aaa8-219b7b0ff4df
+- auditId: ms-audit-61fa5ea6-4967-44ce-9dfd-2a44486ea7ad
+- plannedAction: create_new
+- fieldsWritten: truckName, phone, facebook, cityArea, cuisine
+- attachedMedia written: none
+- sourceFileIds: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+- evidenceRefs: Koolaide $2 med / $3 laree
+
+Traci's Cherished
+Creations LLC
+1.8K follower | 11:57 & 9 Fw!
+
+<
+
+Peach Crown Royal Wings 5 wings or10 wings.......§12/17
+
+Deep Fried tossed with Peach Crown sauc | ease Follow us on Facebook
+
+DINNERS All Dinners come with 2 sides | Reviews)
+
+o) Open now
+
+©) Pensacola, FL, United States
+
+sus] Pensac | - 6 oineapple-Sweet Jalapeno- BBQ-Honey Mustard Heavenlv Koolai | ney Mustard
+
+PICK A SIDE
+
+Fried Mac and Cheese Balls.......... $8.50
+Pil Ob scsanismaminnmm | ssccsccsscasscnsaaxcesece $2
+Deep Fried Bacon ........sssscsssssesssssessees $3.50
+
+Nacho Cheese...
+Che
+- attribution: {"primarySourceRepId":"MANUAL_OPERATOR","contributingRepIds":["MANUAL_OPERATOR"],"sourceFileIds":["1OLhdistMCVhMqyxbys4lHYhHXfmuQU97","1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq"],"attributionPolicy":"first_required_field_contributor"}
+- previousValues=null; newValues={"truckName":"Traci's Cherished","phone":"850-255-8396","facebook":"DINNERS","cityArea":"Pensacola, FL","cuisine":"BBQ"}
+- duplicate re-execution idempotent: True
+- duplicate re-execution result: already_executed
+- duplicate re-execution reason: already_executed
+- preview mutationAllowed remains false: True

@@ -1,0 +1,127 @@
+Decision
+
+Slice 5B is implemented and validated.
+
+Report: merlin-intake-notification-tracking-outreach-audit-slice5b-report.txt
+Date: 2026-06-01
+Status: PASS
+
+Goal
+
+Add notification open/click tracking and outreach audit visibility for MealScout manual notifications, without enabling automatic send.
+
+Files Changed
+
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-dryrun.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+Implemented
+
+1. Durable tracking fields on action-card ledger
+Added durable notification tracking fields:
+- notificationTrackingId
+- notificationLink
+- notificationOpenedAt
+- notificationOpenCount
+- notificationLastOpenedAt
+- notificationClaimStartedAt
+- notificationReviewStartedAt
+- notificationAuditEvents
+
+Migration safety:
+- Existing DB upgraded via PRAGMA column checks + ALTER TABLE additions.
+- Defaults preserved (open count 0, tracking fields null).
+
+2. Tracked link generation
+Notification preview/send now generate and persist tracked link metadata when profile link is resolvable:
+- tracked link format: /api/mealscout/intake/notifications/:trackingId/open
+- trackingId is UUID-based and tied to the action card record.
+- preview/send return tracking id + tracked link.
+
+3. Open tracking endpoint
+Added:
+- GET /api/mealscout/intake/notifications/:trackingId/open
+
+Behavior:
+- Finds card by tracking id.
+- Increments notificationOpenCount.
+- Sets notificationOpenedAt on first open.
+- Updates notificationLastOpenedAt on each open.
+- Appends notification_opened event into notificationAuditEvents.
+- Redirects (302) to canonical MealScout profile link.
+- Unknown tracking id returns safe 404 text response.
+
+Safety:
+- No profile field mutation.
+- No claim/ownership transfer.
+- No verification changes.
+
+4. Notification status endpoint
+Added:
+- GET /api/mealscout/intake/action-cards/:cardId/notification/status
+
+Returns:
+- notification state
+- tracking id/link
+- profile link
+- open metrics (first/last/open count)
+- claim/review tracking fields
+- audit events
+- mutationAllowed:false
+
+5. UI and client updates
+Client additions:
+- previewActionCardNotification(cardId)
+- sendActionCardNotification(cardId, payload)
+- getActionCardNotificationStatus(cardId)
+
+Admin UI updates (/admin/mealscout-review-queue):
+- Shows tracked link + open metrics on cards.
+- Adds Notification Status action.
+- Adds Copy Tracked Link action when link exists.
+- Keeps Preview Notification and Send/Copy Notification controls.
+- Shows status in result console text.
+
+6. Manual-send boundaries preserved
+- No auto-send behavior introduced.
+- manual_copy remains the default safe channel.
+- email/sms still blocked unless explicit env flags are enabled.
+- duplicate/conflict/replacement notifications still require explicit override.
+
+Validation
+
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (347/347)
+- npm run build: PASS
+
+Tests Added/Updated
+
+Backend tests:
+- preview denied for unapplied card
+- preview ready for applied card includes tracking info
+- send persists tracking link/id on manual_copy
+- open endpoint increments metrics and redirects
+- first vs later open timestamp behavior
+- unknown tracking id safe 404
+- tracking does not imply profile mutation/claim/verify behavior
+
+UI/client tests:
+- notification preview/send/status API calls wired
+- tracked link fields present in mocked responses
+- client methods verify mutationAllowed:false on notification ops
+
+Safety Confirmations
+
+- No automatic notifications implemented.
+- No Drive cleanup/delete/archive behavior added.
+- No TradeScout notification behavior added.
+- Duplicate/replacement warning behavior preserved.
+- open tracking does not mutate ownership/verification/profile content.
+
+KPI Outcome
+
+manual notification sent/copied -> tracked link opened -> outreach open metrics visible in admin queue/audit state.

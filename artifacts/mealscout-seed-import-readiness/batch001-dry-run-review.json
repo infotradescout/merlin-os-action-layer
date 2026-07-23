@@ -1,0 +1,101 @@
+{
+  "batchId": "BATCH-001-MEALSCOUT-MERLIN-SEED",
+  "generatedAt": "2026-06-07T16:52:21.217Z",
+  "status": "ok",
+  "mode": "dry_run",
+  "mutationAllowed": false,
+  "seedExportChecksum": {
+    "algorithm": "sha256",
+    "value": "b69bbc0dc150dc33667bb05eb5f8349dc3961f023919d20c62ac9a261067d2b3"
+  },
+  "eligibleRowCount": 2,
+  "blockedRowCount": 0,
+  "plannedImports": [
+    {
+      "source_file_name": "IMG_5982.PNG",
+      "proposed_action": "create",
+      "field_writes": {
+        "truckName": "Rolling In The Dough Handmade",
+        "phone": "601-916-9151"
+      },
+      "omitted_fields": [
+        {
+          "field": "email",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "website",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "cityArea",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "facebook",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "instagram",
+          "reason": "blank_or_null"
+        }
+      ],
+      "evidence": {
+        "copied_evidence_file_id": "1K5PFW9EpXFxdcn4e1uG9yVl3EYiby7hz"
+      },
+      "provenance": {
+        "original_source_file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
+        "original_source_is_audit_only": true
+      }
+    },
+    {
+      "source_file_name": "IMG_5980.PNG",
+      "proposed_action": "create",
+      "field_writes": {
+        "truckName": "Crav'N Da Flava Food Truck",
+        "phone": "251-234-4421",
+        "cityArea": "Mobile, AL"
+      },
+      "omitted_fields": [
+        {
+          "field": "email",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "website",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "facebook",
+          "reason": "blank_or_null"
+        },
+        {
+          "field": "instagram",
+          "reason": "blank_or_null"
+        }
+      ],
+      "evidence": {
+        "copied_evidence_file_id": "1KSzZYSFBW6TUcnnEj0gq54i-Xu701ntc"
+      },
+      "provenance": {
+        "original_source_file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
+        "original_source_is_audit_only": true
+      }
+    }
+  ],
+  "blockedRows": [],
+  "safetyStatus": {
+    "no_live_apply_path_ran": true,
+    "review_artifact_only": true,
+    "mutationAllowed": false
+  },
+  "safetyRules": [
+    "only copied BATCH-001-MEALSCOUT-MERLIN-SEED rows are eligible",
+    "source_file_id is treated as copied evidence_file_id",
+    "copy audit source_file_id is preserved as original_source_file_id provenance only",
+    "existing profile matches are staged as update",
+    "blank and null export values are not included in field writes",
+    "dry-run is the default mode",
+    "live apply requires allowLiveApply=true"
+  ]
+}

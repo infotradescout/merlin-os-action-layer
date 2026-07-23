@@ -1,0 +1,288 @@
+candidate_id,business_name,evidence_drive_file_ids,evidence_row_numbers,phone,email,website,instagram,facebook,address,category_signals,duplicate_evidence_count,mutation_allowed
+mealscout-sheet-candidate-0001,Jones Shakes Pensacola,1W_JEFYhuZLjS73w0_PH9--3yL4t6w7YO|1t7dCPeYx67ZMWmcaN1R_B20Yn09I60fi,3|4,850-470-1999,store.142893@jonesshakes.com,instagram.com/jonesshakes.pensacola,@jonesshakes.pensacola,,"7175 N Davis Hwy, Suite E, Pensacola, FL,",dessert_bakery,2,false
+mealscout-sheet-candidate-0002,weusiee El Camino Tacos,1ogTICibWJtO9wlU3_M2SuspCAqfbAYcl,8,,family@perfectplain.com,t.mtrbio.com/el-camino-tacos,@perfectplain.com,,"50 E Garden St, Pensacola, FL, United",food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0003,A Taste of México Taco Truck,1pzGpES6LT762myXSHnz5fV1qCOKn4dhK,9,850-296-6525,atasteofmexico22@gmail.com,gmail.com,@gmail.com,,"3083 Crawfordville Hwy, Crawfordville, FL,",food_truck|taco_mexican|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0004,Mister B's,1jw3BNUEXz5ZCd8AM8Fdj6RI7MRU64n4z,14,850-497-2651,,,,,"6428 Pensacola Blvd, Pensacola, FL,",restaurant|food_service,1,false
+mealscout-sheet-candidate-0005,Junkanoodreamstreet,1AFFug80Ju2meLX212E773yv7ROROR3f8|1rzC7SJhnYJJ8nP0EY7JfAzO2L4ijNf6Z,22|23,,junkanoostreet@gmail.com,junkanoodreamstreet.com,@junkanoodreamstreet,,,food_truck|catering,2,false
+mealscout-sheet-candidate-0006,Flashy Funnel Cakes,1qfu9woizAtiwu7TMGkDMaaVp-YHfGy8d|11LkN1rvSw239sw4EstT33AZ8s7N3tvRh|191USivKtvyh0OrdWVrPQ4Ryi05-4aI9k,24|25|197,256-740-9642,flashyfunnelcakes@yahoo.com,,@yahoo.com,,,food_truck|dessert_bakery,3,false
+mealscout-sheet-candidate-0007,American Comfort LLC,1c6Ooc5V9dyJIKrHQZN-dnr1szgZJ7-OJ|1OCtSJay_wadZ09GFKv1Ed8CejK_GYkfa,28|29,205-862-8418,thewoklobster@thewoklobster.net,,@thewoklobster.net,,,food_truck,2,false
+mealscout-sheet-candidate-0008,Sugar & Co.,1A6qsMCUy9WoeiQinFERae-I7jDR3hsiX|1714rGkB4lg64pVNOy-ZadgXZDYPXPGRS,31|32,850-460-0639,,,,,,food_truck|dessert_bakery,2,false
+mealscout-sheet-candidate-0009,Rollin Cuban Food Truck,1e72TB3nT-nBxzZMarwApW8l8P3VuA6QR,33,850-852-8226,rollincuban@icloud.com,,@icloud.com,,,food_truck,1,false
+mealscout-sheet-candidate-0010,Angry Pigz BBQ,1W82V--US5uOMtIWCEv0u1eoHnis4SiQR,36,850-485-3249,angrypigzbbq@gmail.com,,@gmail.com,,"1323 West Cervantes Street, Pensacola, FL,",bbq,1,false
+mealscout-sheet-candidate-0011,are mobile and our location varies.,19CV48Awb5hVDsP-sA_IdJFdksMWECIMQ,39,,WJK.I1c954@gmail.com,,@gmail.com,,,food_truck|restaurant,1,false
+mealscout-sheet-candidate-0012,The Ritero Burger,1W6XTCwgy4xHSoH03E-UauyOJd-uHLnBc,45,786-622-5235,theriteroburgercorp@gmail.com,,@gmail.com,,"7219 NW 43rd St, Miami Fl 33166, Miami, FL,",food_truck|food_service,1,false
+mealscout-sheet-candidate-0013,Queen Sheba Delights,1ZZWJqyEIbSI7KIQsUu2epfIpKHjjwo5r,46,,,,,,,food_truck|dessert_bakery|coffee|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0014,LAMIXTECA Tacos La Mixteca,12EpdaHPjC6bDbDg_z1Sf0Cbo3mSzNNJO,47,850-760-6539,,,,,"7144 Mobile hwy, Pensacola, FL, United",food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0015,Esaan Thai 54 Gulf Breeze,1crvt8wsN_8i049iZhdjQAsnLLGbx3waz,50,850-677-8145,,,,,,restaurant,1,false
+mealscout-sheet-candidate-0016,Double Dipperz,1cvcDsZk4A5Ub0jhVgZbMnwqedQCw3zT9,52,850-637-6656,,,,,,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0017,Bear Fruit Bowls and Coffee,196qIJie3y3VW9C0vlZgJsa3UoSXJ6kKc,53,850-583-0798,bearfruitbowls@gmail.com,bearfruitbowls.com,@gmail.com,,"41 Fort Pickens Rd, Pensacola, FL, United",coffee,1,false
+mealscout-sheet-candidate-0018,Moonbeam Bakery,1zPeGtFTNBukTfQwp55a31eaRZTU7HASA|15stVHA5B1IU5aGLB5KmF6bY-RTEvuP2G,54|55,,moonbeambakery@outlook.com,,@outlook.com,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0019,Maco wings,13G64KKsE6mWcdaYEVoxRyy4hIhUSzbgM,59,850-861-2661,macowings1@gmail.com,,@gmail.com,,,food_truck,1,false
+mealscout-sheet-candidate-0020,Lots of Lumpia & More,1-3ryiwwqyF9L6ykGiQoMdPVs8p2Lil6n,61,850-324-5351,lolandmorefoodtruck@gmail.com,,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0021,Big Kahuna Shave Ice FI,1UKsViudd1wjBIHFDwhUQ4LG_H_UiLjTE|14uckQVGsupVJRlNKLvN_Zhlxu573bACI,62|63,954-816-3777,Bigkahunashaveicefl@gmail.com,bigkahunashaveice.com,@gmail.com,,,food_truck|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0022,a & gs & @,1BoJ5YgDBp4kaKY_-EIaLzCUNU5WkKx2z|1xLR4fbWfis4z-venk5dUUJBJtDWylEJb,65|66,347-506-6520,Comerfuego@gmail.com,,@gmail.com,,"1100 Malabar rd, Palm Bay, FL, United States,",food_truck|taco_mexican,2,false
+mealscout-sheet-candidate-0023,Fa'Show Catering,1khJvon3PghE7QPvOVMovc8bjpMSdWpaO,68,850-485-4775,fredericknorris188@yahoo.com,,@yahoo.com,,,catering,1,false
+mealscout-sheet-candidate-0024,Hula Hawaiian Barbecue,1ihgkjwIMDOTi9YWvL-X-USeM5qPNH2gW|1Qy86mjjvy1Fpawso5bZZkUPgbyPheq5N,72|73,850-542-7599,hulahawaiianbarbecue@yahoo.com,instagram.com/hulahawaiianbarbecue,@hulahawaiianbarbecue,,"2170 W Nine Mile Rd, Pensacola, FL,",restaurant|bbq,2,false
+mealscout-sheet-candidate-0025,BURGERS AND BBO,17iqxHLcoD4dYoedHYAfMjqeA0mN3K-dM,75,,,,,,,food_service,1,false
+mealscout-sheet-candidate-0026,Doughboy Burgers,1SJh-GG1e_grEo9tPxWbGiR4uk6pDpOQT,76,662-891-8006,Doughboyburgers@gmail.com,,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0027,Mellie Bellies,1avURP3WQ-4yUGs6IPij9LDkeA7zhCVMf,77,717-809-7324,melliebellies522@gmail.com,instagram.com/Melliebellies522,@Melliebellies522,,"2309 Patton Rd, Harrisburg,Pa 17112,",food_truck,1,false
+mealscout-sheet-candidate-0028,"Food Truck , Trailer For Sale And",1LvSG-Vn9D137OrlevhCgQR3h1KYP01jm|11AshvzoQAAIar4DdtzUyYIQGqesMW8fB|1x-WL3Rl60hFNP_pxsCd9HX83_rjpoKDo,78|79|80,,,,,,,food_truck|drink_shaved_ice,3,false
+mealscout-sheet-candidate-0029,Cafe,1dArcdJ7Q4yDt_F1_RxnNa7fXYhHn38um|1WJ7MtuNneISIlyKu-zYf4CP4CGl80gwH,83|206,850-465-6171,,,,,"10605 Sorrento rd Pensacola Fl 32507,",taco_mexican|food_service|food_truck|restaurant,2,false
+mealscout-sheet-candidate-0030,Fantasias Kitchen,1zLLQp5xmIBn6_vxehg89Wz775ll5-qJI|1xz-H31Sj_L4rb7QYNXnDKE_weV8E-KsU,90|91,813-802-1903,fantasia@fantasiskitchen.com,instagram.com/,@fantasiskitchen.com,,,food_truck|catering|food_service,2,false
+mealscout-sheet-candidate-0031,catering events large and small.,1QQTFellBDCETFPu8F-WPNKA7yEF9MQzR,92,740-262-8181,Joshuaspillman@gmail.com,,@gmail.com,,,food_truck|catering|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0032,Freemans Eatery850,1bGnWc-WJS9yr9PcAVk5Yu_n9MpjUNZGF,93,850-977-3137,freemanseatery@gmail.com,,@gmail.com,,"2925 Copter Rd, Pensacola, FL, United",food_truck|catering,1,false
+mealscout-sheet-candidate-0033,Fusion Foods,1tpXbUOltF4lbO5mHj3VSLqH5uc8LWAw3,94,,fusionfoods0524@gmail.com,,@gmail.com,is,,food_truck|catering,1,false
+mealscout-sheet-candidate-0034,Gwrounding Areas,1vGy92aZgG4Is1ZhmXxPj7JfpwRcBKa80,95,,,,,,,catering,1,false
+mealscout-sheet-candidate-0035,NOB's - No Ordinary Burritos,1boviaGVNfc4CD_Ig_Z5OEmD_2KiMJecP|16T3kH6rqLrCdoPJvNIki1exDEhQb9Wk1,98|99,321-225-2231,nobsnow1@gmail.com,,@gmail.com,,,food_truck|taco_mexican,2,false
+mealscout-sheet-candidate-0036,Catering,1gn1JkZtwhwcQlIlTQR1OpmVjPGhoqScO,100,689-252-2855,Booking@143myevent.com,,@143myevent.com,,,catering|food_service,1,false
+mealscout-sheet-candidate-0037,Double Dipperz,1ykS9eOMQxGBGbPmksJpgjTjWRpTQ3iac,101,850-637-6656,contact@doubledipperz.club,,@doubledipperz.club,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0038,Cajun Gris Gris,1mNYAaywwcdvctQq18tVsiHw8Sxsr0ka_|1Hoi6RAEqHetbLuyi4-G89pdMPXtjt1xZ,102|103,228-219-0635,Cajungrisgris@yahoo.com,,@yahoo.com,,,food_truck|catering,2,false
+mealscout-sheet-candidate-0039,"Coffee, custom cakes and cookies and other",1ekz5LGGCkTp1RmuDGUX8yyjXK0KWYo0E,105,,nbpippen@gmail.com,www.dellagussy.com,@gmail.com,,,dessert_bakery|coffee,1,false
+mealscout-sheet-candidate-0040,Back Porch Burgers - Food Truck,1gNb0qcWJbJ2UdmYfm1K8OoKTZnMIpjEx|1bOcxwlm51SxZ8oSJtq5VcATtWnu0vWl2,113|114,816-308-6685,georgiagatorllc@gmail.com,,@gmail.com,,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0041,Juniper Food Truck,1hPv1-QPx29sNnVpBTB-PFWzEDSHiWM0l,118,941-730-2702,juniperfoodtruck@gmail.com,,@gmail.com,,,food_truck,1,false
+mealscout-sheet-candidate-0042,Mama Jen''s Bakehouse,1M3jpOxIwyAVnnF3waDxgy80f-n8i1V0H,119,706-575-4084,chunnichen@gmail.com,,@gmail.com,,,dessert_bakery,1,false
+mealscout-sheet-candidate-0043,Bluebird Coffee Pensacola,1Zn08n6vLZqndlPzQDPVEYdmC1H34DURD|1NzqkIWIWggrp7KsvSPN1LhgQ2hxrsEj1,120|121,,bbcoffee2024@gmail.com,instagram.com/bbcoffeepcola,@bbcoffeepcola,,,coffee|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0044,Monster Cone Pensacola,15g34ssxsUOM2K2h7XoI50esyY3kCCAGh,122,850-982-9895,,,,,,dessert_bakery,1,false
+mealscout-sheet-candidate-0045,Critter Coffee Co.,1XMWllR6riklx1q3ofccI3hqgMqmMdWZF|1BlXciye-EEww9_wNd9fTCUFll1-bBHSF,123|124,850-712-6892,,,@delunacoffee,,,coffee,2,false
+mealscout-sheet-candidate-0046,Sneaky Tiki,1PcezO6dHocE9cRnxu7D6j91Wc9TU2wqh,125,850-346-7811,,,,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0047,Pipo y Mima cuisine,1w44fWbVhVQwkHpjMR0MZkoknAS1Xmvjt,126,850-261-1557,,,,,"1302 N Pace BLVD, Pensacola, FL, United",drink_shaved_ice,1,false
+mealscout-sheet-candidate-0048,Fire Dogs,1v9ea35iTugIUhSKkAO75LaoYyhGKxLBc,127,,,,,,"1101 W Main st, Pensacola, FL, United",food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0049,Food Truckin Utah,1Fk-WOmex8eLZqsiX3bPjYRGSIn2GfoKn|12c_hc95EFW7lQVSbn4YiSIJFtr4nqm-z,133|134,,Foodtruckinutah@gmail.com,,@gmail.com,,,food_truck|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0050,Hot Spot Barbecue,1un0qtPvJGRvV_hOqsZRuUa1_69abtg1P,135,850-497-6060,,,@yelp,,"901 E La Rua St, Pensacola, FL, United",restaurant|bbq,1,false
+mealscout-sheet-candidate-0051,Dave's neapolitan pizza,1Hh2khO9OIb8VoMoBBTW9vN7UKZKaGPwn,137,239-258-1629,,https://www.tiktok.com/,@davesneapolitanpizza,,,dessert_bakery|food_service,1,false
+mealscout-sheet-candidate-0052,Creations LLC,1OLhdistMCVhMqyxbys4lHYhHXfmuQU97|1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq,140|226,850-255-8396,,,,DINNERS,,food_truck|bbq,2,false
+mealscout-sheet-candidate-0053,Las Delicias de la Gorda,10gZmtq6h6pjoB1RWXijbiVvw2IhSPgyH,141,302-205-6166,,,,,,food_service,1,false
+mealscout-sheet-candidate-0054,Dwell Cookie Co.,1IUfL3mNs5bpJHGBpGzZmHGePK-hY25O9,142,,arc504@jagmail.southalabama.edu,,@jagmail.southalabama.edu,,,dessert_bakery,1,false
+mealscout-sheet-candidate-0055,Eurasian Bistro,1DSNqQcJ7jW65nl0SxjDL4ucoghxydePs,143,850-786-3459,,eurasianbistro.com,,,"10015 North Davis Highway, 32514",restaurant,1,false
+mealscout-sheet-candidate-0056,Seafood Soul,1566CfuwVD0D-WsqrZG6YAGVyj0IT71VW,144,470-368-4846,Seafoodsoul83@gmail.com,Myseafoodsoul.com,@gmail.com,,"824 West Tharpe Street, Tallahassee, FL,",food_truck|food_service,1,false
+mealscout-sheet-candidate-0057,Proper burger,14jf5rW4GQSI9MMuwmiyMYDvde2G2nKqy,146,,,,,,125 Lovejoy Rd NW Fort Walton Beach,drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0058,Brown Bagger Food Truck,1FsYLxxJfOjn7fYRDjFTgGp-tXYem83il,147,,hello@brownbaggerfoodtruck.com,,@brownbaggerfoodtruck.com,,"2435 N 12th Ave, Pensacola, FL, United",food_truck,1,false
+mealscout-sheet-candidate-0059,Food Truck,11YS02IcJn907UNVPaMtSWEfA2u34FrgR,149,786-352-9834,Lulitopupo@gmail.com,,@gmail.com,,,food_truck|restaurant,1,false
+mealscout-sheet-candidate-0060,Coffee,1ICfPaWebnBh4C3UcPJrZTy2qPvnkfffK|1435O8GEDLvsj1yJ8G_Y7jtNISHJFTB30,152|474,850-583-0798,,bearfruitbowls.com,,,"41 Fort Pickens Rd, Pensacola, FL, United",coffee,2,false
+mealscout-sheet-candidate-0061,e TRAVELIN' TOM'S COFFEE COFFEE,1CF9nkLbAp9lWLf3riMWXMIn7qSYugjF7,154,,,,,,,dessert_bakery|coffee|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0062,Eacehanok is shawina information to heln vou,196H81-M_VYXEh60u5ff3eTaOdzqXGcFZ,155,850-291-7225,allaboutboba.pcola@gmail.com,instagram.com/Allaboutboba.pcola,@Allaboutboba.pcola,,"6429 N 9th Ave, Pensacola, FL, United",drink_shaved_ice,1,false
+mealscout-sheet-candidate-0063,Ejelyns Kitchen,1XdkJoYXL2eKwZrR6EAkjdNOCFjS94HHj|1xfsyBRfXVt-9jFjNpcDjoTnlRb32kPL6,159|160,,,,,,,food_service,2,false
+mealscout-sheet-candidate-0064,Latino,1Ghu2jGqtwla-xSSTFiYYSdQ3A1uvMDhp,174,,,,,,,restaurant|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0065,La Taqueria,1JazEWhTdX2i_CzQwrhSvR-jlXDSk67KJ,185,251-509-6515,lataqueria.ey@gmail.com,,@gmail.com,,,food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0066,Tacos el Amigo 3,1m1a262IkgIbxCizUrwvBXlMFRqrLrMC5|18EzeWU5m8H_02FCu0CqFLIWqf4EFetWg|1Ob9movuicaV7ERypnNaVSV218sCDM4Nk,186|187|412,850-529-2698,,,,,"12350 Gulf Beach Hwy, Pensacola, FL,",restaurant|taco_mexican|drink_shaved_ice|food_service,3,false
+mealscout-sheet-candidate-0067,farinated chicken in Thai herbs andlavors,1cVx73lQOmUW4xB4fFFhbdSUNdSFwWDYJ,188,,,,,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0068,Mr Tacos Grill,14riE4x-3t5w47KAE-U0BJwTVFpqJIPGv,189,850-760-7266,mr.taco.grill.pensacola@gmail.com,,@gmail.com,,"6428 Pensacola Blvd. , Pensacola, FL,",food_truck|taco_mexican|food_service,1,false
+mealscout-sheet-candidate-0069,Indulgence Bakehouse,1L0Ft0XYOOkiedhGGYlJx3prhzXND-o4R|1rZGERQla9D75Z1U-bHUr09MIweOLE7Vj,200|201,850-485-1468,,,,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0070,"Made with Love, Sea",1xP88LtATG5zYZ5wFrqBcQasY-pkoXCJ2|1ESihxqbI-hoRhMG2ZVRGkOkWtmYSNUGb,202|203,904-735-3437,pitafreshtruck@gmail.com,,@gmail.com,,,food_truck|restaurant,2,false
+mealscout-sheet-candidate-0071,"Cu, suicc'y eronica's Dream",1FhGDkedAort49qCfPhjQA2gJhg_rTPnr,207,,,veronicabynumsdream.com,,,"3532 North W. Street, Pensacola, FL, United",food_truck,1,false
+mealscout-sheet-candidate-0072,Flashy Funnel Cakes,18SP7sX2qMcsKXjF6R2XPMG5hdfi1jg0g,208,,,,,,,food_truck|dessert_bakery,1,false
+mealscout-sheet-candidate-0073,Jordan Valley Downtown,16kmjthKjSR_BCrZJBaACS2o8A88IE2lR,209,,,jordanvalleyrestaurantfl.com,,,"201 S Jefferson St, Pensacola, FL, United",restaurant,1,false
+mealscout-sheet-candidate-0074,"Followed by Tammy Kocon Doverspike,",1NUJIum1aYr_t88munSMUjjBROdpcSwPx,210,,,,,,24 No Borders Street Food,food_truck,1,false
+mealscout-sheet-candidate-0075,La Casita Food Truck,1-h1LqC_dCadVZzdwygKG4SUe5XK8p4U6,213,850-525-0770,lacasita939@yahoo.com,,@yahoo.com,,,food_truck,1,false
+mealscout-sheet-candidate-0076,"Top This Concessions, LLC",15Ig43vT5rACrXfwz9SXzByWDt2CrSMEz,214,601-525-6708,,,,,,catering,1,false
+mealscout-sheet-candidate-0077,Vendor LOT,1-U_xXhtqCwbVPG6B1HhBmLiKzu9TjPSE|1kzhGTV1t9UxtsyaqgIP2HrKf_beh0aJk,215|216,904-834-1113,,,,,7159 Wilson Blvd Jacksonville FL 32210,food_truck,2,false
+mealscout-sheet-candidate-0078,Yow Wriahteous Eats,1F9glxvIpdhB0HFtikzImN9hX0MqPBtTO,217,850-982-1267,wrighteouseats@gmail.com,,@gmail.com,,"3728 Creighton Road, Pensacola, FL, United",food_truck|bbq,1,false
+mealscout-sheet-candidate-0079,Sausage,1srTxtusM-6Mr8eDh8QW81ca0MU9tqJSY,218,850-436-3780,,,,,"7791 T Jar Drive, Pensacola, F",catering|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0080,food. Followed by Pensacola Cooks Commissary and,1e2G7vuyaDZPyZnR90mCbooJ2wNsz4kpJ,219,850-356-4410,,,,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0081,Food Truck Lemonade LLC,1pXBKQ1R7EJ0w-resI39uCnCjrraxM6eR,220,,,,,,,food_truck|catering|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0082,@ Follow Message,18oTm7gqjiAmdcvI5OuMXcaXIBomeRsb1|1TIfUZA2mLuC3sEh5HkBqJLZXIIZiHkWK,221|222,,,Kookiekraze.com-Themed,,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0083,Frontera's Tacos Pensacola,1w5WUL_8E45j1k2QS_dLTyVGQpLp1zYdb,227,,,,,,,food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0084,Pensacola,1tMDAksq1I6_yQdYuDi322PX0WCxYa_U0,228,850-200-7624,,,,,"2118 W Nine Mile Rd, Pensacola FL",food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0085,The Frosty Moo LLC,1NL_5xU5PvCTpC2v3LtNnrm_ERQtwqG4k|1q8rm1mvi7AFwVhKhu4-nF7kgdBs1Gy6y|1FZbrYxa4vCUHfUQhjfXRtiIa-57qX-fL,229|230|589,850-860-1133,Thefrostymoo@gmail.com,thefrostymoo.com,@gmail.com,is,,food_truck|dessert_bakery,3,false
+mealscout-sheet-candidate-0086,Fueling your cravings with irresistible birria and,1_-iEpevo96ebLgnQkdsxVd2h1lPQV4XP,231,850-614-8605,,,,,4700 mobile hwy,food_truck|taco_mexican|food_service,1,false
+mealscout-sheet-candidate-0087,Buzzed Brew Coffee,1jYDTiojcSotdQibAYb5xVcbcLyXbBZlp,232,,info@buzzed-brew.com,,@buzzed,,"501 S Palafox Street, Pensacola, FL,",coffee|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0088,Arlene's BBQ Food Truck,1h-tTSVKQRR5UT6Hlk2uyDD-f9qYu1cSD,234,,,,,,,food_truck|bbq,1,false
+mealscout-sheet-candidate-0089,Georgio's Pizza,16ROt7ZWl_rMVIwouYT08RXiNsjMrgIXr,235,850-432-5996,georgiospizza@cox.net,mygeorgiospizza.com,@cox.net,,"3000 E Cervantes St, Pensacola, FL, United",food_service,1,false
+mealscout-sheet-candidate-0090,Georgio's Pizza,11XS-l0bh-HanU-gMcTRt_7xccnI-o4Y7,236,,,mygeorgiospizza.com,,,"3000 E Cervantes St, Pensacola, FL, United",food_service,1,false
+mealscout-sheet-candidate-0091,"Good Day, Darling",1Ve6hRBoH5Yj__R8WLbnvV7ZqgSAEilbQ,238,850-542-7295,hello.gooddaydarling@gmail.com,gooddaydarling.co,@gmail.com,,"901 N 12th Avenue, Pensacola, FL, United",food_service,1,false
+mealscout-sheet-candidate-0092,"Good Day, Darling",1luk50mCh_zV21xclKfClCKKkDQQqdAIj,239,850-542-7295,,,,,,coffee|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0093,The Blazed Buddha Kitchen,11sEEc-yZm2piHyFuCtyy7JTnZSOy-PpK,240,813-728-4546,,ubereats.com/store/the-blazed-buddha-kitchen/,,,"915 N Tampa St, Tampa, Fl",food_truck|food_service,1,false
+mealscout-sheet-candidate-0094,Fyah Jerk Grill LLC,11X3B2JSZnrhSodSGxZ9BKKl_GKmF3bNy,241,857-417-4236,fyahjerk617@gmail.com,,@gmail.com,,"9712 N Palafox St, Pensacola, FL, United",food_truck|food_service,1,false
+mealscout-sheet-candidate-0095,Meat in the Middle Food Truck,10eDHmw_0Q4ApLC4OaYFkBioFsZ2hs_WO|1B81AqgcOJldXg30sYDk5tlJIhxs0fzuK,242|243,561-295-9833,meatinthemiddleft@gmail.com,instagram.com/MeatInTheMiddleFL,@MeatInTheMiddleFL,,"8401 SE Federal Hwy , Hobe Sound, FL, United",food_truck|food_service,2,false
+mealscout-sheet-candidate-0096,The Snowy Flamingo,1s4et0iwWMVXq4eHLzi3k96F_T0t8mJzz|1iIeklZI7yltawDQb7h47IbEcdYzD8A5c,244|245,,Thesnowyflamingo@gmail.com,thesnowyflamingo.com,@gmail.com,,,food_truck|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0097,Greazy Burger,1xK4NDr5xWbCGN4CKxDHNp_e9Bqa0-NGV,246,,,greazyburger.com,,,"2806 W Michigan Ave, Pensacola, FL,",food_truck|food_service,1,false
+mealscout-sheet-candidate-0098,Greazy Burger,1XTMQ7DIATizbQxzFWcPwfbOyWaIb3P3N,248,850-529-1979,,greazyburger.com,,,"2806 W Michigan Ave, Pensacola, FL,",food_service,1,false
+mealscout-sheet-candidate-0099,Guadalupe Tex-Mex Kitchen,1iufRWKE9gxCl4lBIgSMm9DyH_shqJ4iV,251,850-470-4763,guadalupetexmex06@gmail.com,guadalupekitchen.com,@gmail.com,,"1412 W Fairfield Dr, Pensacola, FL, United",food_service,1,false
+mealscout-sheet-candidate-0100,Di Da Food Truck,1LpGK9qHq1LTSkP5BYn6Ib_o2dbCkw1SW,258,850-356-4410,didafoodtruck@gmail.com,,@gmail.com,,"500 E Heinberg St, Pensacola, FL, United",food_truck,1,false
+mealscout-sheet-candidate-0101,G&J Soulfood,1Y7Jp0oSap9DAp3jzWsn2g6zxbSwezuP2,260,501-297-9160,GJSOULFOOD@yahoo.com,,@yahoo.com,,,food_truck,1,false
+mealscout-sheet-candidate-0102,HIP POCKET DELI,1tX6AOnegXxjtubJ6CxcYI0DptbUbHcre,271,850-455-9319,george@hippocketdeli.com,,@hippocketdeli.com,,"4124 Barrancas Ave, Pensacola, FL, United",food_service,1,false
+mealscout-sheet-candidate-0103,Kobschie's Ice Rolls,1VVBFf3R9gax57n3jpCHkPks_0kEk2fFp|1SYgoRstSbwfY1QOKY31b6WBJ4NrTeAEK,272|273,786-557-0396,kobschies@gmail.com,kobschiesicerolls.com,@gmail.com,,,food_truck|dessert_bakery|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0104,Something Asian & More,1_rFQDMezfELq6i6RQV0CDsnL86bumUNp|1vmVNStH6GVX22oeV2eC7crC_FdvK3kkA,274|275,,Thecitylimitsfp@gmail.com,,@gmail.com,,"2806 West Michigan Ave, Pensacola, FL,",restaurant|food_service,2,false
+mealscout-sheet-candidate-0105,Yezz Ma'amz Good Eatz,1AeqeALuDykPUfDZ0_hKq4T2yVD6DnJVq|1DnCNElRUjhlCTSkCFbNVVMKXipLoIt9Y|1sqlNGmPW9kkgtS08L6Mrg3WTYFRBZepH,276|599|600,850-281-0755,8508577710d@gmail.com,,@gmail.com,,"6593 Stewart st, Milton, FL, United",food_truck,3,false
+mealscout-sheet-candidate-0106,HoT SPoT,1QQB9HPz9zfk2oAWmA5kYA_QftkmfuUMI,277,,,,,,901 East LaRua St.» Pe,bbq,1,false
+mealscout-sheet-candidate-0107,Hurricane Pizza Cones - Vero Beach,1bIcpxQKxbJNgT3hfX3hzDJ4-jsLwOxpD|1JHWPeFrGwneXFUBcQgfGiuKAAjC6zHmc,282|283,984-386-5107,Hurricanepizzacones@outlook.com,instagram.com/hurricanepizzacones,@hurricanepizzacones,,,dessert_bakery|food_service,2,false
+mealscout-sheet-candidate-0108,Smash''N'Dash,15Yllvot52plJS6kePe49apCYZHIqKZig,285,850-602-8263,,,,,1919 creighton Rd. Pensa FI.,restaurant|food_service,1,false
+mealscout-sheet-candidate-0109,Confirmed link,1gkKN5IDbNiSs8bp9nLntq6_NPDAQHGcm|1rY2nXOzaUWXcsVvUj3Q81-b7wtJGTSGf,287|288,,,southfloridasweets.com,,,,dessert_bakery|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0110,Hot Spot Barbecue,1vbc_65Jid3KdA0KmZ8RIZuNjofe8vj9H,292,850-497-6060,hotspotbarbecue@gmail.com,hotspotbarbecue.com/?y_source=1_n...,@gmail.com,,,bbq,1,false
+mealscout-sheet-candidate-0111,Jaime's Local Seafood Shack,1--HzYciGbizBO3bVdXFdZHX5Nv1h_Tap,300,850-207-7270,jaimegilbert11@gmail.com,jaimeslocalseafoodshack.com,@gmail.com,,,food_service,1,false
+mealscout-sheet-candidate-0112,"""Aen sexeng0 S h ac k",1-7o49kMii70KLikeqCy2nOnSx_iNzSuZ,301,850-207-7270,,jaimeslocalseafoodshack.com,,,"10121 Sinton Dr, West Pensacola, FL, United",food_truck|food_service,1,false
+mealscout-sheet-candidate-0113,Joe's Caribbean,13eJIdeY6Oh8OL2qOw_ub58G4mFeHDdBR|1oajw3lmF2Orb0vYA7J_hyRtd80xcNwU2|1d3j-7qfe1dqGZzVe1-T9IWTPCp-yrmlT,305|614|615,850-760-2512,,joescaribe.com,,,,food_truck|restaurant|dessert_bakery|catering,3,false
+mealscout-sheet-candidate-0114,Joe's Caribbean,12O86xEf2XfrNP_tGtQXt0Lh_BxaGyHGL,306,850-760-2512,joescaribe@gmail.com,joescaribe.com,@gmail.com,,,food_truck|restaurant|dessert_bakery|catering,1,false
+mealscout-sheet-candidate-0115,Lightly Toasted Food Truck,1Ol22oF9OX7G7GoDdvB5Hq_P0LguF10Cz,310,850-619-5837,lted5669@outlook.com,instagram.com/lightly_toasted420,@lightly_toasted420,,,food_truck,1,false
+mealscout-sheet-candidate-0116,Viva Chile Café,1VUKRlWUts7zLB3el_wHa7mn9tdzkzDNX|1ID48jNUVJBLpHiP1O4jnzJmH1v5_tqxa,312|839,850-529-2698,viva.chile.cafe@gmail.com,,@gmail.com,,"6201 Tippin Ave,",food_service,2,false
+mealscout-sheet-candidate-0117,Shoals Area Food Truck,172babCI_Nm7Q_mQn3qy_mzgFTMVCW0b1,313,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0118,SHORTS 5 Short Fuse Pizza,1gz8vcvVeT3LyLmK301QOJHRLW3ad8rRW,315,,,,,,"1414 W Government St., Pensacola, FL,",food_service,1,false
+mealscout-sheet-candidate-0119,Chefgirlrdee,1Hd-5jc6KNt1BVoNJUeX316L9bO4FhBOp,316,,,,,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0120,"Gather, A Culinary Collective",1dvTMzgmMY--NnnL3LUlYEiu6MxBfneAc|1zwnnOmwdmE9dD9JRgQm2m3vMhfSnwuA2,317|318,,,pensacolacooks.com/gather,,,,restaurant|catering|food_service,2,false
+mealscout-sheet-candidate-0121,Sopita pa la goma,1Y1Bhyfp6ZGKGqGMazrOTsYbSI_-OA3Ch|1JqwdFuq4vhqVx3LKyInH5KSnCX8jPxMa,319|320,239-204-9184,,,,,"2096 Beacon Manor Dr, Fort Myers, FL,",food_service|restaurant,2,false
+mealscout-sheet-candidate-0122,Lets Eat Pensacola!,1r9IMTSU_SqYLwJKB-BmxgKZNo2FPj3_A,324,850-280-9995,Thetattedvegancafe@gmail.com,,@gmail.com,,,food_service,1,false
+mealscout-sheet-candidate-0123,Lone Star Kitchens 2,1gR6Bo9f0K8jBSr0MGqwzYWoEXOVsBONO,331,,,,@lonestarkitchens2go,,,food_service,1,false
+mealscout-sheet-candidate-0124,The Park-it Market,10YNGv0vHXp46OD8OGTWo4S1z43QVolXf,333,,,,,,,food_truck|bbq|taco_mexican,1,false
+mealscout-sheet-candidate-0125,Louie's Bar,13xiLPu-gSC5occ319YkGTkldHiVoApjY,334,850-754-0438,,,,,"271 Molino Rd, Molino, FL, United States,",drink_shaved_ice,1,false
+mealscout-sheet-candidate-0126,Broussard's Bayou Co.,1eNmnvIst6MorWdl8QwAisNGNQXPBpVuy|1ICgxiYIX_IDMi9Usne-TXiGpY6KHhIPn,335|336,850-469-9400,,,,,"3005 East Cervantes Street, Pensacola,",drink_shaved_ice,2,false
+mealscout-sheet-candidate-0127,Acme Chicken Bowls,1pH7-1WSZXe9v2OL15InddQ9MNFmunvL5|12TkaBT_0mnsx-bCkoN1l9IYK1VScFbvY,337|338,502-208-6555,mario@soupcoopfoods.com,instagram.com/acmechicken,@acmechicken,,,drink_shaved_ice,2,false
+mealscout-sheet-candidate-0128,Lupita's Mexican Fast Food,1WLe1emsz3aPWCC_EcCwCBX4gHajdL9MC|1kkyrWRgi_ucjmOkBb3GQ5-wvB2EKYDde,340|341,850-760-6655,,,,,"7815 N Davis Hwy , Pensacola, FL, United",taco_mexican|restaurant,2,false
+mealscout-sheet-candidate-0129,Twisted Pretzels Express,1ZZC8lA_QcWjiRBtQws-XR5zUgn69RK2K|10emJNKw5jTwqHCu_d7h1gRONrnDfaLt6,345|346,570-880-5387,Squab1313@yahoo.com,,@yahoo.com,,,dessert_bakery|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0130,Mama's Tacos of Pensacola,1H7zEw8p-hMIoJH8VwuioJCCCKh2Tg9yM,348,850-741-3365,leorfredy73@gmail.com,mamastacospensacola.com,@gmail.com,,"2256 E Olive Road, Pensacola, FL, United",taco_mexican,1,false
+mealscout-sheet-candidate-0131,Chazen Pensacola,1Y_BaLwN3Z-WQovnC7q4V7MHAIwllJaOm|1R0iZnBlUB6hzqRA_T4_KYJdDawbQYgvL,350|351,,chazenpensacola@yahoo.com,,@yahoo.com,,,food_service,2,false
+mealscout-sheet-candidate-0132,McDaddys Southern Comfort,1ANpXqW8xNSfm0PggQXjPjiyDGCumxEwq|17n42m2_52BaSR1VC9NXiS0ySPZK74Z4h,352|698,850-849-1388,Mcdaddysc@gmail.com,,@gmail.com,is,,restaurant,2,false
+mealscout-sheet-candidate-0133,Meet The Cheese Edge You Won't Forget,14nD77HJs6-GiRzBrXh7_YLYa-GU-sO1H|1L5TxL0gGsIdg-7hoJC4Ra6LgPNrSWZpU,355|356,786-574-1512,Info@crepys.com,crepys.com,@crepys.com,,,food_truck,2,false
+mealscout-sheet-candidate-0134,"Goyita Antojitos, LLC.",1nQ04hKVeJs6yrx8HwGEaoKZw8wkb1V3l|1DIkvR9YPAOrWIWIOWQrJ-wRQKsU6f-XJ,358|359,813-377-5168,goyitaantojitoslIIc@gmail.com,,@gmail.com,,,food_truck|taco_mexican,2,false
+mealscout-sheet-candidate-0135,Syrenita Food Truck,1w5bt09QUaNuHcgWSmMOzKH3rWXfvirIF,360,,,,,,,food_truck|taco_mexican,1,false
+mealscout-sheet-candidate-0136,Rosa's Pastry,1Otb3LTk7hOTDdcLV8UkOhqlCW1LMw1IS|1Zo1zjLJfay7hjBQIaUGputll9k8rFPJd,361|362,253-205-1290,,,,,,dessert_bakery|coffee,2,false
+mealscout-sheet-candidate-0137,The Flamin' Pepper,1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1|1EzozrmWddXnpKxsALPBzLIDzYFVwioby|1gICiKIR5Ph7LRAFmE-WMfKC4zqYof-Er,363|364|365,228-372-4071,www.theflaminpepper@yahoo.com,www.theflaminpepper@yahoo.com,@yahoo.com,,,food_truck|taco_mexican,3,false
+mealscout-sheet-candidate-0138,Frios Gourmet Pops,1N_Z4FcmF0jmKu6vAVscffVrYIh-15GPg,366,228-910-3644,oceansprings@friospops.com,,@friospops.com,,,dessert_bakery,1,false
+mealscout-sheet-candidate-0139,Mississippi Soul Food Festival,1KBK-9_CA_XXplxxJzwGpfITLYAq8l_2u,367,832-461-6729,,eventbrite.com/e/mississippi-soul-food-,,,"590 Raymond Rd, Jackson, MS, United",food_service,1,false
+mealscout-sheet-candidate-0140,Breakfast Bros,108R6KFN94DyDgGBRq7t06KBAplJQdIse,368,,,,,,,food_truck|restaurant,1,false
+mealscout-sheet-candidate-0141,Red Pirate Coffee and Donuts,1i5QSDAsbAaRqk4woBPvhvsGNlFwhq8vJ,369,,captain@redpiratecoffee.com,redpiratecoffee.com,@redpiratecoffee.com,,,coffee,1,false
+mealscout-sheet-candidate-0142,Proper Espresso,1Hd4JIkz6yncjsqEGekH3i_zvamE7SspO|1xnVP9UdnkINMUdzZmkMs6i7H7Co5uc3N,370|371,850-816-0123,,,,,,dessert_bakery|coffee|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0143,Mobile food trailer Locations posted weekly,1_VnUT7WkZ-AgaYTNuFkBehxuuHFViYu3,372,352-871-6835,scott@soflopoboys.com,,@soflopoboys.com,,,food_truck,1,false
+mealscout-sheet-candidate-0144,Freshly Prepped,1cDxDRrfqj60zSksemo0G_1NFnT04NVAG|1rQdAOdJ11Xj8MRCOaLZoVqSNEffMO6RN,373|374,239-209-9111,FreshlyPreppedMeals@Gmail.com,Www.FreshlyPreppedMeals.com,@Gmail.com,,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0145,Mr Pepito Tampa Bay,1Jd_zTXvKXfsbgk8mZoX1aHfUW0kO6txn|1cEeZ0virf6d5oUJPuCx8qpN2fggibS8G,377|378,813-419-9381,mrpepitotampa2020@gmail.com,Mrpepitotampabay.com,@gmail.com,,,food_truck,2,false
+mealscout-sheet-candidate-0146,Southern culture.,1_rI6YJ4wMZ7dtlVPBMbT0rw1F18pQpJp,383,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0147,aS Beef,1Tp8LHMF1TK4Y8w7mPpTn2R-tYLkKaUml,394,,,,,,,drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0148,Carver's Kitchen,12ZZHHjNQ8NmZEbKiWtoRYnz4MiHbIpQB|1lFicLk6d1twacaUljSGECHPOzmRBvWJ3|1ptWjfKx3ZRBalIMy7HQwPUh47EW7Ta3N,396|571|572,850-261-2122,carverskitchen22@gmail.com,,@gmail.com,,,food_truck|catering|food_service,3,false
+mealscout-sheet-candidate-0149,Crav'N Da Flava Food Truck,1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB|1KSzZYSFBW6TUcnnEj0gq54i-Xu701ntc|1stWm5_OZnoqUzbjGKotjd3vnUCH4vFez,397|398|399,251-234-4421,,,,,,food_truck|food_service,3,false
+mealscout-sheet-candidate-0150,Habibi Coffee,1yiGC4CeMPgvjPtLTYRgSOkX3bpBjt-lC|1Elzt5WiifEpLkipw7iVmZIYKcLzs_ImT,401|402,850-529-0279,Habibiorganiccoffee@gmail.com,,@gmail.com,,,coffee,2,false
+mealscout-sheet-candidate-0151,The Brunet-Strickland Company has been providing,11BEd3cOgVkqtngKIe4qZLCSy9PmMQCaS,403,,,,,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0152,P.S. Taco Company - Dothan @,1YLIbNyws8590LugZVLxLiOPG7Jt4mCV0,406,334-791-7716,melmore@pstacocompany.com,,@pstacocompany.com,,"105 Apple Ave Suite #3, Dothan, AL,",restaurant|taco_mexican,1,false
+mealscout-sheet-candidate-0153,Box Car Pizza Co,1wNOJF5B1fLTJPokIsMTv_ZGnfgPLii4P,407,479-414-7823,boxcarpizzaco@gmail.com,,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0154,Tacos el Amigo 3,1Rj3AbU6Erw8wjooxh1HwgJ_OpzgdhP3a,408,,,,,,"12350 Gulf Beach Hwy, Pensacola, FL,",restaurant|taco_mexican|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0155,Wisteria Sandwich Shop,1KnRLTtUyf4vORJfI7B2OVxjOmYEtToQt,409,850-324-7370,heidibell1979@gmail.com,,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0156,Arlene's BBQ Food Truck,1pvHSUJQdxV7-4Cogia7R2NAaECTnIMKv,411,850-549-8101,arlenesbbqandgrill@gmail.com,arlenesbbgandgrill.com,@gmail.com,,,food_truck|bbq,1,false
+mealscout-sheet-candidate-0157,Flour-ish Comfort Food Truck,1nbFp8IxVh71DEChah-ZOmjtDXeno_dK0,413,850-361-2345,Flourishfoodtruck@gmail.com,instagram.com/flourishcomfortfoodtruck?,@flourishcomfortfoodtruck,,,food_truck,1,false
+mealscout-sheet-candidate-0158,Lightly Toasted Food Truck,1OpNgCsAI_CtE41Igfud5i0n6Sur7LWLF,414,850-619-5837,Ited5669@outlook.com,,@outlook.com,,,food_truck,1,false
+mealscout-sheet-candidate-0159,Thai Thai Food Truck,1sZ3CH0qEpGANBP2dvWLrlyIkozzHDK8J,415,950-228-3595,thaithaifoodtruckpcola@gmail.com,,@gmail.com,,,food_truck,1,false
+mealscout-sheet-candidate-0160,Mini Pancake Mayhem,1G0EK0VslaSKQz06Esh1avd5rCX97lbl8|15tQfMs452jYa820xbv5P6fY5YG8oj6Qk,420|421,850-368-8306,,,,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0161,Traveling Food Truck,1T7S7PmbP1VgC1zcst-2CR3e1Og-30TzI|1JGmPaYDRis5FRjYB59bp9EACF92iIYVN,424|425,229-481-0979,stickaforkinit1934@gmail.com,,@gmail.com,,,food_truck,2,false
+mealscout-sheet-candidate-0162,Soul Food Mobile Food Truck,1TeTH8zunbeKNqTsul9g8OOF0oywZNpYY,427,850-362-9589,2brosandachick@gmail.com,www.2BRosanpacnick.com,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0163,LawDog Cafe,14lFrtkmHHe0yihkVTJvQE4mgS2ajXTHe|1Hxmdcl4t3-1FQ2V6JMQI3cev6n7pzfaU,428|429,850-565-1583,Teddyspassuo.boxllc@gmail.com,,@gmail.com,,,food_service,2,false
+mealscout-sheet-candidate-0164,a & gs & @,1lKuVpRLBR6RHlzpPjPrdWa-SNLgZXJa9,430,407-813-6573,,tiktok.com/@jesusortiz1917,@jesusortiz1917,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0165,Munster Munchies,1-Xd1YGFYDuZ3ZcY6aiu9KQq-UANGs6Ol,431,,,,,,4500 E Olive Rd.,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0166,Catering,1lxDrUPoHP2ENuIU_-h7lRq-6kg7UbAs7|1VamTjxlAV4GtWadq6DhjoWfdWAP4rdLL,432|433,386-205-3600,,,,is,,catering|bbq|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0167,Golden Shallot,1gaMrdxJUH37o63rmtQ53ElCiRFeHEqoT|1ACkZfly2ctFnRANSH2ihO475kEmE_K0l,436|437,,,instagram.com/GoldenShallotUSA,@GoldenShallotUSA,,,drink_shaved_ice,2,false
+mealscout-sheet-candidate-0168,Food Truck Pub,1wJcUiQChPZTOTxlNptjfw2It0REdI_MT,438,,,,,,,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0169,Food truck Bi-Bip,1J02OaAElf8EINcMtXIeg5LSOhN3E1g46|1Pcbo3NyUkUNooi-R2hehRKpWpgYvfwAr|1-lehU1JNjBhAbUVcYmohdc3PkkLoOXf2,447|569|570,,,,,is,"1449 W 9 Mile Rd , Pensacola, FL, United",food_truck|restaurant,3,false
+mealscout-sheet-candidate-0170,LLC,1C4kCiwCfzmF9Gl9Z7HqPnhbKWTejOkAX,454,850-374-1281,poppopbbasfllc@gmail.com,instagram.com/poppopbbasfllc_bbq,@poppopbbasfllc_bbq,,,bbq,1,false
+mealscout-sheet-candidate-0171,obriensbistro.net,1Br8rsRtQV5wVL1UFVu3TbaXzQ2647Trd|1fSxYoYNH9fH5IvojsqZUD_iMFspz_3df,467|468,850-477-9120,info@obriensbistro.net,obriensbistro.net,@obriensbistro.net,,,restaurant,2,false
+mealscout-sheet-candidate-0172,"permission to post content, comment or send",1U7kRYsiECzUhUqrngOo1Z6KzUd-x8Pyo,477,251-238-8909,Freshcravez@gmail.com,Freshcravez.com,@gmail.com,is,"1050 Bryn Mawr Blvd, Mary Esther, FL,",drink_shaved_ice,1,false
+mealscout-sheet-candidate-0173,EST. 2021,11d2yDWPEbwOcC2e_YELnU7RNxDRFr76_,480,205-584-2885,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0174,Lou's Pizza Shop,1jpnDBF5oFhufWoXu0YXW8xU9b1zkzLsc|110rkTNlcdRUm_-loVOXIsqs-BPQhBn5g,484|485,850-285-0763,,,,,"0763
+A449 W 9 Mile Road Unit",food_service,2,false
+mealscout-sheet-candidate-0175,Pensacola Crawfish,1LF_8c1w0oS05hHxS65A7YLc2ypSAtgJe,489,850-380-9600,,,,,"4474 Woodbine rd,",food_truck,1,false
+mealscout-sheet-candidate-0176,Asian Fusion Pensacola,1SVYEYD8JXoNL6DAy2CR0CQYm6r6p3qy3,492,850-281-9184,,,,,"10401 Chemstrand Rd, Pensacola, FL,",food_truck,1,false
+mealscout-sheet-candidate-0177,Sweetness,1jG3A75Cnak5W5RefqG_Ld0u62MSG6_EY|1w79b2yxEOZ_npyrcHTDC222FIuhpwpld,495|496,260-515-8561,,,,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0178,Céjo Food Truck,1q-lDPmv7aC9eH4fJ35M1RgLEmRwu2GtC|1vrIjDbzSPV_d8-6U4pjgZiGejYeMyRJJ,497|498,850-382-1279,Cejodogsllc@gmail.com,instagram.com/cejodogsllc,@cejodogsllc,,,food_truck,2,false
+mealscout-sheet-candidate-0179,The Brunchy Bunch Food Truck,1Eihcl2tj9BnSE1l84PUe1DBxHrDFtTGl|1fnaQBXtqxs-MfdwEO8s-QO1eDZx0D8ff,499|500,239-443-7104,Thebrunchybunchfl@gmail.com,instagram.com/Thebrunchybunchfl,@Thebrunchybunchfl,,,food_truck,2,false
+mealscout-sheet-candidate-0180,Proper burger,1bMbL2lv9QG1oO5lualJ5_goH6a-6rP5K,504,850-712-0312,,,,,"9 E Garden St, Pensacola, FL, United States,",food_service,1,false
+mealscout-sheet-candidate-0181,PURA VIDA FOODS,1YHjcO_DRUTYfJbX2h0vxT8ZCIx-IOlVn,508,,management@pvfoodtruck.com,instagram.com/puravidafoods2023,@puravidafoods2023,,"11480 Fort Caroline Lakes DR,",food_truck,1,false
+mealscout-sheet-candidate-0182,A&A Spice Is Life Food Truck,1BssA7WnzNFvrDKiHPQ7H2NEexzu-QfgL,511,850-200-5560,AASPICEISLIFE@GMAIL.COM,tiktok.com/,@GMAIL.COM,,"619 James Lee Rd, FWB 32547",food_truck|taco_mexican|food_service,1,false
+mealscout-sheet-candidate-0183,ELASADOR Taqueria El Asador,12MfApdQAzZjbGzm5zN3mgWtaZjdByQC3,514,,,,,,"7955 N Davis Hwy, Pensacola, FL, United",taco_mexican,1,false
+mealscout-sheet-candidate-0184,un Rinconcito Catracho,1XVCwreR1vf1LkMitjOge6BuFBq5jaHIM,515,239-690-0780,churro57@hotmail.com,,@hotmail.com,,"4524 Palm Beach Blvd, Fort Myers, FL,",restaurant,1,false
+mealscout-sheet-candidate-0185,#NAME?,13nW1JyXbAh92oBSdisHMsF-zZjEoNgB-,529,850-470-4763,,,,,"1412 W Fairfield Dr, Pensacola, FL, United",restaurant|taco_mexican|food_service,1,false
+mealscout-sheet-candidate-0186,Coastal Cajun Cuisine,1PQB481ds4iPRdAMXCupAJILzkpsPhtIv,531,850-542-7037,,,,,,food_service,1,false
+mealscout-sheet-candidate-0187,RJs Tasty Plates LLC,1wRh-6iq_Y2gIzkYxCNfXhLEhVEJxWrXc,535,850-716-5947,,,,,"2501 N. Pace Blvd , Pensacola, FL, United",restaurant|food_service,1,false
+mealscout-sheet-candidate-0188,S Followed by Sean DeSmet,1-D6aPdPpvk2x5YtTQiwfq0g_wksVoPIu,548,,,instagram.com/flourishcomfortfoodtru...,@flourishcomfortfoodtru...,,,food_truck,1,false
+mealscout-sheet-candidate-0189,"s oe CreativBowls, Shamika Miller-Griffin and 9",19diKHLBM3ezFE8Cl8fMVvAmGBkHfq7ll,550,,,,@850_barbecue,,,food_truck|bbq,1,false
+mealscout-sheet-candidate-0190,Salty Jax Seafood Co.,1NANuDpEj4zIjjVbqrzEwKrUXMJLx0gNe,554,,saltyjaxseafoodco@gmail.com,,@gmail.com,,"1050 Beach Blvd, Biloxi, MS, United",food_truck|food_service,1,false
+mealscout-sheet-candidate-0191,Sammy Barker's,14OlaZ1kXjs2LKv3d43JWhuBh6zEY_EgZ|1GT-FKCxhSow9sQnSRYrLFFUFwPadSSNr,555|556,850-912-6000,joel@sammybarkers.com,,@sammybarkers.com,,,restaurant|taco_mexican|food_service,2,false
+mealscout-sheet-candidate-0192,Yoda's Hut,1P5ivE5uB1xlI_9xobBcUVf7eL9XDVEAA|1-GAwDri_6a2dzyM_vfLOFJi05uxDzqSC,559|560,458-262-8021,,,,,"775 Front Street , Coos Bay, OR, United States,",food_truck|taco_mexican|food_service,2,false
+mealscout-sheet-candidate-0193,MELT Pensacola,1ll7XejXYWsfw4LmhUC_IWTMUzT2wZuC2,561,850-971-6358,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0194,Sean's Smoothie Shack,1E8-BFATQcVyNZ9NzgTwQvZo6Mi2jFXcW,565,631-833-2293,seanssmoothieshack@gmail.com,seanssmoothieshack.com,@gmail.com,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0195,Sean's Smoothie Shack,1BJDDnf7BVJ2Ui7ZwvDsviDFYYxwrSGhN,566,,,https://seanssmoothieshack.myshopify.com,,,,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0196,A-Ram's Kitchen,1zOs9FlButCtPe-zK4c08YfN7VN6isBnY|1PL-nxSvkKViDUPLWz4zVS1oAKPRXIV2T,567|568,,alan@aramgastronomy.com,instagram.com/aramskitchen,@aramskitchen,,601 N Ridgewood Ave,food_truck|food_service,2,false
+mealscout-sheet-candidate-0197,Crazy Asian Food,1ddnJNCHR_l4Q0aMu3ZmuhJaAs4svlmQ4,573,813-455-2492,crazyasianfood@yahoo.com,crazyasianfood.com,@yahoo.com,,,food_truck,1,false
+mealscout-sheet-candidate-0198,Downtown Dessert Bar,1N58SdQnMeWK2sIQyXdK_F5n5p2o8QSEU|1gganrHFNa-koF1JRyxe31-hZZCzyJPHJ,574|575,,downtowndessertbar@gmail.com,,@gmail.com,is,"501 S Palafox St. , Pensacola, FL, United",dessert_bakery,2,false
+mealscout-sheet-candidate-0199,Greazy Burger,1EFu4wObynbhRDuzXqqRYtNEkLSh0CaOK|1ZoOqI5draj9cfT7fA2GB0DjtEdmD-GXZ,576|577,,,,,,"2806 W Michigan Ave, Pensacola, FL,",food_truck|food_service,2,false
+mealscout-sheet-candidate-0200,Majestic Pizza Truck,1mTFl3YQvciHFPuHcmr-Nz6zqYgyEaqcW,578,727-621-7569,MajesticPizza911@Gmail.com,,@Gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0201,NO BS Bar-B-Que,1zU0BN6LR5qSQAeFOTX2bbqPyOik_oS18,579,228-343-3117,nobsbar-b-que@outlook.com,,@outlook.com,,,food_truck,1,false
+mealscout-sheet-candidate-0202,Pacos Tacos,15_coE0uK0btBpIvIQrdzqcBfO7AzaMP6,580,850-830-3409,,,,is,,restaurant|taco_mexican,1,false
+mealscout-sheet-candidate-0203,Red White & Burgers,1z3EjBIULYtxcYbBB-FMlhEaZGCGqAqvr|1H85AW0kLDK4pwNbMbB1jzC1x8T7M3pzL,581|582,,Redwhiteandburgers904@gmail.com,,@gmail.com,is,"9021 Southside Blvd, Jacksonville, FL, United",food_truck|drink_shaved_ice|food_service,2,false
+mealscout-sheet-candidate-0204,sauce. It's a delight in every bite.,1IRmjrhByQtQAY4uBD7g2cvSI1QfxB2Ff|1djb2XlcfxH8bPiPPrVbzDwt3QtE5hW1y,583|584,833-337-2823,Justeggrolls885@gmail.com,streetfoodfinder.com/sunsjusteggrolls,@gmail.com,,,food_truck,2,false
+mealscout-sheet-candidate-0205,hot and made to order mini donuts!,15fwvPBeoxSnYNldM-roZt6olrP7Uyfrc,585,,Sweettoothwagon@gmail.com,instagram.com/Sweet_Tooth_Wagon,@Sweet_Tooth_Wagon,,,food_truck,1,false
+mealscout-sheet-candidate-0206,Taqueria Latinos,1y1NCSBkWF42cH6gc1syoMyAm6hdn_TLR|1vxS8O2vNnirPnVDwNBm1xBompFfzq0uV,586|587,,,,,,5222 north w st suite -1,restaurant|taco_mexican,2,false
+mealscout-sheet-candidate-0207,serve with 8 toppings to choose from,1oEhMcuhmdJ6gLYv6ZlliYYlq9eiPghS3|1u-iUkPUicEocU_kusLb4wYKYYaIJ8P_L|1A4xyvZ3IR4LqD5jdchwYuHQCnS0WzDhS,588|602|603,850-480-9314,,,,,,food_truck,3,false
+mealscout-sheet-candidate-0208,The Mobile Sweet Tooth,1KneV7XyVQ7aAEA6XuRJ6Khd49cpks4pA|1rnaCTb85H4J3njTMldAGB0J5JEiMzzDY,590|591,317-740-4112,Themobilesweettooth@gmail.com,,@gmail.com,,,food_truck,2,false
+mealscout-sheet-candidate-0209,Tory's Kitchen,1rNKXhhFd4DpoBw6GjstZ_YlDvBRsJRS7|1vR0j_kDBPzh5Zl3rMWCQRY40nNZGQcKe,592|593,813-255-3556,Info@toryskitchen.com,Toryskitchen.com,@toryskitchen.com,is,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0210,Vietnamese Food Truck,1um9YUUJJgDu72kuBCzv_760DVRli-ZNb|1zEFdeA2sv66gKmlHOwnshtocu3v3cp7E,594|595,,,,,,,food_truck|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0211,"V's Kitchen, Jamaican style",1ZyZq3NGrM9KeuMAi_3GWsfID8Ke_Pfez|1DA8RzYZKWundhmAsu5JBTM0FSneJOy-8,596|597,912-980-6296,,,,is,,food_service,2,false
+mealscout-sheet-candidate-0212,and Potatoes with 2 eggs and beans,1nil5O8oZCK-URr0rmNetQ3lzC_zM7z9B,601,,,,,,,dessert_bakery|food_service,1,false
+mealscout-sheet-candidate-0213,Meatbawl's FoodTruck,1UefBt-IRcC_QW7Rq5qsRmROl7G2nxvWu,604,228-547-9633,Tanclarke@meatbawls.com,DMEATBAWLS.COM.,@meatbawls.com,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0214,"Acia bowls, cold drinks & more",1hERK64USH1jV3DY0_H65PDWY-2kcTP9e,612,239-398-0074,Naples911foodtruck@gmail.com,,@gmail.com,,,food_truck|dessert_bakery|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0215,The Perez Gut Truck,1XTfEcISFLJ5dlcVhE5tBK57MWBQlIzM8|1CclALUo9_vC1cDjVryK0RfdI1eyKmyO6,616|617,813-716-5780,perezguttruck@gmail.com,perezguttruck.com,@gmail.com,,,food_truck,2,false
+mealscout-sheet-candidate-0216,SimplyBrats,1ZopgUp8va8pvtBI647Gz6XNRmPjTcpzv,625,,,simplybrats.com,,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0217,Da Fry Trap,1Mkn0SyzIygA-4C8tBqSVrT3Tgv8ao0lS|18goaNJoGmiKHYqH7mH3kgqCw_ZBow_hq,626|627,850-503-8346,dafrytrap@gmail.com,,@gmail.com,,,food_truck|catering|food_service,2,false
+mealscout-sheet-candidate-0218,Big Boned BBQ & Jerk,1mn7Sp8QA32M1uycvMOZJcFNSPNcgSZU0|1Ey_bZ0vHIZIUhK6ao1Ju7whyq7RyFbtx,628|629,770-310-0583,Info@bbgandjerk.com,,@bbgandjerk.com,,"608 E Wright St, Pensacola, FL, United",restaurant|bbq,2,false
+mealscout-sheet-candidate-0219,SOUTHERN SOUL ROBINSON SMOKEHOUSE,18qxPwf2jIJl8KmO7webrZrh9G3LcBof_,634,,,,,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0220,P'cola Rolla,1Ejpj-LR3Ol45Sq0b0ccwYMZCb9lRV364,635,850-429-3140,,,,,,food_truck|bbq|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0221,BIG Red Truck,1Z4v1JvvZd_PPhJ23GhNrOlbvUt_UB_Y7,637,850-685-1343,Cheftommyac@gmail.com,,@gmail.com,,,catering,1,false
+mealscout-sheet-candidate-0222,"notified, and receive messages.",1iANoIK0zT5cGsqYYD2gxUiMkCQcOiRAv,640,,,,,,,food_truck|restaurant|food_service,1,false
+mealscout-sheet-candidate-0223,Cooks Soulfood Delight,1HZrbPIiL8KpvWvsVKyCGK3z_NYi5qmFy,642,850-380-6737,sowlap@yahoo.com,,@yahoo.com,,,restaurant|bbq,1,false
+mealscout-sheet-candidate-0224,El Taviche,1oU3Z4hLuQX9UtYbiwZVPwxjm89-v2kaQ|1mpaIRcCyk4cFC3sUyh8m4GcK164Q0yFt,644|645,863-219-7577,eltavichefoodtruck@google.com,ElTaviche.com,@google.com,,,food_truck|restaurant,2,false
+mealscout-sheet-candidate-0225,Wah Gwaan Jerk Food Truck,1LMAEBWcV3v0oFU1w59YMKYV4kIoPRn3N,646,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0226,Stuff'd Enuff Catering,1j0JsuCqKJAbaGX6VYOXONt51R3XfUBxP,647,850-463-0306,stuffdenuffpotatoes@gmail.com,,@gmail.com,,,catering,1,false
+mealscout-sheet-candidate-0227,Pretzels LLC,1B0dXVM2qslvPpND4LVztg84-N3GnbwoF|1K5PFW9EpXFxdcn4e1uG9yVl3EYiby7hz|1vA5BWhlpx6Lkc_cd1cAZNCefNPLbEPxr,648|649|650,601-916-9151,,,,,,food_truck|food_service,3,false
+mealscout-sheet-candidate-0228,Short Fuse Pizza,1PA8Bv2mOUK4ZT6hWMfN0cgWHhIuuvBFf,653,,info@shortfusepizza.com,shortfusepizza.com,@shortfusepizza.com,,"1414 W Government St., Pensacola, FL,",food_service,1,false
+mealscout-sheet-candidate-0229,CG sausage king thompsons 2s,1IHteXVRkfBp2p-eSUKJpPhk9QmCQ67cl,654,850-436-3777,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0230,Syrenita Food Truck,1FGpPc1AAfJemxiQyh9JRu3gZ-Nyrs26c,655,251-363-1492,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0231,Taco Tuesdays & Bingo Thursdays!,1H0vrWGbB7kDGqO50FpEQz4aG2fMFkzIP,657,,,,,,,restaurant|dessert_bakery|taco_mexican,1,false
+mealscout-sheet-candidate-0232,Cactus Flower Food Truck,1nw96IYdxOZfgUHuYT7JlpJX2W5zXbrXk,658,850-465-6171,thinvestmentllc3010@gmail.com,,@gmail.com,,"10605 Sorrento rd Pensacola Fl 32507,",food_truck,1,false
+mealscout-sheet-candidate-0233,RR Smokers BBQ,1xPW5A7d6w91wNUVi97xFBIEcUPtzlehA,662,850-525-0017,chuck@redneckrivierasmokers.com,,@redneckrivierasmokers.com,,"800 W Nine Mile Rd, , Pensacola, FL, United",bbq,1,false
+mealscout-sheet-candidate-0234,El secreto de.un gran platillay,1DlfOpcoAGA7zO0DQcj2jTDafPpSwR_13|1PSbrk4Qcqy8kkMSJr2Lr5f96gZitwPz7,665|666,251-716-8824,,,@aAa,,,taco_mexican|food_service,2,false
+mealscout-sheet-candidate-0235,Taqueria El Asador,1EjuoDsbzvIcxDRkWXGK5lxIGsStCiuZT,667,850-696-3232,eat@elasadorpensacola.com,elasadorpensacola.com,@elasadorpensacola.com,,"7955 N Davis Hwy, Pensacola, FL, United",taco_mexican,1,false
+mealscout-sheet-candidate-0236,express,1xpvAdxn-2jlanynFNpMLdH99BckuxaK3,668,,,tasteofjerusalemexpress.com/menu,,,,restaurant,1,false
+mealscout-sheet-candidate-0237,Truck,1Vgf1MnEmOpNQGnXfZ2oi7rPlPhy5SxaL,671,850-490-2168,otasteandsee62@gmail.com,,@gmail.com,,,food_truck|bbq|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0238,Soo Trucking Delicious,18W4S2oHACA59D2d6m5-hJBuJpH4E7DIG,672,850-829-5462,Jtayloroc@gmail.com,instagram.com/Sootruckingdelicious,@Sootruckingdelicious,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0239,Trap Dawg,15eBSlDRiALHVt0Pf53Ak_cggcjK2MToy|1FfxP01G10Dl551O7hEGkYgXljmsnf_gq,673|674,,booking@trapdawg.com,trapdawg.com,@trapdawg.com,,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0240,The Twisted Coconut,1OGXNH0cnTEl9abblTBk-U6hQsHaS6CcH,678,,,https://linktr.ee/twisted.coconut,,,,catering|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0241,The Twisted Coconut,13XOE0h2lLQTzEoly4qz-POYPJWlPtlQS|1szsDPetJ212Mo0_HYdZjgvXEW6tcUKfn,679|680,,Twisted.coconutllc25@gmail.com,https://linktr.ee/twisted.coconut,@gmail.com,,,drink_shaved_ice,2,false
+mealscout-sheet-candidate-0242,"The Little Bakery Shoppe, LLC",1D4ER10fE2xAzwQCrecsDeSlZ3LF5fdTA|1-fUi7upDAThorvq-_c8JsJmZiqviQ4Lk,682|683,850-889-1662,thelittlebakeryshoppellc@gmail.com,,@gmail.com,,,dessert_bakery,2,false
+mealscout-sheet-candidate-0243,The Smokin' Jokers BBQ,1njNEkvZQJlldUP1rpqXCBaHWSfiuWxCN,686,850-266-8163,jokersbbq850@gmail.com,thesmokinjokers.com,@gmail.com,,"180 burgess Ave, Pensacola, FL, United",bbq,1,false
+mealscout-sheet-candidate-0244,PUM VV wWwVYVNAIVvYW,1fTjERWLw23xE14qBVNrx6kWKbPHsvabK|19wePy2v51iYOjtTOCKes6loOZ5vTwQsE,691|692,,TaliasCookies@gmail.com,TaliasCookies.com,@gmail.com,,,dessert_bakery|food_service,2,false
+mealscout-sheet-candidate-0245,MANN Kettle Corn 2,1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ|1BEMK9jttoTih17k__zrc5NNMHEZEi_1U|1yoE8Ivz-rUSpovrH6MPQvOn9FYT8-5Ps,694|695|696,228-623-9469,Mannkettlecorn@gmail.com,,@gmail.com,,,food_truck,3,false
+mealscout-sheet-candidate-0246,D'S Grill &,1r5oJ4UsayR5JsutJH7GQ-wOaIPMMnQ7O,697,239-397-4448,,youtube.com/@dsgrillandgo,@dsgrillandgo,,,food_service,1,false
+mealscout-sheet-candidate-0247,¢ Empanada Kings,1hxk-AVciK71F00ITQ9Iw5QlBS5IqakA4,699,931-561-2828,Empanadakings850@gmail.com,empanadakings850.com/#items,@gmail.com,is,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0248,Sat 5 23 Mathieson Brewing Co. 4pm-8pm,1J3ZUyp_y6GpXVa3cQMartyLeifWY7Fp0,702,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0249,Catering,1g4ITBFRc4zL-lG_eVLtfRZmUlv9YNUFj,703,850-496-6318,tianaslunchbox@yahoo.com,,@yahoo.com,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0250,Twice The Taste &,1xqiblXX0NkEa6-kETCq8TpjJ-lOKG273,704,850-873-0575,,,,is,,food_truck,1,false
+mealscout-sheet-candidate-0251,Title oO +,1-W39no0GJPdrOVkMx2QOuAz_FVr-q8HC,705,,,,,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0252,Superior Fence & Rail of Pe... +,1HZWoALXlXnz0NdJf63RQQrlVFH3x612z,706,850-706-7710,pensacola@superiorfenceandrail.com,superiorfenceandrail.com/pensacola,@superiorfenceandrail.com,,"2906 Avalon Blvd, Milton, FL, United States,",drink_shaved_ice,1,false
+mealscout-sheet-candidate-0253,Sofia's Tacos,1z-yAyeaDgqzvg89Kv6d1SqfM6vCBHFTy|1_dpsC2f1iGpvLm7y26sLOcPKRvv5PxLU,708|709,,,,,,"1817 Fruitville Rd , Sarasota, FL, United States,",taco_mexican|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0254,Vietnamese Food Truck,1imaNewEwjmUOTcQm9oCf4myjkKXIgdXj,710,850-982-9973,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0255,Ant Kay's kitchen,1bpwuBNBr70Dn-eRoQVCOKM9YsnHzLdOc,711,850-512-6998,antkaysOO7@gmail.com,,@gmail.com,,,food_service,1,false
+mealscout-sheet-candidate-0256,Lightly Toasted Food Truck,1WzRIQvgOFfs85gXAQlfyrY04C_Kv7tXZ,712,850-619-5837,,,,,,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0257,Waffle Boutique,10FfLoqCASpl2GyecN7_ib2RM6PBXuYDc,715,,,,,,8968 Pensacola blvd,food_truck|dessert_bakery|coffee|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0258,La Casita Food Truck,1IPOaYvDVD_MML9QAWJX6iNx7Ca_-O6he,766,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0259,Lightly Toasted Food Truck,1K1R6K_WR4GAW3no-YwyVU6eF5-80I2zq,774,,,,,,,food_truck,1,false
+mealscout-sheet-candidate-0260,Vampire Penguin Pensacola,1J0wW-fnMAzcwhyz4bFrMUu6GmRi5F1V1|11GxArSFTY_NwpwvQ_0oKwA7I2vF6vAzh,830|831,850-377-4139,pensacola@vampirepenguinnwfl.com,,@vampirepenguinnwfl.com,,14100 Perdido Key Drive and Food Truck serving,food_truck,2,false
+mealscout-sheet-candidate-0261,Dex N Angie House of Flavor,1H5wSjOOzLV0J-FSCypFC1MetK_3GCFsH,833,386-313-6282,dexnangiehof@gmail.com,,@gmail.com,,,food_truck|catering,1,false
+mealscout-sheet-candidate-0262,Holly Jolly Snowcones,11pmImI-PYIOtI9vVJVZb4iBq1tUbeztV,834,228-860-5223,Hollyjollysnowcones@gmail.com,,@gmail.com,,,drink_shaved_ice,1,false
+mealscout-sheet-candidate-0263,D.GRILLED PORK. STURAOINNTET Y37 fi,1Prk-U_R3CYtJUYbdoCNjYs9NKcXLKFMn,836,,,,,,,coffee|drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0264,Food Truck Owners Expo,1iWHqh-GCpRD706i1D_Ns-YBbwfTaKQG1,840,,help@FTOExpo.com,instagram.com/ftoexpo,@ftoexpo,,,food_truck,1,false
+mealscout-sheet-candidate-0265,BAM Coffee,1gcc9dJ_gIrAT9movfqtQ3BLaf_MDbOKe|1XKyG3hUeS95_gDFcXOGdgdM1Eb97LeW_,841|842,850-490-4233,BAMCOFFEECO@GMAIL.COM,,@GMAIL.COM,,,coffee,2,false
+mealscout-sheet-candidate-0266,Book now,1u-HbKphl23pzm8NUs47zOASNPJ72nMtI|1IDBW6w37YwJ40mbP-tE6WEQs-qF63E7c,846|847,,,chefgirlrdee.com,,,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0267,Brown Bagger Food Truck,1qMoNPW8QOavtCn0J-HZC05GxwQfqLYl4,849,,,,,,"2435 N 12th Ave, Pensacola, FL, United",food_truck|restaurant|food_service,1,false
+mealscout-sheet-candidate-0268,Pop's Seafood and Produce Lic,1hP_911N-aLSeOyX_FjdFciUQ8apz3ZLp|1n5xV88MVO5NsOtiiRWbcRuI88i5Gxoe5,852|853,863-450-2866,,HTTPS://WWW.POPSSEAFOODLAKELAND.COM,,,"4945 US HWY 92E, Lakeland, FL, United",restaurant|food_service,2,false
+mealscout-sheet-candidate-0269,Morning Munchies Food Truck,16uH7vkg-hCfjCyKB3Bx5EDaUTKhOJcvh,854,,Morningmunchiesfoodtruck1@gmail.com,,@gmail.com,,,food_truck|drink_shaved_ice,1,false
+mealscout-sheet-candidate-0270,"quesadillas, soft tacos... etc.",1CYdFyD6MFJUtrWV5BrIcd0T7EVto91B-,855,615-708-7985,,,,,"3241 Garcon Point Road , Milton, FL,",taco_mexican|food_service,1,false
+mealscout-sheet-candidate-0271,Wing Empire,1M-YbPhUrI5o1UYuTEfeemCG-yzds_lwL,856,407-429-8158,info.Wingempirefl@gmail.com,,@gmail.com,,,food_truck,1,false
+mealscout-sheet-candidate-0272,Siesta Flurries,1zMHQW7_nX8vPMllcaCILtgWMEavRObid|1QVE25Sz7kb7ht2YkQz3uupKvN4IQvFZS,857|858,941-661-3291,siestaflurries@yahoo.com,,@yahoo.com,,,food_truck|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0273,Wisteria Sandwich Shop,1ReIaTmfsJ3VNC5AEQ9XnjcgJLg4XykG0,861,,,,,,"3808 N 12th ave, Pensacola, FL, United",food_truck|food_service,1,false
+mealscout-sheet-candidate-0274,Sip N Snack Shack,1Ij6rQrTuiSJXA9LvA6wWLj2VoQew6aDR|1YHb2h1iEoCOxuQ_ZhS46OS0rOIiWjad9,864|865,941-354-9719,libbylanoue@gmail.com,,@gmail.com,is,,food_truck|dessert_bakery|coffee|drink_shaved_ice,2,false
+mealscout-sheet-candidate-0275,Chickpea House,16Mfx4EQxJmOf5o7pYAuXwfJ6jstmfoN0,866,850-696-6023,,,,,"4522 Saufley Field Rd, Pensacola, FL,",drink_shaved_ice|food_service,1,false
+mealscout-sheet-candidate-0276,Kalye Grill & Lumpia,1YLn8fGI-jYk8f6N-u0qCy59y_3Tyyp_F,867,850-280-4141,kalye85s@gmail.com,,@gmail.com,,,food_truck|food_service,1,false
+mealscout-sheet-candidate-0277,a Lone Star Kitchens 2,1R2lIEEFctvp39gqUrGOhUbnaScML73Od,869,,,,,,,food_truck|catering|bbq|food_service,1,false
+mealscout-sheet-candidate-0278,Mister B's Q ow,13eeB8N0NMh6Af0jXAyZi8cbb-K8OqQrr,870,,,,,,,food_service,1,false
+mealscout-sheet-candidate-0279,Mamaw Irene's Hotdogs,1at2a8GIdgqBdalapOfCwqqEL6dKV30Oy,872,352-844-7796,mamawireneshotdogs@gmail.com,,@gmail.com,,"3140 North Pine Ave, Ocala, FL, United States,",food_truck,1,false
+mealscout-sheet-candidate-0280,i Shop now,1l5GGgFtYUqFXUfeK7d8PBiq-2MG8UGT8,875,,,,,,,restaurant|taco_mexican,1,false
+mealscout-sheet-candidate-0281,Cocamoke Smoke BBQ,1WrKsGd7UVZyjccdPy6Mhp5IMCmpvyD22,878,205-499-0022,cturner@cocamokesmokebbq.com,cocamokesmokebbq.com,@cocamokesmokebbq.com,,,bbq,1,false
+mealscout-sheet-candidate-0282,Lady Lola Food Truck,1No3WUQGp24zp99BXpnqaB4-rC4l2cAW2|1QVzckE1z1VaL69g0TQYQR8dvizJOYo9L,879|880,941-667-1005,ladylolallc11@gmail.com,instagram.com/Ladylola.foodtruck,@Ladylola.foodtruck,,,food_truck,2,false
+mealscout-sheet-candidate-0283,Burger Box,1BkJ2j7LaTn7V1epmyfjgJartOtNhX571|1bg4YMhJz4Y5diNNyemGVHzxRL4jRIm4K,889|890,228-281-4384,loveburgerbox@gmail.com,loveburgerbox.com,@gmail.com,,,food_truck|food_service,2,false
+mealscout-sheet-candidate-0284,Sweet Love,1rp_iYmCCVM4mcEQB8KHdjlnQb9A4YstO,891,850-686-1978,URsweetlove@outlook.com,instaaram.com/ursweetlove'st,@outlook.com,,,food_truck,1,false
+mealscout-sheet-candidate-0285,Yummy Sammy and delicious Nachos,1ul1l7avJDQ4_0IXkO091LyK1xO3U2xFu|1Jo2bD8z9Q5LvRbKNKBkqG978LV8H3h5n,892|893,,snjslilc@yahoo.com,,@yahoo.com,is,,food_truck,2,false
+mealscout-sheet-candidate-0286,ZahZah Express LLC,14nsOgVBrSQofy7UHPoRfYJGG7QWgMait|1EI9YmYgIVDNRaKYA-Lb-4qfwXvAjY6I4,895|896,346-550-2185,zahzahexpress@gmail.com,instagram.com/ZahZah%20Express,@ZahZah,,,food_truck,2,false

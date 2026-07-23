@@ -1,0 +1,11 @@
+key,value
+pointer_schema,merlin.raw_artifact_pointer.v1
+original_path,artifacts/mealscout-menu-artifact-classification/menu-review-required.csv
+quarantine_path,.artifact-quarantine/raw-evidence/artifacts/mealscout-menu-artifact-classification/menu-review-required.csv
+external_storage_status,local_quarantine_pending_external_storage
+sha256,0020645cc74fe5497a7eb51c5713f3fbe2ae95f2fc01f8f20433aa2ab462a5be
+size_bytes,56279
+line_count,3
+generated_at,2026-06-09T00:00:00.000-05:00
+canonical_pointer_index,artifacts/quarantine/raw-artifact-pointer-index.json
+mutationAllowed,false

@@ -1,0 +1,12 @@
+{
+  "pointer_schema": "merlin.raw_artifact_pointer.v1",
+  "original_path": "artifacts/mealscout-screenshot-processing-validation/clean-import-candidates.json",
+  "quarantine_path": ".artifact-quarantine/raw-evidence/artifacts/mealscout-screenshot-processing-validation/clean-import-candidates.json",
+  "external_storage_status": "local_quarantine_pending_external_storage",
+  "sha256": "8ac2782d5cc42e5a79199aa54f46d6fa874f65bb5385bcc7a620f5b7ea3eeb0d",
+  "size_bytes": 143592,
+  "line_count": 6,
+  "generated_at": "2026-06-09T00:00:00.000-05:00",
+  "canonical_pointer_index": "artifacts/quarantine/raw-artifact-pointer-index.json",
+  "mutationAllowed": false
+}

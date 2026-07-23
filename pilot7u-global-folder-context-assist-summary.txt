@@ -1,0 +1,41 @@
+Pilot 7U - Global Folder Context Assist Summary (Patched, Pre-Commit)
+Date: 2026-05-30
+
+Before (from prior 7U smoke)
+- Traci cluster: ctx-cluster-5
+- sourceFileIds: [1OLhdistMCVhMqyxbys4lHYhHXfmuQU97]
+- status: weak_cluster
+- menu/logo missing from same cluster
+
+Patch applied
+- Strengthened folder-context clustering with additional signals:
+  - correction history (corrected_business_name)
+  - manual attachment decisions (manual_menu_attachment, logo_candidate_attachment, manual_profile_attachment)
+  - publish execution audit history (executed_profile_match)
+  - phone/name shared signals
+  - same_batch_context
+- Added component merge graph so related files do not scatter into weak clusters.
+- Active cluster files now exclude duplicate-candidate IDs while preserving duplicateFileIds metadata.
+- Added reviewed_cluster status for strongly operator-reviewed linkage.
+
+Validation
+- npm run check: PASS
+- npx tsx --test tests/mealscout-batch-intake.test.ts tests/mealscout-publish-plan-preview.test.ts tests/mealscout-publish-execution.test.ts: PASS
+- npx tsx --test tests/mealscout-screenshot-extraction.test.ts tests/mealscout-ocr-adapter.test.ts: PASS
+- npx tsx --test tests/mealscout-profile-import.test.ts tests/mealscout-review-queue-ui.test.ts tests/mealscout-review-decision-persistence.test.ts tests/mealscout-batch-intake.test.ts: PASS
+
+Traci cluster after patch (targeted regression)
+- Test confirms Traci profile + menu + logo candidate collapse into one cluster:
+  - traci-profile
+  - traci-menu
+  - traci-logo
+- Cluster reasons include:
+  - manual_menu_attachment
+  - logo_candidate_attachment
+  - corrected_business_name
+- Cluster status: not weak_cluster (needs_review/reviewed_cluster/ready_for_safe_processing depending on available signals).
+
+Safety confirmation
+- No publish execution added.
+- mutationAllowed remains false for folder-context and preview paths.
+- No Drive move/delete/rename added by this patch.

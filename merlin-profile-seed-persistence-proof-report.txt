@@ -1,0 +1,98 @@
+Merlin profile seed persistence proof report
+
+generated_at: 2026-06-05
+scope: read-only persistence proof for latest screenshot apply report
+
+decision:
+pause live-volume processing until the intended durable MealScout write destination is confirmed.
+
+selected profile checked:
+- source_file_id: 1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1
+- source_file_name: IMG_5981.PNG
+- selected_report_row: MEALSCOUT | seeded | create | www.theflaminpepper@yahoo.com | failed
+- profile_name: unknown from current text report
+- selected_profile_id: unknown from current text report
+
+why profile_name/profile_id are unknown:
+- src/merlin/profileSeedRuntime.ts returns target_profile_id and profile_name in MerlinProfileSeedResult after create/update.
+- src/merlin/affiliateScreenshotFolderProcessing.ts stores those results in processed_results.
+- the rendered merlin-affiliate-screenshot-folder-processing-report.txt currently prints sourceFileId, sourceFileName, brand_lane, seed_status, profile_action, profile_email, verification_email_status, and blockedReason only.
+- the current durable text report therefore does not expose target_profile_id or profile_name for the selected created row.
+
+latest apply report evidence:
+- report_file: merlin-affiliate-screenshot-folder-processing-report.txt
+- generated_at: 2026-06-05T23:20:04.444Z
+- mode: apply
+- status: ok
+- screenshots_processed_count: 100
+- mealscout_created_count: 73
+- mealscout_updated_count: 3
+- tradescout_created_count: 0
+- tradescout_updated_count: 0
+- blocked_missing_identity_count: 13
+- blocked_ambiguous_count: 11
+- admin_flow_screenshots_count: 400
+- affiliate_attributed_screenshots_count: 0
+- affiliate_ledger_rows_written: 0
+
+write path traced:
+1. scripts/process-affiliate-screenshot-folders.mjs calls the affiliate screenshot folder processor.
+2. src/merlin/affiliateScreenshotFolderProcessing.ts selects eligible screenshot seed inputs.
+3. src/merlin/affiliateScreenshotFolderProcessing.ts calls processExistingScreenshotsIntoSeededProfiles({ screenshots: selectedSeedInputs }).
+4. src/merlin/profileSeedRuntime.ts dispatches MealScout screenshots to seedMealScout().
+5. seedMealScout() builds a MealScout publish-plan record from screenshot evidence.
+6. seedMealScout() calls createMealScoutProfileFromPlanRecord(record) for creates or updateMealScoutProfileFromPlanRecord(existing.id, record) for updates.
+7. src/mealscoutProfileImport.ts writes created/updated MealScout profiles into the module-scope existingProfiles Map.
+
+storage destination:
+- structure: src/mealscoutProfileImport.ts module-scope existingProfiles Map<string, MealScoutExistingProfile>
+- write call for creates: existingProfiles.set(profile.id, profile)
+- write call for updates: existingProfiles.set(existingTruckId, next)
+- durable: no
+- survives process restart: no
+- source-controlled data file written for the profile itself: no
+- SQLite/Neon/Postgres write found for these MealScout profile creates: no
+
+route exposure:
+- route: GET /api/merlin/profile-seeding/auto-onboarded-profiles
+- implementation: src/server.ts reads listMealScoutAutoOnboardedProfiles() and listTradeScoutAutoOnboardedProfiles().
+- MealScout list implementation: src/mealscoutProfileImport.ts filters the same in-memory existingProfiles Map where profile_origin === 'auto_onboarded'.
+- fresh/current server route result:
+  - status: ok
+  - mutationAllowed: false
+  - mealscoutProfiles: []
+  - tradescoutProfiles: []
+- visible in Merlin auto-onboarded route: no for the selected prior CLI-created profile after the CLI process exited.
+- explanation: the CLI apply run and the currently running server are separate Node processes; the MealScout profile Map is not durable shared storage.
+
+claimed/registered route check:
+- route: GET /api/merlin/profile-seeding/claimed-registered-users
+- fresh/current server route result:
+  - status: ok
+  - mutationAllowed: false
+  - mealscoutProfiles: []
+  - tradescoutProfiles: []
+
+visible in actual MealScout app/store:
+- visible in actual MealScout customer/business app/store: unknown/no evidence from this repo.
+- evidence: the inspected MealScout seed path writes to src/mealscoutProfileImport.ts in-memory Maps, not to a MealScout database, MealScout API, or external customer app store.
+- note: this repo uses SQLite for Merlin runtime stores in other modules, but this specific MealScout profile import path does not persist seeded profiles to data/merlin-or.sqlite.
+
+safety flag state:
+- email_verified: false by createMealScoutProfileFromPlanRecord()
+- insurance_verified: false by createMealScoutProfileFromPlanRecord()
+- claim_status: unclaimed by createMealScoutProfileFromPlanRecord()
+- seeded_from_evidence: true by createMealScoutProfileFromPlanRecord()
+- profile_origin: auto_onboarded by createMealScoutProfileFromPlanRecord()
+- owner_user_id: null by createMealScoutProfileFromPlanRecord()
+- affiliate credit assigned in latest report: no
+- affiliate_ledger_rows_written: 0
+- Drive move/delete/archive/suppress: no, per latest report safety confirmations
+- payout logic: no, per latest report safety confirmations
+- fake users created: no evidence found in the inspected path
+
+persistence finding:
+The latest apply report proves that the processor reached the MealScout seed path and counted creates/updates, but the inspected write path stores MealScout seeded profiles only in process memory. The report file is durable; the actual MealScout profile records created by the standalone CLI process are not durable and are not visible through the currently running Merlin auto-onboarded route.
+
+smallest safe next step:
+Before processing more screenshots for production visibility, define and verify the intended durable destination for MealScout auto-onboarded profiles. The smallest safe implementation slice should be a read-only/contract-tested persistence plan or bridge proof for the actual MealScout store/API, with no verification/claim/payout/Drive mutation changes.

@@ -1,0 +1,45 @@
+Truck #2 Traci Three-Image Linkage Report
+
+1. Were all 3 files present in the batch/intake state?
+- FB_IMG_1779901042554.jpg [1ZSODmteznUWR8MHthOfzuGkC15AEP4ps]: batchSeen=True, previewSeen=True
+- Screenshot_20260527_115713_Facebook.jpg [1OLhdistMCVhMqyxbys4lHYhHXfmuQU97]: batchSeen=True, previewSeen=True
+- Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg [1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq]: batchSeen=True, previewSeen=True
+
+2. Were all 3 processed by OCR/classification?
+- FB_IMG_1779901042554.jpg: processed=false (not in this 5-file slice)
+- Screenshot_20260527_115713_Facebook.jpg: processed=true, ocrAttempted=True, ocrSucceeded=True, textLen=734
+- Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg: processed=false (not in this 5-file slice)
+
+3. Classification per file
+- FB_IMG_1779901042554.jpg: unknown
+- Screenshot_20260527_115713_Facebook.jpg: profile
+- Messenger_creation_9527970C-C5FF-4010-8E7D-3C47F50FF6A6.jpeg: menu
+
+4. Which files attached to the Traci draft?
+- draftId: ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+- attached source files: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97, 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+
+5. Which files were left unattached?
+- FB_IMG_1779901042554.jpg [1ZSODmteznUWR8MHthOfzuGkC15AEP4ps]
+
+6. Did the full menu image contribute menu items?
+- True
+
+7. Did the logo image become a logo candidate?
+- detectedType for logo file: unknown
+
+8. Did the Facebook screenshot provide identity fields?
+- businessName/truckName: True (Traci's Cherished)
+- phone: True (850-255-8396)
+- cityArea: True (Pensacola, FL)
+- social handle: False (instagram=; facebook=)
+
+9. Why any file was not linked
+- Logo file was classified as unknown with OCR empty; no strong identity signal to auto-link as media.
+- Menu file linked to Traci draft and contributed menu items/secondary evidence.
+
+10. Conclusion
+- all 3 linked to same Traci draft: False
+- profile screenshot linked: True
+- menu screenshot linked: True
+- logo linked as media candidate: False

@@ -1,0 +1,56 @@
+Screenshots Intake Routing Rulebook
+Date: 2026-06-06
+
+Scope
+- Intake and routing only.
+- No file moves executed from this workspace.
+- No seeding action should be triggered from this document.
+
+Required routing buckets
+1) Food truck / restaurant / caterer / concession
+- Destination project: Merlin evidence seed
+- Destination folder: MealScout_Merlin_Evidence_Seeds
+- Seed action: seed_to_merlin_evidence
+
+2) Contractors and home services (roofing, HVAC, plumbing, electrical, landscaping)
+- Destination project: TradeScout contractor intake
+- Destination folder: TradeScout_Contractors by trade
+- Seed action: do_not_seed_to_mealscout
+
+3) Food-related but ambiguous
+- Destination project: Merlin review or quarantine
+- Destination folder: Restaurants_Needs_Review
+- Seed action: hold_for_review_before_seed
+
+4) Clearly unrelated, social, personal, low-value, or duplicate
+- Destination project: Archive or review
+- Destination folder: Duplicate_or_Low_Quality
+- Seed action: archive_or_review
+
+5) Unknown project fit
+- Destination project: Unknown project triage
+- Destination folder: _Needs_Review
+- Seed action: hold_for_manual_classification
+
+Accepted safety posture to preserve for any food screenshot sent to Merlin evidence seed
+- profile_origin = evidence_seed
+- seeded_from_evidence = true
+- claim_status = unclaimed
+- email_verified = false
+- insurance_verified = false
+- owner_user_id = null
+
+Loose or admin-unattributed affiliate posture
+- affiliate_attribution = null
+- affiliate_email = null
+- affiliate_source_folder = null
+- attribution_method = admin_unattributed
+
+Batch operation sequence
+1) Route food screenshots to Merlin evidence seed input.
+2) Route contractor screenshots to TradeScout contractor folders.
+3) Route ambiguous screenshots to review folders.
+4) Route duplicates and low-quality screenshots to archive or review.
+
+Manifest source file
+- screenshots-routing-manifest-initial.csv

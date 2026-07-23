@@ -1,0 +1,140 @@
+# Merlin Intake Affiliate Dashboard + Payout-Ready Audit Slice 6C Report
+
+## Scope Result
+Implemented Slice 6C for MealScout: affiliate dashboard aggregation, affiliate audit-item drilldown, and card-level payout-ready audit state controls, with strict no-payout/no-auto-apply/no-auto-notify safety.
+
+## Files Changed
+- src/server.ts
+- src/merlin/intake/actionCardQueue.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+## Durable Model Updates
+Extended durable action-card ledger fields:
+- affiliateAuditState (`not_reviewed | reviewable | approved_for_payout_review | rejected_for_payout_review | needs_more_evidence`)
+- affiliateAuditReason
+- affiliateAuditBy
+- affiliateAuditAt
+- affiliateEvidenceScore
+- affiliateQualifiedSignals
+- affiliateDisqualifyingSignals
+- payoutReady (boolean)
+- payoutReadyAt
+- payoutReadyBy
+- payoutReadyReason
+
+Added migration-safe `ensureColumn` support and row mapping for these fields.
+
+## Backend Endpoints Added
+1. `GET /api/mealscout/intake/affiliates/dashboard`
+- role-gated (`admin/super-admin/operator/staff`)
+- returns affiliate-level metrics:
+  - batch/file/card counts
+  - approved/apply/create/update counts
+  - notification/open/claim/review counts
+  - payout-ready/review state counts
+- `mutationAllowed:false`
+- no payout math
+
+2. `GET /api/mealscout/intake/affiliates/:affiliateId/audit-items`
+- role-gated
+- returns card-level affiliate audit rows with:
+  - decision/apply/notification states
+  - duplicate/conflict/replacement warnings
+  - affiliateAuditState/payoutReady
+  - qualified/disqualifying signals
+- supports unknown/null affiliate view via `unknown` route key
+- `mutationAllowed:false`
+
+3. `PATCH /api/mealscout/intake/action-cards/:cardId/affiliate-audit`
+- role-gated
+- updates affiliate audit metadata only
+- derives and stores qualified/disqualifying signals + evidence score
+- enforces guards:
+  - payoutReady requires `affiliateAuditState=approved_for_payout_review`
+  - unresolved duplicate/conflict/replacement blocks payoutReady unless explicit override
+  - unapplied cards block payoutReady unless explicit override
+  - no open/claim/review engagement requires operator reason for approved state
+- `mutationAllowed:false`
+
+## Signal Derivation
+Added deterministic signal derivation from existing lineage data:
+
+Qualified signals (examples):
+- batch_processed
+- action_card_generated
+- card_approved_for_apply
+- profile_applied
+- profile_created/profile_updated
+- notification_sent_or_copied
+- profile_link_opened
+- claim_started/review_started
+
+Disqualifying signals (examples):
+- duplicate_conflict_unresolved
+- conflict_warning_unresolved
+- replacement_candidate_unresolved
+- card_rejected
+- apply_failed
+- no_valid_recipient
+- no_profile_link
+
+## UI/Client Updates
+Client methods added:
+- `getAffiliateDashboard()`
+- `getAffiliateAuditItems(affiliateId, { affiliateCode })`
+- `setActionCardAffiliateAudit(cardId, payload)`
+
+Review UI updates:
+- Attribution panel relabeled to Affiliate Dashboard with explicit no-payout language
+- Dashboard rows now display expanded 6C counts (approved/applied/create/update/payout-ready/etc.)
+- Action card rows now display affiliate audit state, payout-ready metadata, and qualified/disqualifying signals
+- Added controls per card:
+  - Mark Reviewable
+  - Approve Payout Review
+  - Reject Payout Review
+  - Needs More Evidence
+  - Mark Payout-Ready (review-only)
+
+## Safety Guarantees Preserved
+- No payout calculation fields added
+- No payout execution paths added
+- No auto-approval of affiliate submissions
+- No auto-apply path added
+- No auto-notification path added
+- No profile mutation from dashboard/audit endpoints
+- No Drive cleanup/delete/archive/suppress behavior added
+- No TradeScout affiliate payout/dashboard mutation path added
+- Duplicate/replacement warnings remain visible and enforced
+
+## Validation
+- `npm run check` ✅
+- `npm run test -- --runInBand` ✅
+- `npm run build` ✅
+
+## Added/Updated Tests
+- `tests/mealscout-batch-intake.test.ts`
+  - Added end-to-end 6C test covering:
+    - dashboard metrics endpoint
+    - affiliate audit-items endpoint
+    - affiliate-audit patch behavior/guards
+    - no payout amount fields
+    - role-gated access
+
+- `tests/mealscout-review-queue-ui.test.ts`
+  - Added client mock coverage and assertions for:
+    - affiliate dashboard endpoint
+    - affiliate audit-items endpoint
+    - affiliate-audit patch endpoint
+  - UI surface assertion updated for Affiliate Dashboard labeling
+
+## Runtime Mutation Confirmation
+- Publish execution called: **no**
+- Live profile mutation from affiliate dashboard/audit endpoints: **no**
+- Payout math/execution: **not implemented**
+- Drive cleanup/delete/archive/suppress: **not called**
+
+## Canonical Rule
+Attribution is evidence lineage, not payout approval.

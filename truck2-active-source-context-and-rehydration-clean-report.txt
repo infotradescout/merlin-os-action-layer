@@ -1,0 +1,39 @@
+﻿Truck #2 Active Source Context and Rehydration Clean Report
+
+Target business: Traci's Cherished Creations LLC
+Legacy correction recordId: ms-plan-record-ms-draft-3f7419df-fd8a-422d-947b-549cb168e167
+
+1) Server restart/health result
+- health: FAIL
+- drive auth health: FAIL
+- drive reconciliation: FAIL
+
+2) Active folder context
+- active folder id: 
+- active folder name: 
+- active folder visible file count (file-audit): 0
+- target folder visible file count (1Mw14mg9...): 0
+
+3) Traci evidence visibility in active context
+- Traci evidence visible (expected 3 files): False
+- matched file ids/names (target folder scan):
+  - none found by filename scan
+
+4) Preview + file-audit mutation flags
+- preview mutationAllowed: 
+- file-audit mutationAllowed: 
+
+5) Current candidate generation + rehydration
+- current candidate recordId generated: 
+- match method used: 
+- legacy corrections rehydrated: False
+- reviewState: n/a (no matched candidate)
+
+6) Final recommendation
+- recommendation: SOURCE_CONTEXT_MISSING
+- blocked reason: No matching Traci candidate in active regenerated publish-plan context.
+
+7) Safety confirmations
+- publish execution called: False
+- live mutation: False
+- fail-safe: if Traci evidence not visible in active context, stop before publish dry-run: True

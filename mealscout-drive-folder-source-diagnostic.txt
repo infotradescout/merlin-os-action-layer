@@ -1,0 +1,98 @@
+MealScout Drive Folder Source-of-Truth Diagnostic
+Generated: 2026-05-31
+
+1. Active Drive mode/config values used by runtime
+- MERLIN_DRIVE_MODE: oauth
+- MERLIN_DRIVE_SYNC_ENABLED: true
+- MERLIN_DRIVE_ROOT_MODE: dedicated_drive
+- MERLIN_DRIVE_ROOT_FOLDER_NAME: Merlin OR Storage
+- MERLIN_DRIVE_SYNC_MODE: manual
+- MealScout-specific intake env key (explicit): not set in process env for this shell (no MEALSCOUT_INTAKE_FOLDER_ID / MEALSCOUT_DRIVE_FOLDER_ID found)
+- Runtime folder discovery endpoint used: GET /api/mealscout/intake/folders
+
+2. Runtime folder resolution
+- Resolved Merlin root folder:
+  - id: 1Ht0Fk5p8YhyaaHE74F8fzh2g75SyIiYc
+  - path: Merlin OR Storage
+- Resolved MealScout intake root folder:
+  - id: 1UT4rR8p1SVPbE-jRRZbyinurGvTT5od9
+  - path: Merlin OR Storage/MealScout Intake
+- Resolved active preview folder (discovered by runtime):
+  - id: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+  - path: Merlin OR Storage/MealScout Intake/incoming/unknown
+- Folder strategy:
+  - dedicated nested folder tree under Merlin OR Storage/MealScout Intake
+  - not fallback-created during this check (folders endpoint reports ready with all required present)
+
+3. Drive listing proof (active MealScout intake folder)
+- Source: POST /api/mealscout/intake/preview with loadFromDriveFolder:true (discovered folder)
+- driveSource:
+  - folderId: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg
+  - listedCount: 3
+  - filteredOutCount: 0
+- Total files visible in active folder: 3
+- File list (all visible; first 25 request satisfied):
+  1) 707990078_2109431996279825_93215142009434330_n.jpg
+     - fileId: 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+     - detectedType: menu
+  2) 705770904_918342954569744_6077113333953277063_n.jpg
+     - fileId: 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+     - detectedType: profile
+  3) 706216881_1495538075647692_5427253878307980612_n.jpg
+     - fileId: 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+     - detectedType: profile
+- MIME/created/modified availability in file-audit:
+  - mimeType: not populated (null in current file-audit payload)
+  - createdTime: not populated (null)
+  - modifiedTime: not populated (null)
+- Trashed file handling:
+  - Drive client query enforces trashed=false in folder listings; trashed files are excluded.
+
+4. Intake audit comparison
+A) Active discovered folder (15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg)
+- file-audit total known files: 3
+- eligible file count: 3 (from latest batch and preview listedCount)
+- already_processed count: 1 (latest Truck #4 batch skippedAlreadyProcessedCount=1)
+- duplicate_suppressed count: 0 (latest batch skippedDuplicateCount=0)
+- unsupported count: 0 (latest batch skippedUnsupportedCount=0)
+- permission-blocked count: 0 observed in this run context
+- unknown/unclassified count: 0 by role; attribution unknown count: 3
+
+B) User-provided screenshot dump folder (explicit folderId)
+- folderId: 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+- explicit listing check in this diagnostic timed out from preview/file-audit path earlier in session when unauthenticated-role calls were made; prior run artifacts indicate this folder had substantially larger volume than 3 files.
+- Operational mismatch remains: active discovered runtime folder is currently incoming/unknown with 3 files, not the large dump folder.
+
+5. Mismatch diagnosis
+- Is active folder the expected screenshot dump folder? No.
+- Is runtime pointed at sibling/other folder? Yes.
+  - Runtime default discovery is currently using MealScout Intake/incoming/unknown (id: 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg).
+- Is runtime using newly created empty folder? No.
+  - It is a valid dedicated folder with 3 files present.
+- Is runtime pointed at Merlin OR Storage but not the intended dump subfolder? Yes.
+  - It is under Merlin OR Storage/MealScout Intake, but not the explicit dump folder you shared.
+- Are there only 3 real files in active folder? Yes (confirmed by preview listedCount=3 and file-audit totalFiles=3).
+
+6. Recommendation before Truck #5
+Exact action needed:
+- Either:
+  1) move/upload the intended screenshot dump into active folder:
+     Merlin OR Storage/MealScout Intake/incoming/unknown (id 15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg)
+  - or
+  2) run intake with explicit folderId override set to your dump folder:
+     1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF
+- Prefer option 2 for immediate control:
+  - pass folderId explicitly in batch run payload for Truck #5.
+- If this should be permanent, add/update config/UI default folder routing so discovered default points to your intended dump folder.
+- Bootstrap logic is already present and healthy; this is a routing/context mismatch, not a missing-folder bug.
+
+Fail-safe gate status for Truck #5
+- Required gate: active visible file count >= 25 and eligible unsuppressed >= 10.
+- Current discovered folder gate: FAIL (visible files = 3).
+- Do not run Truck #5 without explicit folder routing to the larger dump folder or moving files into active folder.
+
+Endpoint verification after report capture
+- GET /api/drive/auth-health: 200
+- GET /api/drive/reconciliation: 200
+- POST /api/mealscout/intake/preview (loadFromDriveFolder:true): 200
+- GET /api/mealscout/intake/file-audit: 200 (with operator role header)

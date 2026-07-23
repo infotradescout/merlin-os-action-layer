@@ -1,0 +1,111 @@
+Merlin Central Intake Engine v1 Report
+
+Files changed
+- src/server.ts
+- src/intakeUploadIntent.ts
+- src/merlin/intake/intakeTypes.ts
+- src/merlin/intake/intentRegistry.ts
+- src/merlin/intake/uploadIntentStore.ts
+- src/merlin/intake/router.ts
+- src/merlin/intake/previewBuilder.ts
+- src/merlin/intake/approvalGate.ts
+- src/merlin/adapters/mealscoutAdapter.ts
+- src/merlin/routes/merlinIntakeRoutes.ts
+- tests/merlin-intake-engine.test.ts
+- tests/upload-intent-packet.test.ts
+
+Merlin modules added
+- src/merlin/intake/intakeTypes.ts
+  - shared Merlin intake types: UploadIntent, IntentActionDefinition, ProductAdapter, RoutingDecision, PreviewPacket, intake statuses.
+- src/merlin/intake/intentRegistry.ts
+  - central adapter/action registry + intent validation.
+- src/merlin/intake/uploadIntentStore.ts
+  - isolated typed upload-intent store (create/read/update).
+- src/merlin/intake/router.ts
+  - Merlin routing engine using action context as a strong prior; conflict/ambiguous holds enforced.
+- src/merlin/intake/previewBuilder.ts
+  - Merlin preview packet builder (draft only).
+- src/merlin/intake/approvalGate.ts
+  - approval/apply status types only (no execution implementation).
+- src/merlin/adapters/mealscoutAdapter.ts
+  - MealScout action definitions + adapter validation/boundary.
+- src/merlin/routes/merlinIntakeRoutes.ts
+  - Merlin namespaced route handler.
+
+MealScout adapter actions registered
+- Owner:
+  - update_schedule
+  - update_menu
+  - add_food_photos
+  - upload_logo
+  - add_event_flyer
+  - add_deal
+  - update_hours
+  - update_location
+  - update_contact_info
+  - upload_everything
+- Staff/admin:
+  - import_food_truck_evidence
+  - import_restaurant_evidence
+  - attach_menu_evidence
+  - attach_schedule_evidence
+  - attach_logo_media
+  - attach_event_flyer
+  - attach_deal_evidence
+  - correct_existing_profile
+  - review_unknown_uploads
+  - bulk_intake_review
+
+Endpoint behavior
+- Added Merlin-namespaced endpoints:
+  - POST /api/merlin/intake/upload-intents
+  - GET /api/merlin/intake/upload-intents/:uploadId
+  - POST /api/merlin/intake/upload-intents/:uploadId/files
+  - POST /api/merlin/intake/upload-intents/:uploadId/route
+  - POST /api/merlin/intake/upload-intents/:uploadId/preview
+- Creation validates brand/actionId/actorScope/entityType through registry.
+- Invalid/unregistered action returns INVALID_INTENT.
+- Intent creation snapshots allowed/forbidden field paths from adapter action.
+- Route uses Merlin router (not product-specific file processor).
+- Preview returns draft packet only; no apply endpoint added.
+- mutationAllowed:false and implementationAllowed:false remain enforced through this slice.
+
+Adapter boundary explanation
+- Product adapters define only context/action metadata:
+  - action definitions
+  - allowed/forbidden field paths
+  - actor/entity compatibility
+  - preview/approval requirements
+- Product adapters do not perform OCR/routing/publishing/live mutation.
+- Merlin core owns routing + preview generation + safety holds.
+
+Preview/edit gate behavior
+- Every upload intent remains preview-gated.
+- Output stops at PREVIEW_READY / HELD_FOR_REVIEW / ERROR.
+- implementationAllowed remains false.
+- No role (including staff/admin) bypasses preview.
+
+Routing conflict behavior
+- Intent-evidence mismatch held as INTENT_EVIDENCE_CONFLICT.
+- Cross-domain mismatch held as AMBIGUOUS_OR_WRONG_DOMAIN.
+- Low-confidence/ambiguous evidence held.
+- No silent cross-brand routing.
+
+Tests added/updated
+- Added tests/merlin-intake-engine.test.ts
+  - registry action load
+  - invalid action rejection
+  - valid intent creation + snapshots
+  - attach guard (valid intent required)
+  - Merlin router conflict hold
+  - preview gate + no publish
+- Updated tests/upload-intent-packet.test.ts to Merlin route contract.
+
+Validation results
+- npm run check: PASS
+- npx tsx --test tests/merlin-intake-engine.test.ts tests/upload-intent-packet.test.ts: PASS
+- npm run test: PASS (314/314)
+
+Safety confirmations
+- publish execution called: no
+- live profile mutation: no

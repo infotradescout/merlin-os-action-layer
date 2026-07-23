@@ -1,0 +1,30 @@
+MealScout Merlin profile seed precheck report
+
+generated_at: 2026-06-05
+input_file: merlin-profile-seed-export.json
+total_records_read: 4
+records_importable_count: 2
+records_review_required_count: 1
+records_blocked_count: 1
+
+importable_records:
+- Rolling In The Dough Handmade | source_file_id=1B0dXVM2qslvPpND4LVztg84-N3GnbwoF
+- Crav'N Da Flava Food Truck | source_file_id=1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB
+
+review_required_records:
+- MANN Kettle Corn | source_file_id=1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ
+  reason: profile_name_trailing_numeric_suffix
+  normalized_fields: profile_name, instagram_dropped_email_domain_like
+
+blocked_records:
+- eee | source_file_id=1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1
+  blocked_reason: invalid_extraction_identity
+  reasons: invalid_profile_name, invalid_email
+  normalized_fields: website_dropped_email_like, instagram_dropped_email_domain_like
+
+safety_confirmation:
+- no fake owner user
+- claim_status remains unclaimed
+- email_verified remains false
+- insurance_verified remains false
+- owner_user_id remains null in export handoff

@@ -1,0 +1,87 @@
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\.env:1: MERLIN_DRIVE_MODE=oauth
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\.env:2: MERLIN_DRIVE_SYNC_ENABLED=true
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\.env:4: MERLIN_DRIVE_ROOT_FOLDER_NAME=Merlin OR Storage
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\.env:7: GOOGLE_CLIENT_ID=74136702734-blmg81ccg1gldof3f61rm3ldog5fc4l7.apps.googleusercontent.com
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\GOOGLE_DRIVE_OAUTH_SETUP.md:13: MERLIN_DRIVE_MODE=oauth
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\GOOGLE_DRIVE_OAUTH_SETUP.md:14: MERLIN_DRIVE_SYNC_ENABLED=true
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\GOOGLE_DRIVE_OAUTH_SETUP.md:16: MERLIN_DRIVE_ROOT_FOLDER_NAME=Merlin OR Storage
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\GOOGLE_DRIVE_OAUTH_SETUP.md:18: GOOGLE_CLIENT_ID=...
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_DEDICATED_DRIVE_MANAGER_V1.md:79: - `MERLIN_DRIVE_MODE=oauth|service_account|manual`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_DEDICATED_DRIVE_MANAGER_V1.md:80: - `MERLIN_DRIVE_SYNC_ENABLED=true|false`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_DEDICATED_DRIVE_MANAGER_V1.md:82: - `MERLIN_DRIVE_ROOT_FOLDER_NAME=Merlin OR Storage`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_1_DRIVE_SMOKE_TEST.md:20: - `MERLIN_DRIVE_MODE=oauth`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_1_DRIVE_SMOKE_TEST.md:21: - `MERLIN_DRIVE_SYNC_ENABLED=true`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_1_DRIVE_SMOKE_TEST.md:23: - `MERLIN_DRIVE_ROOT_FOLDER_NAME=Merlin OR Storage`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_1_DRIVE_SMOKE_TEST.md:25: - `GOOGLE_CLIENT_ID=...`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_DRIVE_SYNC.md:10: - `MERLIN_DRIVE_MODE` (`oauth` | `service_account` | `manual`)
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_DRIVE_SYNC.md:11: - `MERLIN_DRIVE_SYNC_ENABLED` (`true` | `false`)
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_DRIVE_SYNC.md:13: - `MERLIN_DRIVE_ROOT_FOLDER_NAME` (default: `Merlin OR Storage`)
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_6_DRIVE_SYNC.md:16:   - `GOOGLE_CLIENT_ID`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_7_DRIVE_WATCHER.md:15: - `MERLIN_DRIVE_SYNC_ENABLED=true|false`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\docs\MERLIN_OR_V1_7_DRIVE_WATCHER.md:22:   - `MERLIN_DRIVE_SYNC_ENABLED=true`
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\scripts\generate-google-refresh-token.ts:11:   GOOGLE_CLIENT_ID: "GOOGLE_CLIENT_ID",
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\scripts\generate-google-refresh-token.ts:132:   const clientId = getEnvValue(REQUIRED.GOOGLE_CLIENT_ID, fileEnv);
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\scripts\generate-google-refresh-token.ts:136:   if (!clientId) missing.push(REQUIRED.GOOGLE_CLIENT_ID);
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveAuth.ts:37:       clientId: env.GOOGLE_CLIENT_ID || '',
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveManager.ts:152:   const mode = env.MERLIN_DRIVE_MODE === 'oauth' || env.MERLIN_DRIVE_MODE === 'service_account' ? env.MERLIN_DRIVE_MODE : 'manual';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveManager.ts:153:   const syncEnabled = (env.MERLIN_DRIVE_SYNC_ENABLED || 'false').toLowerCase() === 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveManager.ts:155:   const rootFolderName = env.MERLIN_DRIVE_ROOT_FOLDER_NAME || 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveScheduler.ts:44:   const syncEnabled = (env.MERLIN_DRIVE_SYNC_ENABLED || '').toLowerCase() === 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveSync.ts:57:     MERLIN_DRIVE_MODE: config.mode,
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveSync.ts:58:     MERLIN_DRIVE_SYNC_ENABLED: config.syncEnabled ? 'true' : 'false',
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\src\driveSync.ts:60:     MERLIN_DRIVE_ROOT_FOLDER_NAME: config.rootFolderName,
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:21:   process.env.MERLIN_DRIVE_MODE = '';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:22:   process.env.MERLIN_DRIVE_SYNC_ENABLED = '';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:24:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = '';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:125:     MERLIN_DRIVE_MODE: 'oauth',
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:126:     MERLIN_DRIVE_SYNC_ENABLED: 'true',
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-manager.test.ts:128:     MERLIN_DRIVE_ROOT_FOLDER_NAME: 'Merlin OR Storage',
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-routing.test.ts:12: process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-routing.test.ts:13: process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-routing.test.ts:15: process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-routing.test.ts:17: process.env.GOOGLE_CLIENT_ID = 'test-client-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-routing.test.ts:143:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-safety.test.ts:12: process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-safety.test.ts:13: process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-safety.test.ts:15: process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-safety.test.ts:17: process.env.GOOGLE_CLIENT_ID = 'test-client-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-scheduler.test.ts:15:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'false';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-scheduler.test.ts:28:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-scheduler.test.ts:38:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-scheduler.test.ts:89:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-scheduler.test.ts:154:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'false';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-sync.test.ts:15: process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-sync.test.ts:16: process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-sync.test.ts:18: process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\drive-sync.test.ts:20: process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-drive-intake.test.ts:6: process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-drive-intake.test.ts:7: process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-drive-intake.test.ts:9: process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-drive-intake.test.ts:11: process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:533:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:534:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:536:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:722:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:723:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:725:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:726:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:790:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:791:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:793:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:794:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:861:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:862:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:864:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:865:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:958:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:959:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:961:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:962:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1023:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1024:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1026:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1027:   process.env.GOOGLE_CLIENT_ID = 'test-id';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1105:   process.env.MERLIN_DRIVE_MODE = 'oauth';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1106:   process.env.MERLIN_DRIVE_SYNC_ENABLED = 'true';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1108:   process.env.MERLIN_DRIVE_ROOT_FOLDER_NAME = 'Merlin OR Storage';
+D:\AAATraderCorner\TradeScout\merlin-os-action-layer\tests\mealscout-screenshot-extraction.test.ts:1109:   process.env.GOOGLE_CLIENT_ID = 'test-id';

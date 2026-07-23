@@ -1,0 +1,61 @@
+Truck #4 Eligibility and Skip Diagnostic
+Generated: 2026-05-31
+
+Scope
+- Source report reviewed: truck4-safe-mode-cluster-expansion-report.txt
+- Cross-checks used: current batch history, file-audit snapshot, and preview debug snapshot.
+- No code changes made.
+- No new batch run executed.
+
+1. Why were only 3 files eligible when maxFiles was 10?
+- The active intake folder context used by Truck #4 only exposed 3 files at run time.
+- Evidence:
+  - Truck #4 report: scanned/selected eligible = 3.
+  - Batch record (ms-intake-batch-e53e8829-e140-4af9-a949-fe5f0718a894): scannedFileCount=3, eligibleFileCount=3.
+  - Preview debug snapshot: driveSource.folderId=15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg, listedCount=3.
+- Conclusion: under-selection was not caused by maxFiles logic. The available pool in the active folder was only 3 files.
+
+2. What was the skipped file reason?
+- Skipped reason: already_processed (1 file).
+- Evidence:
+  - Truck #4 report processedFiles includes two files, skippedFiles contains one file with reason already_processed.
+  - Batch record confirms skippedAlreadyProcessedCount=1.
+
+3. Were files excluded due to these categories?
+- already processed: YES (1 file in this run).
+- exact-filename duplicate suppressed: NO in this run (skippedDuplicateCount=0; duplicate groups empty in current file-audit snapshot).
+- unknown classification: NO explicit run-level skip for this reason.
+- logo-only evidence: NO explicit run-level skip for this reason.
+- menu-only evidence: NO explicit run-level skip for this reason.
+- missing OCR/text hydration: NO (failedFileCount=0; OCR succeeded on processed files).
+- permission-blocked: NO run-level evidence of this.
+- unsupported MIME/file type: NO (skippedUnsupportedCount=0).
+
+4. Did the 2 drafts represent 2 separate businesses, or could they belong to the same business?
+- Current evidence indicates 2 separate draft identities.
+  - Draft A: menu-like weak identity ("powk DIES") with missing required identity/contact.
+  - Draft B: "Lettys Backyard" with separate source files and profile signals.
+- No direct signal in the run report indicates these two should merge into one business.
+
+5. Did any menu/logo/profile evidence fail to attach to a related draft?
+- Yes, at least one menu-classified file appears as already_processed and was skipped in Truck #4, so it was not newly attached during this run.
+- Also, Draft B lacks menu in its required fields, which suggests menu evidence was not attached or not sufficient for that draft in this run.
+- No explicit logo attach event is recorded in Truck #4 output.
+
+6. Are there enough remaining eligible files for a Truck #5 run?
+- Not in the current active folder context used for Truck #4.
+- With listedCount=3 and one already_processed, the immediate available pool is below requested maxFiles=10.
+- Actionable implication: Truck #5 at maxFiles=10 will not reach 10 unless the active folder context changes or more eligible unsuppressed files are available in that folder.
+
+7. What exact change, if any, is required before increasing maxFiles?
+- Required change before increasing maxFiles:
+  - Confirm/set the intended Drive folderId for cluster processing to the larger source folder (the one expected to contain the broader screenshot set), then re-run eligibility audit for that folder.
+- Not required right now:
+  - No selector algorithm patch is indicated by this evidence.
+- Optional validation steps before scale-up:
+  - Verify active folder mapping in runtime config/UI.
+  - Re-run file-audit scoped to that folder and confirm eligible pool size > requested maxFiles.
+
+Bottom line
+- Truck #4 safety was a PASS, but volume was constrained by folder context (3 listed files), not by a processing bug.
+- Do not raise maxFiles for Truck #5 until folder scope is corrected/confirmed and eligible pool is larger than the requested cap.

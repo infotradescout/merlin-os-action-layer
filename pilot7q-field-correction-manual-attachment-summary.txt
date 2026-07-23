@@ -1,0 +1,13 @@
+Pilot 7Q Smoke Summary (test-fixture run)
+- correction flow executed against preview API fixture.
+- rejected fields: facebook:DINNERS, cuisine:BBQ.
+- replaced truckName -> Traci's Cherished Creations LLC.
+- added social handle -> tracischerishedcreations with evidence note.
+- manual attachment decisions saved:
+  - mark_as_menu for menu file
+  - mark_as_logo_candidate for logo file
+- regenerated preview produced new plan signature (stale old signature).
+- corrected plan excludes rejected fields and includes corrected values.
+- manual logo/menu decisions appear in attachedMedia in plan context.
+- preview mutationAllowed:false preserved.
+- publish execution not invoked.

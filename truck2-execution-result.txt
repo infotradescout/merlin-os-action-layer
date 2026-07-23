@@ -1,0 +1,31 @@
+Truck #2 Execution Result
+executionId: ms-exec-0c3e35b8-36ce-4c1e-9071-f5ed06b9bb31
+planId: ms-plan-1a74de8e-7da1-4032-b881-9715c91cfb2f
+recordId: ms-plan-record-ms-draft-6dd6fa51a86deb48
+result: success
+targetId: ms-profile-9ca957f8-adec-44b8-b4a6-9994b404baeb
+auditId: ms-audit-bae182e6-944c-4432-9a37-fabc3b3ff1af
+plannedAction: create_new
+fieldsWritten: truckName, phone, instagram, cityArea
+corrected fields written: truckName=Traci's Cherished Creations LLC; instagram=tracischerishedcreations; phone=850-255-8396; cityArea=Pensacola, FL
+rejected fields excluded facebook:DINNERS: true
+rejected fields excluded cuisine:BBQ: true
+menuEvidenceAttached result: true
+logo candidate status: suggested
+sourceFileIds: 1OLhdistMCVhMqyxbys4lHYhHXfmuQU97
+evidenceRefs: profile header text | Traci's Cherished Creations LLC
+Page - Food Truck
+Phone: (850) 255-8396
+Pensacola, FL
+Instagram: @tracischerishedcreatio | profile screenshot social handle | d Truck
+Phone: (850) 255-8396
+Pensacola, FL
+Instagram: @tracischerishedcr
+correction IDs: ms-correction-21bbd778-0615-4db5-ba3d-56240f51f165, ms-correction-0fab349b-ba38-4b45-b8af-9032c2c5eda1, ms-correction-aa17932c-1192-4fa3-9ba0-1496cddd99fd, ms-correction-94b1c507-1399-4cdd-a96d-bc073c56fc1a
+attachment decision IDs: ms-attach-9aa5e734-bff1-4d3f-bf15-7914f5164e7c, ms-attach-6019d3d2-9826-4288-a8b9-7fcc42478b0a
+attribution: {"contributingRepIds":[],"sourceFileIds":["1OLhdistMCVhMqyxbys4lHYhHXfmuQU97","1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq"],"attributionPolicy":"first_required_field_contributor"}
+previousValues: {}
+newValues: {"truckName":"Traci's Cherished Creations LLC","phone":"850-255-8396","instagram":"tracischerishedcreations","cityArea":"Pensacola, FL"}
+duplicate re-execution result: already_executed
+duplicate failureReason: already_executed
+preview mutationAllowed after execution: false

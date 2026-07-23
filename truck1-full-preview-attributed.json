@@ -1,0 +1,12 @@
+{
+  "pointer_schema": "merlin.raw_artifact_pointer.v1",
+  "original_path": "truck1-full-preview-attributed.json",
+  "quarantine_path": ".artifact-quarantine/raw-evidence/truck1-full-preview-attributed.json",
+  "external_storage_status": "local_quarantine_pending_external_storage",
+  "sha256": "187ac1b84a7c0343ee9f369da0f363f034d92a54c2daf66b6af8f7836b656676",
+  "size_bytes": 627091,
+  "line_count": 16,
+  "generated_at": "2026-06-09T00:00:00.000-05:00",
+  "canonical_pointer_index": "artifacts/quarantine/raw-artifact-pointer-index.json",
+  "mutationAllowed": false
+}

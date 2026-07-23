@@ -1,0 +1,24 @@
+{
+  "totalRows": 896,
+  "profileCount": 396,
+  "menuCount": 180,
+  "possibleMenuCount": 117,
+  "scheduleCount": 1,
+  "logoCount": 4,
+  "postCount": 2,
+  "contactCount": 0,
+  "reviewCount": 0,
+  "unknownCount": 196,
+  "menuCandidateCount": 218,
+  "menuReviewRequiredCount": 79,
+  "duplicateGroupCount": 145,
+  "mutationAllowed": false,
+  "examples": [
+    "1KxgheP5U4sEKffEV-1e_P2Ty17Dj6n9f: menu_extraction_failed",
+    "12WHUzi6w8Cy4SIVH9MWPKqh9-FlalZhy: menu_extraction_failed",
+    "18iVVIzdSq4D1Td6T3GlpMbYEBOvgZA6G: menu_extraction_failed",
+    "1-8tyd1ovJviGaQdh8bUzyWu1d0pGBAIf: M&M Southern BBQ",
+    "1W_JEFYhuZLjS73w0_PH9--3yL4t6w7YO: Jones Shakes Pensacola",
+    "1t7dCPeYx67ZMWmcaN1R_B20Yn09I60fi: Jones Shakes Pensacola"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "pointer_schema": "merlin.raw_artifact_pointer.v1",
+  "original_path": "artifacts/mealscout-menu-artifact-classification/duplicate-evidence-groups.json",
+  "quarantine_path": ".artifact-quarantine/raw-evidence/artifacts/mealscout-menu-artifact-classification/duplicate-evidence-groups.json",
+  "external_storage_status": "local_quarantine_pending_external_storage",
+  "sha256": "accc3f08a2897f9d8ad2d3094c31b820b2c75e62d8f4abdc1753f882b1126ebd",
+  "size_bytes": 76094,
+  "line_count": 4,
+  "generated_at": "2026-06-09T00:00:00.000-05:00",
+  "canonical_pointer_index": "artifacts/quarantine/raw-artifact-pointer-index.json",
+  "mutationAllowed": false
+}

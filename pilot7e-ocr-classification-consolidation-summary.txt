@@ -1,0 +1,58 @@
+Pilot 7E OCR Classification + Consolidation Summary
+Timestamp: 2026-05-29T13:01:38.9592023-05:00
+listedCount: 3
+mutationAllowed: False
+clusterCount: 2
+draftCount: 2
+
+fileId: 18dEBiSbwnC_U8AgPv9qanaMfXNxSQnfD
+name: 707990078_2109431996279825_93215142009434330_n.jpg
+mimeType: image/jpeg
+byteLength: 56201
+ocrAttempted: True
+ocrSucceeded: True
+selectedEngine: tesseract
+extractedTextLength: 321
+classification: menu
+---
+fileId: 1bLzZsqS2mJ65JrxP9zqIUAwVnjlNf0vM
+name: 705770904_918342954569744_6077113333953277063_n.jpg
+mimeType: image/jpeg
+byteLength: 65315
+ocrAttempted: True
+ocrSucceeded: True
+selectedEngine: tesseract
+extractedTextLength: 407
+classification: profile
+---
+fileId: 1yo-pt0_aSRB5HS_2Dll1PJzt1eQbOJsl
+name: 706216881_1495538075647692_5427253878307980612_n.jpg
+mimeType: image/jpeg
+byteLength: 59949
+ocrAttempted: True
+ocrSucceeded: True
+selectedEngine: tesseract
+extractedTextLength: 43
+classification: profile
+---
+
+draftId: ms-draft-5c890f7d-67d7-44fd-a1ee-daf6c5c1d7b4
+draftType: create_new
+existingTruckId: 
+reviewStatus: missing_required
+sourceFilesCount: 1
+mutationAllowed: False
+hasExtractedFieldEvidence: True
+evidenceKeys: truckName,menuItems
+---
+draftId: ms-draft-21c3fcee-7d9d-40c3-b39f-1fe14e367b73
+draftType: create_new
+existingTruckId: 
+reviewStatus: missing_required
+sourceFilesCount: 2
+mutationAllowed: False
+hasExtractedFieldEvidence: True
+evidenceKeys: truckName,cityArea
+---
+allClassificationsUnknown: False
+atLeastOneClassificationUsesExtractedText: True

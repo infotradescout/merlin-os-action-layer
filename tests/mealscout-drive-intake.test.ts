@@ -102,6 +102,8 @@ test('read-only discovery reports missing folders without creating them', async 
   assert.equal(result.summary.required, 17);
   assert.equal(result.summary.present, 0);
   assert.equal(result.summary.missing, 17);
+  assert.equal(result.root.merlin.path, 'Merlin OR Storage');
+  assert.equal(result.folders['incoming/unknown'].path, 'Merlin OR Storage/MealScout Intake/incoming/unknown');
   assert.equal(createdFolders.length, 0);
 });
 
@@ -121,8 +123,8 @@ test('provisioning creates canonical MealScout intake tree and returns stable id
 test('discovery marks duplicate folders as conflict', async () => {
   const { client } = createMockDriveClient([
     { id: 'root', name: 'root', parent: '' },
-    { id: 'merlin', name: 'Merlin', parent: 'root' },
-    { id: 'intake', name: 'MealScout Intake', parent: 'merlin' },
+    { id: 'merlin-storage', name: 'Merlin OR Storage', parent: 'root' },
+    { id: 'intake', name: 'MealScout Intake', parent: 'merlin-storage' },
     { id: 'incoming-a', name: 'incoming', parent: 'intake' },
     { id: 'incoming-b', name: 'incoming', parent: 'intake' }
   ]);

@@ -1,0 +1,17 @@
+{
+  "duplicateGroupId": "dup-img_4536_png-1q8rm1",
+  "primaryFileId": "1q8rm1mvi7AFwVhKhu4-nF7kgdBs1Gy6y",
+  "duplicateFileId": "1NL_5xU5PvCTpC2v3LtNnrm_ERQtwqG4k",
+  "duplicateWasSuppressed": true,
+  "drivePermissionResult": "duplicate_removal_blocked_permission",
+  "suppressionResult": "marked_duplicate",
+  "auditId": "ms-dup-audit-04f7e1b4-2a6c-4092-b678-9491e273fe01",
+  "trashFailedPermissionCount": 1,
+  "markedSuppressedAfterPermissionFailureCount": 1,
+  "filesStillInDriveCount": 1,
+  "previewCheck": "ok",
+  "previewMutationAllowed": false,
+  "fileAuditCheck": "ok",
+  "batchesCheck": "ok",
+  "serverAlive": true
+}

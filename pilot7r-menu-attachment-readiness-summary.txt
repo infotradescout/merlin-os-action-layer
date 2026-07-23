@@ -1,0 +1,19 @@
+Pilot 7R Menu Attachment Readiness Summary
+correctedPlanId: ms-plan-8f64cb01-11fe-4cb0-a6d2-3b6659d4b5bf
+oldPlanStale: true
+truckName: Traci's Cherished Creations LLC
+phone: 850-255-8396
+cityArea: Pensacola, FL
+socialHandle: tracischerishedcreations
+facebookRemoved: true
+cuisineRemoved: true
+menuEvidenceAttached: true
+menuEvidenceSourceFileIds: 1VYCZOIzzIb2O5XIowLyvmzdHQpY4iWtq
+menuEvidenceRefs: manual menu evidence attach
+logoCandidatePresent: true
+publishReady: true
+plannedAction: create_new
+blockedReasons: none
+warnings: menu missing and not deferred,menu_image_attached_pending_structuring
+mutationAllowed: false
+noPublishExecution: true

@@ -1,0 +1,12 @@
+{
+  "pointer_schema": "merlin.raw_artifact_pointer.v1",
+  "original_path": "pilot7o-truck1-preview.json",
+  "quarantine_path": ".artifact-quarantine/raw-evidence/pilot7o-truck1-preview.json",
+  "external_storage_status": "local_quarantine_pending_external_storage",
+  "sha256": "ab8e7c1d339a6030db1048a23d16580ff757a1603cf9e1dc8e6b397546bf1938",
+  "size_bytes": 627061,
+  "line_count": 16,
+  "generated_at": "2026-06-09T00:00:00.000-05:00",
+  "canonical_pointer_index": "artifacts/quarantine/raw-artifact-pointer-index.json",
+  "mutationAllowed": false
+}

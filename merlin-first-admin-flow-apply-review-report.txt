@@ -1,0 +1,68 @@
+Merlin first admin-flow apply review report
+
+generated_at: 2026-06-05
+source_report: merlin-affiliate-screenshot-folder-processing-report.txt
+review_scope: capped admin-flow screenshot processing report only
+
+run_reviewed:
+node scripts/process-affiliate-screenshot-folders.mjs --apply --root-folder-id 1Mw14mg9CO8KluLUCoETWMXrzqBN4SxFF --max-files 25 --report merlin-affiliate-screenshot-folder-processing-report.txt
+
+decision: pause before processing the remaining screenshots
+
+counts:
+- max_files_requested: 25
+- screenshots_eligible_count: 400
+- screenshots_selected_count: 25
+- screenshots_skipped_due_to_cap: 375
+- screenshots_processed_count: 25
+- admin_flow_screenshots_count: 400
+- affiliate_attributed_screenshots_count: 0
+- created_profile_count: 22
+- updated_profile_count: 1
+- tradescout_created_count: 0
+- tradescout_updated_count: 0
+- blocked_count: 2
+- affiliate_ledger_rows_written: 0
+
+blocked:
+- missing_required_identity: 2
+- ambiguous_or_unsupported_brand: 0
+
+verification_email:
+- sent_count: 0
+- failed_count: 18
+- not_available_count: 5
+- not_available_reason: selected screenshots produced no valid extracted profile/business email.
+- failed_reason: MERLIN_PRODUCT_VERIFICATION_EMAIL_WEBHOOK_URL is not set in the current shell; src/productVerificationEmail.ts returns verification_email_sender_not_configured when no webhook URL is configured.
+
+safety_confirmations:
+- no affiliate credit assigned: confirmed by affiliate_attributed_screenshots_count 0 and affiliate_ledger_rows_written 0.
+- affiliate tracking ledger file: data/affiliate-tracking-ledger.csv was not present during review.
+- no Drive mutation: source report confirms no cleanup/delete/archive/suppress behavior; this review did not run apply or call Drive mutation paths.
+- email_verified false: confirmed by source report safety confirmations and profile seed runtime contract.
+- insurance_verified false: confirmed by source report safety confirmations and profile seed runtime contract.
+- claim_status unclaimed: confirmed by source report safety confirmations and profile seed runtime contract.
+- affiliate folder email was not used as business/profile email.
+- no payout logic was invoked.
+
+risk_findings:
+- The capped run behaved safely for attribution and profile safety flags.
+- The cap worked: 25 processed, 375 skipped due to cap.
+- Admin-flow processing created or updated 23 MealScout profiles and blocked 2 screenshots for missing identity.
+- Verification delivery is not operationally ready in this environment: 18 profiles with extracted email failed verification email dispatch because the sender webhook is not configured.
+- Scaling the remaining 375 screenshots would likely create or update more profiles while producing more failed verification email attempts.
+
+recommendation:
+pause
+
+exact_blocker:
+Configure MERLIN_PRODUCT_VERIFICATION_EMAIL_WEBHOOK_URL, and MERLIN_PRODUCT_VERIFICATION_EMAIL_WEBHOOK_TOKEN if required, or explicitly approve continuing with verification email failures recorded as verification_email_sender_not_configured.
+
+recommended_next_max_files_value:
+25 after the verification sender blocker is resolved or intentionally accepted.
+
+do_not_do_before_resolution:
+- Do not run the remaining 375 screenshots uncapped.
+- Do not retry verification emails from this review task.
+- Do not assign affiliate credit to admin-flow files.
+- Do not move, delete, archive, suppress, or otherwise mutate Drive files.

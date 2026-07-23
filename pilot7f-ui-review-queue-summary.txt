@@ -1,0 +1,15 @@
+Pilot 7F UI Review Queue Smoke Summary
+Generated: 2026-05-29T13:39:46
+UI route status: 200
+UI contains draft panel: True
+UI contains merge panel: True
+preview status: ok
+mutationAllowed: False
+draftCount: 2
+sourceFileCount: 3
+mergeAssistGroups: 1
+ocrSuccessCount: 3
+operator actions mode: local UI state only (no mutation endpoint calls in client tests)
+Per-draft mutation flags:
+- ms-draft-485490e5-e121-49e9-aea2-ba2effa52bc0: mutationAllowed=False draftType=create_new reviewStatus=missing_required
+- ms-draft-23cc7bca-48f4-4fcc-ae94-ffe04fc0eefc: mutationAllowed=False draftType=create_new reviewStatus=missing_required

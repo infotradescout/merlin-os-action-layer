@@ -1,0 +1,136 @@
+Intent Button Registry v1 Report
+
+Files changed
+- src/intakeUploadIntent.ts
+- src/server.ts
+- tests/upload-intent-packet.test.ts
+
+Registry structure
+- Added Intent Button Registry model with:
+  - actionId
+  - brand
+  - actorScope
+  - label
+  - description
+  - entityTypesAllowed[]
+  - expectedFileTypes[]
+  - allowedOutputTypes[]
+  - allowedFieldPaths[]
+  - forbiddenFieldPaths[]
+  - requiresEntityContext
+  - requiresUserHint
+  - previewRequired=true
+  - approvalRequired=true
+  - implementationMode
+  - riskLevel
+- Added registry resolver:
+  - resolveIntentRegistryAction(brand, actionId, actorScope)
+
+Actions added by brand/scope
+- MealScout owner:
+  - update_schedule
+  - update_menu
+  - add_food_photos
+  - upload_logo
+  - add_event_flyer
+  - add_deal
+  - update_hours
+  - update_location
+  - update_contact_info
+  - upload_everything
+- MealScout staff/admin:
+  - import_food_truck_evidence
+  - import_restaurant_evidence
+  - attach_menu_evidence
+  - attach_schedule_evidence
+  - attach_logo_media
+  - attach_event_flyer
+  - attach_deal_evidence
+  - correct_existing_profile
+  - review_unknown_uploads
+  - bulk_intake_review
+- HomeID user:
+  - upload_everything
+  - add_repair_record
+  - add_appliance
+  - add_receipt
+  - add_warranty
+  - add_manual
+  - add_inspection_report
+  - add_permit
+  - add_insurance_document
+  - add_contractor_estimate
+  - add_photos
+  - update_home_facts
+- TradeScout contractor:
+  - update_contractor_profile
+  - add_business_card
+  - add_license_insurance
+  - add_job_photos
+  - add_before_after_photos
+  - add_estimate
+  - add_invoice
+  - add_service_area_proof
+  - add_review_reference
+
+Upload intent validation behavior
+- POST /api/intake/upload-intents now requires:
+  - userId
+  - accountId
+  - brand
+  - actionId
+  - actorScope
+  - entityType
+- Enforces:
+  - brand validity
+  - actorScope validity
+  - actionId registered for brand+actorScope
+  - entityType allowed by action
+  - entityId required when action requires entity context
+  - userHint required when action requires it
+- Unknown/unregistered action returns:
+  - error: INVALID_INTENT
+- Intent snapshot now persists:
+  - allowedFieldPaths
+  - forbiddenFieldPaths
+- Intent flags now persist and remain enforced:
+  - implementationAllowed: false
+  - previewRequired: true
+  - approvalRequired: true
+
+Preview/edit gate behavior
+- Files can attach only to existing upload intents.
+- Routing + preview never call publish execution.
+- Preview endpoint returns draft-only output and stops at:
+  - PREVIEW_READY or HELD_FOR_REVIEW
+- No role bypasses preview/edit:
+  - owner/staff/admin all remain implementationAllowed=false in this slice.
+
+Routing conflict behavior
+- Router uses action context as strong prior.
+- Holds files on conflict with explicit reasons:
+  - intent_evidence_conflict
+  - ambiguous_or_wrong_domain
+  - unrelated
+  - ambiguous
+- Cross-domain hints (e.g., TradeScout-like evidence under MealScout action) are held and not silently cross-routed.
+- Low-confidence/ambiguous files remain held.
+
+Tests added/updated
+- Added tests/upload-intent-packet.test.ts with coverage for:
+  - unregistered action blocked
+  - update_menu allowed/forbidden snapshot persisted
+  - update_menu routing bias
+  - update_schedule routing bias + identity forbidden-path check
+  - files cannot attach without valid upload intent
+  - staff/admin still requires preview; cross-domain held
+  - preview includes source refs and does not execute publish
+
+Validation results
+- npm run check: PASS
+- npx tsx --test tests/upload-intent-packet.test.ts: PASS (7/7)
+- npm run test: PASS (308/308)
+
+Safety confirmation
+- publish execution called: no
+- live mutation yes/no: no

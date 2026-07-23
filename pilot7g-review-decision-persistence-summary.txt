@@ -1,0 +1,19 @@
+Pilot 7G Review Decision Persistence Smoke Summary
+Generated: 2026-05-29T13:51:21
+previewStatus: ok
+mutationAllowedPreview: False
+draftCount: 2
+ocrAttemptedCount: 3
+saveStatus: ok
+saveMutationAllowed: False
+savedDecision: needs_review
+savedDecisionId: ms-review-31758e5d-561e-4287-9760-27d1fe485960
+decisionsAfterSave: 1
+patchStatus: ok
+patchedDecision: keep_separate
+patchMutationAllowed: False
+decisionsAfterPatch: 1
+persistedAfterRefetch: True
+Safety checks:
+- mutationAllowed remained false for preview/save/patch/list
+- no publish/update/merge production endpoints invoked in this smoke

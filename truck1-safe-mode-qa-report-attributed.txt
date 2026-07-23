@@ -1,0 +1,57 @@
+Truck #1 QA Report (Attributed Re-run)
+
+1. Batch result
+- batchId: ms-intake-batch-ca6fd451-18d4-4e7e-a4af-7e45e6048503
+- scanned files: 38
+- processed files: 5
+- skipped files: 33
+- failed files: 0
+- safeMode status: True
+- maxFiles applied: requested 5 / cap 8
+- mutationAllowed: False
+
+2. Processed files attribution
+- FB_IMG_1779900506791.jpg [1aN5oxymvN9GMWlHBIr5I4K_yls3opsmf]
+  attributionSource: request_context
+  repId: MANUAL_OPERATOR
+  affiliateCode: UNKNOWN_SOURCE_REVIEW
+  sourceChannel: admin_import
+- Screenshot_20260527_114835_Facebook.jpg [1khJvon3PghE7QPvOVMovc8bjpMSdWpaO]
+  attributionSource: request_context
+  repId: MANUAL_OPERATOR
+  affiliateCode: UNKNOWN_SOURCE_REVIEW
+  sourceChannel: admin_import
+- FB_IMG_1779900598703.jpg [1j1vO-zqg0pFLKrfdJyv-BYM-hZJcAxDD]
+  attributionSource: request_context
+  repId: MANUAL_OPERATOR
+  affiliateCode: UNKNOWN_SOURCE_REVIEW
+  sourceChannel: admin_import
+- Screenshot_20260527_115443_Samsung Notes.jpg [1-W39no0GJPdrOVkMx2QOuAz_FVr-q8HC]
+  attributionSource: request_context
+  repId: MANUAL_OPERATOR
+  affiliateCode: UNKNOWN_SOURCE_REVIEW
+  sourceChannel: admin_import
+- Screenshot_20260527_115713_Facebook.jpg [1OLhdistMCVhMqyxbys4lHYhHXfmuQU97]
+  attributionSource: request_context
+  repId: MANUAL_OPERATOR
+  affiliateCode: UNKNOWN_SOURCE_REVIEW
+  sourceChannel: admin_import
+
+3. Attribution propagation checks
+- attributionSource changed unknown->request_context?: True
+- processed files request_context count: 5/5
+- unknown attribution count: 0
+- draft evidence attribution present: 14/14 fields
+- publish plan field attribution/evidence present: 13/13 fields
+
+4. Draft + plan outcomes
+- draft count: 4
+- publishReady count: 1
+- blocked count: 3
+- needsReview count: 0
+- grouping changed vs prior truck1 run?: no
+
+5. Safety checks
+- preview mutationAllowed:false: True
+- publish execution run: false
+- drive file move/delete: false

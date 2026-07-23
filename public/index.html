@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Merlin Daily</title>
+    <link rel="stylesheet" href="/admin/operator-workspace.css" />
     <style>
       :root {
         --bg: #0b1021;
@@ -14,6 +15,8 @@
         --line: #27315e;
         --accent: #58b8ff;
         --positive: #48d1a5;
+        --operator-panel-margin-bottom: 1rem;
+        --operator-panel-padding: 0.9rem;
       }
 
       * {
@@ -58,14 +61,6 @@
         gap: 1rem;
       }
 
-      .panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 0.9rem;
-        margin-bottom: 1rem;
-      }
-
       .columns {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -86,18 +81,6 @@
         margin: 0.4rem 0 0;
         max-height: 240px;
         overflow: auto;
-      }
-
-      .item {
-        border: 1px solid transparent;
-        border-radius: 8px;
-        padding: 0.55rem;
-        margin: 0.35rem 0;
-        cursor: pointer;
-      }
-
-      .item:hover {
-        border-color: var(--accent);
       }
 
       .item-title {
@@ -146,6 +129,24 @@
       .status-ok {
         color: var(--positive);
       }
+
+      .doctrine-banner {
+        margin: 0 0 1rem;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: linear-gradient(120deg, rgba(88, 184, 255, 0.14), rgba(72, 209, 165, 0.08));
+      }
+
+      .doctrine-banner strong {
+        display: block;
+      }
+
+      .doctrine-spine {
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
     </style>
   </head>
   <body>
@@ -158,7 +159,24 @@
             <span id="generated-at">...</span>
           </p>
         </div>
-        <div class="subtitle">v1.0 command center</div>
+        <div class="subtitle">v1.0 action layer command center</div>
+      </div>
+
+      <section class="doctrine-banner" aria-label="Merlin doctrine banner">
+        <strong>Merlin is not AI hype. Merlin is what comes after AI hype fails.</strong>
+        <div>Merlin does not replace AI. Merlin makes constrained AI usable with proof-backed execution.</div>
+        <div class="doctrine-spine">Capture -> Compress -> Remember -> Verify -> Decide -> Execute -> Prove</div>
+      </section>
+
+      <nav class="workspace-nav" aria-label="Operator workspace">
+        <a href="/" aria-current="page">Daily Command Center</a>
+        <a href="/admin/drive-review-queue">Drive Review</a>
+        <a href="/admin/mealscout-review-queue">MealScout OCR Review</a>
+      </nav>
+
+      <div class="operator-task-strip" role="note">
+        <strong>Current task: scan today's command center.</strong>
+        <span>Next: open Drive Review for reconciliation drift, or MealScout OCR Review for intake evidence.</span>
       </div>
 
       <div class="grid">
@@ -224,9 +242,10 @@
           </div>
           <div class="panel">
             <h2>Drive Review Queue</h2>
-            <p class="subtitle" style="margin: 0.4rem 0 0.6rem;">
-              <a href="/admin/drive-review-queue" style="color: var(--accent); text-decoration: none;">Open admin operational inbox</a>
-            </p>
+            <div class="operator-link-row">
+              <a class="operator-link" href="/admin/drive-review-queue">Open Drive Review inbox</a>
+              <a class="operator-link" href="/admin/mealscout-review-queue">Open MealScout OCR review</a>
+            </div>
             <ul id="drive-review-list" class="list"></ul>
           </div>
         </section>

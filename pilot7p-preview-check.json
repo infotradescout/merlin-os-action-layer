@@ -1,0 +1,12 @@
+{
+  "pointer_schema": "merlin.raw_artifact_pointer.v1",
+  "original_path": "pilot7p-preview-check.json",
+  "quarantine_path": ".artifact-quarantine/raw-evidence/pilot7p-preview-check.json",
+  "external_storage_status": "local_quarantine_pending_external_storage",
+  "sha256": "5590dbb2a9bdc57a765af8ee3a451fec7162fcaea9cb5b379bcc3c94b8cfcee4",
+  "size_bytes": 411843,
+  "line_count": 8,
+  "generated_at": "2026-06-09T00:00:00.000-05:00",
+  "canonical_pointer_index": "artifacts/quarantine/raw-artifact-pointer-index.json",
+  "mutationAllowed": false
+}

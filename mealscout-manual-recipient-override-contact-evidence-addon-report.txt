@@ -1,0 +1,99 @@
+MealScout Manual Recipient Override + Contact Evidence Add-On Patch Report
+
+Date: 2026-06-01
+
+Summary
+- Implemented manual recipient override and contact evidence add-on paths for true recipient_missing outreach cases.
+- Preserved profile safety boundaries: no publish, no ownership/verification mutation, no auto-send, no cleanup/delete/archive/suppress behavior.
+
+Files Changed
+- src/server.ts
+- src/merlin/intake/actionCardQueue.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-dryrun.test.ts
+- tests/merlin-intake-action-cards-runtime.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+Part A: Manual Recipient Override
+- Added durable fields on stored action cards:
+  - manualNotificationRecipient
+  - manualNotificationRecipientType
+  - manualNotificationRecipientSource
+  - manualNotificationRecipientReason
+  - manualNotificationRecipientBy
+  - manualNotificationRecipientAt
+- Added endpoint:
+  - PATCH /api/mealscout/intake/action-cards/:cardId/notification/recipient
+- Behavior implemented:
+  - Admin/operator/staff gate enforced.
+  - Requires applied card or existing profile/notification link context.
+  - Validates required reason and recipient format (email/phone when applicable).
+  - Stores audit metadata only.
+  - Notification preview can use manual recipient when extracted recipient is missing.
+  - mutationAllowed:false.
+
+Part B: Contact Evidence Add-On
+- Added durable fields on stored action cards:
+  - addedContactEvidenceFileIds
+  - addedContactEvidenceFileNames
+  - addedContactEvidenceAt
+  - addedContactEvidenceBy
+  - addedContactEvidenceReason
+  - contactReprocessResult
+- Added endpoint:
+  - POST /api/mealscout/intake/action-cards/:cardId/contact-evidence
+- Behavior implemented:
+  - Admin/operator/staff gate enforced.
+  - Validates sourceFileIds presence and validates file IDs in active intake scope.
+  - Extracts contact candidates from provided files and hydrates target card contact fields.
+  - Reprocesses contact context for target card path only; does not regenerate unrelated cards.
+  - Returns recipient readiness summary.
+  - Does not send notifications.
+  - Does not apply profile mutation.
+  - mutationAllowed:false.
+
+Notification/Preview Behavior
+- Preview now surfaces:
+  - recipientCandidates
+  - recipientAmbiguous
+- Manual recipient is used for preview eligibility when extraction had recipient_missing.
+- Conflicting contacts remain blocked as recipient_ambiguous.
+- No auto-send path added.
+
+UI Changes
+- Added controls in review queue notification area for recipient_missing cases:
+  - Manual Recipient Override
+  - Add Contact Evidence
+- Added client API calls:
+  - setActionCardNotificationRecipient(...)
+  - addActionCardContactEvidence(...)
+- UI refreshes action cards after updates and shows result text.
+- Added explicit warning text: recipient/contact evidence enables outreach only; it does not verify, claim, or publish.
+
+Tests Added/Updated
+- tests/merlin-intake-action-cards-dryrun.test.ts
+  - manual recipient override gating/validation and preview use when recipient missing
+  - contact evidence endpoint gating and sourceFileIds validation
+- tests/merlin-intake-action-cards-runtime.test.ts
+  - cross-file contact hydration to matching card
+  - unrelated contacts remain unassigned
+- tests/mealscout-review-queue-ui.test.ts
+  - client/UI calls for manual recipient and contact evidence endpoints
+
+Validation Results
+- npm run check: PASS
+- npm run test -- --runInBand: PASS (366 passed, 0 failed)
+- npm run build: PASS
+
+Safety Confirmation
+- Publish execution called: no
+- Live profile mutation occurred via these new endpoints: no
+- Ownership/verification mutation via these new endpoints: no
+- Notification auto-send added: no
+- Drive cleanup/delete/archive/suppress called: no
+
+Operational Rule Confirmed
+- No recipient = no outreach.
+- Known recipient = audited manual override.
+- New contact screenshot = attach evidence + contact-only reprocess.

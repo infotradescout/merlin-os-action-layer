@@ -1,0 +1,96 @@
+# Merlin Intake Persistent Queue + Apply Audit Ledger Slice 4B Report
+
+Date: 2026-05-31
+Slice: 4B
+Status: PASS
+
+## Goal
+Move Merlin intake action cards, decision state, apply state, duplicate/replacement warnings, and apply audit metadata from in-memory runtime state to durable persistence so review/apply survives restarts.
+
+## Files Changed
+- src/merlin/intake/actionCardQueue.ts
+- src/server.ts
+- src/merlin/intake/actionCards.ts
+- tests/merlin-intake-action-cards-dryrun.test.ts
+
+## Durable Model Implemented
+SQLite-backed durable store `merlin_intake_action_cards` (created/managed in `actionCardQueue.ts`) with:
+- identity/payload fields:
+  - id, batch_id, type, title, entity_type, confidence
+  - source_file_ids_json, extracted_fields_json, missing_fields_json
+  - existing_entity_match_json, recommended_action
+- warning/conflict fields:
+  - duplicate_warnings_json, conflict_warnings_json, replacement_candidate_json
+- decision state fields:
+  - decision_state, decision_by, decision_at, decision_reason
+- apply state fields:
+  - apply_state, applied_by, applied_at, apply_result_json, apply_error
+- timestamps:
+  - created_at, updated_at
+
+Defaults:
+- decisionState: pending
+- applyState: not_applied
+
+Indexes:
+- idx_merlin_action_cards_batch
+- idx_merlin_action_cards_decision_state
+- idx_merlin_action_cards_apply_state
+
+## Persistence Behavior
+- Preview-generated action cards are persisted/upserted deterministically by card `id`.
+- Re-running preview for same batch does not create duplicate rows.
+- Regeneration refreshes evidence payload fields while preserving existing decision/apply state.
+- Duplicate-like cards remain visible (not suppressed) and keep warning metadata.
+- Dry-run, decision, and apply endpoints read durable card records.
+- Apply endpoint persists applyState/applyResult/applyError and remains idempotent after restart.
+
+## Duplicate/Conflict/Replacement Handling
+Canonical rule preserved:
+- Duplicates are evidence conflicts, not trash.
+
+Implemented behavior:
+- duplicateWarnings/conflictWarnings/replacementCandidate carried on cards and responses.
+- duplicate-looking create cards remain in queue.
+- apply requires explicit duplicate override (`allowDuplicateCreate`) for duplicate-like create cards.
+- no silent suppression/delete/hide of duplicate-like cards.
+
+## Server Lifecycle Integration
+- Added `closeActionCardQueueStore()` call in server close handler to ensure durable store closes cleanly.
+- test helper reset path preserved for deterministic tests.
+
+## Backward Compatibility
+- Existing preview/review/dry-run/decision/apply endpoint envelopes remain compatible.
+- Existing fields are preserved; no auth rule downgrades.
+- `mutationAllowed` remains false for preview/review/dry-run/decision paths.
+- only apply endpoint is mutating, under existing role/decision gates.
+
+## Tests Added/Updated
+Updated: `tests/merlin-intake-action-cards-dryrun.test.ts`
+- duplicate-like create card stays visible and requires explicit override
+- regeneration does not duplicate cards and preserves decision/apply states
+- action card data survives queue store reload
+- warning/replacement metadata persists across reload
+
+Related apply/decision/dry-run coverage remains passing, including:
+- role gating
+- idempotency
+- stale conflict checks
+- non-mutating behavior for unsupported/non-apply card types
+
+## Validation Results
+- `npm run check`: PASS
+- `npm run build`: PASS
+- `npm run test -- --runInBand`: PASS (341/341)
+
+## Safety Confirmations
+- publish execution called: no
+- live profile mutation outside apply endpoint: no
+- cleanup/delete called: no
+- notifications added/sent: no
+- TradeScout live apply added: no
+- duplicate/replacement warning behavior removed: no
+
+## KPI Outcome
+Durable workflow achieved:
+uploaded evidence -> durable action card -> persisted decision -> persisted apply result -> audit metadata survives restart

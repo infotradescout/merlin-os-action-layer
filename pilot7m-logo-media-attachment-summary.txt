@@ -1,0 +1,22 @@
+Pilot 7M Smoke Summary (logo/media attachment hardening)
+Date: 2026-05-29
+
+Validation:
+- npm run check: PASS
+- npx tsx --test tests/mealscout-screenshot-extraction.test.ts tests/mealscout-ocr-adapter.test.ts: PASS
+- npx tsx --test tests/mealscout-profile-import.test.ts tests/mealscout-review-queue-ui.test.ts tests/mealscout-review-decision-persistence.test.ts tests/mealscout-batch-intake.test.ts tests/mealscout-publish-plan-preview.test.ts tests/mealscout-publish-execution.test.ts: PASS
+
+Key behavior confirmed:
+- Logo-only file is classified as media and does not create standalone profile draft.
+- Unlinked weak media is returned as unattachedMedia in preview.
+- Draft cards now expose attachedMedia with attribution.
+- Publish plan records now include attachedMedia when present.
+- Publish execution audit now includes attachedMedia metadata.
+- Batch classification supports truck_photo and food_photo.
+- Preview remains mutationAllowed:false.
+- No auto-publish behavior added.
+
+Safety:
+- Drive mutations not added.
+- Publish endpoint unchanged for eligibility/confirmation gates.
+- Untracked prior smoke files untouched.

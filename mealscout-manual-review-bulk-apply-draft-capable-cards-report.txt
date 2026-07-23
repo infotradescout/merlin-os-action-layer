@@ -1,0 +1,95 @@
+MealScout Manual Review Bulk Apply for Draft-Capable Cards Patch
+
+Status: complete
+
+Files changed
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+- tests/mealscout-review-queue-ui.test.ts
+
+What was added
+1) Backend endpoint
+- POST /api/mealscout/intake/action-cards/bulk-apply
+- Admin/operator/staff only.
+- Request:
+  {
+    "cardIds": ["..."],
+    "applyReason": "manual_bulk_apply",
+    "approveIfPending": true
+  }
+- Per-card flow:
+  - fetch durable card
+  - evaluate eligibility and dry-run signals
+  - optionally approve pending cards when approveIfPending=true
+  - apply through shared guarded apply runtime for eligible cards
+  - preserve idempotency for already-applied cards
+  - return per-card result status and reasons
+- Response summary:
+  - status
+  - requestedCount
+  - approvedCount
+  - appliedCount
+  - skippedCount
+  - failedCount
+  - results[]
+  - mutationAllowed:true
+
+2) Eligibility and skip safety
+- Bulk apply only supports:
+  - create_profile_draft
+  - update_existing_profile
+- Skips cards for:
+  - unsupported_card_type (request_missing_info/defer/claim, etc.)
+  - decision state in rejected/deferred
+  - duplicateWarnings present
+  - conflictWarnings present
+  - replacementCandidate present
+  - missing required identity fields (truckName)
+  - dry-run skipped/no-op
+  - stale before-state conflict for updates
+  - empty-overwrite risk for updates
+  - unsupported entity type
+- Already applied cards return already_applied (idempotent behavior).
+
+3) Shared apply runtime usage
+- Single-card apply endpoint now uses the same guarded apply helper used by bulk apply.
+- Safety behavior remains aligned between single-card and bulk-card execution.
+
+4) UI updates (review queue)
+- Added card selection checkboxes.
+- Added filter option: Draft-Capable Manual Review.
+- Added bulk action button: Bulk Approve + Apply Selected.
+- Added confirmation message with explicit skip/warning caveats.
+- Added per-card bulk result output in each card result area and a summary line.
+
+5) Client API
+- Added review queue client method:
+  - bulkApplyActionCards(payload)
+
+Safety confirmations
+- No notification send is performed by bulk apply endpoint.
+- No Drive cleanup/delete/archive/suppress is performed by bulk apply endpoint.
+- Fast Lane threshold behavior unchanged.
+- TradeScout mutation path not changed.
+- Duplicate/conflict/replacement warning gates preserved.
+
+Tests added/updated
+- tests/mealscout-batch-intake.test.ts
+  - bulk apply role gate test
+  - bulk apply eligibility/skip behavior test
+  - idempotent rerun behavior test
+  - notification non-send check after bulk apply flow
+- tests/mealscout-review-queue-ui.test.ts
+  - review queue contains bulk apply UI affordance
+  - client supports bulkApplyActionCards call
+  - endpoint call assertion for /api/mealscout/intake/action-cards/bulk-apply
+
+Validation results
+- npm run check: PASS
+- npm run test -- --runInBand: PASS
+- npm run build: PASS
+
+No publish execution path was added.
+No live public profile publish was triggered in this patch.

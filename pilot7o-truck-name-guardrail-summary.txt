@@ -1,0 +1,21 @@
+Pilot 7O Truck Name Guardrail Summary
+
+Before (Truck #1 attributed re-run pre-7O): publishReady=1, blocked=3
+After (Truck #1 attributed re-run post-7O):
+- batchId: ms-intake-batch-1b75681e-be0a-4f0c-bea4-033659adefb3
+- scanned: 38, processed: 5, skipped: 33, failed: 0
+- safeMode: True, mutationAllowed: False
+- attribution request_context: 5/5, unknown: 0
+- publishReady: 1
+- blocked: 3
+- needs_review: 0
+- menu_like_truck_name warnings: 0
+- prior bad truckName record blocked/removed: True
+- no publish execution: true
+
+Changed files:
+- src/mealscoutProfileImport.ts
+- src/mealscoutScreenshotExtraction.ts
+- tests/mealscout-profile-import.test.ts
+- tests/mealscout-publish-plan-preview.test.ts
+- tests/mealscout-screenshot-extraction.test.ts

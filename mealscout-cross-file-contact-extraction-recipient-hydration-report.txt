@@ -1,0 +1,72 @@
+MealScout Cross-File Contact Extraction + Recipient Candidate Hydration Patch
+
+Status: complete
+
+Files changed
+- src/server.ts
+- public/mealscout-review-queue.html
+- tests/merlin-intake-action-cards-runtime.test.ts
+- tests/merlin-intake-action-cards-dryrun.test.ts
+
+What changed
+1) Batch-wide contact extraction and card hydration
+- Added cross-file candidate extraction for each evidence file (signal + OCR text):
+  - email
+  - phone
+  - website
+  - social handles
+- Added conservative normalization for phone and email matching.
+- Added batch-aware hydration step after action-card generation:
+  - fills card extractedFields.phone/email/website/socials only when clear
+  - preserves uncertainty (does not force ambiguous values)
+  - removes `phone_or_email` from missingFields when clear contact exists
+
+2) New contact evidence payloads on cards
+- Card `extractedFields` now includes:
+  - `contactCandidates`
+  - `contactEvidence`
+  - `unassignedContactCandidates`
+  - `extractionDebug.contactSources`
+  - `extractionDebug.contactExtractionSummary`
+
+3) Notification recipient hydration behavior
+- Notification candidate resolution now uses cross-file `contactCandidates`.
+- Preference order:
+  - clear email
+  - else clear phone
+  - else blocked
+- Ambiguous contact now blocks with:
+  - `blockedReason: recipient_ambiguous`
+- Notification preview response now includes:
+  - `recipientCandidates`
+  - `recipientAmbiguous`
+
+4) UI visibility for contact evidence
+- Added Contact Evidence lines in review card rendering:
+  - contactCandidates
+  - contactEvidence
+  - unassignedContactCandidates
+
+Safety behavior preserved
+- No auto-send notifications added.
+- No Drive cleanup/delete/archive/suppress added.
+- No Fast Lane threshold change.
+- Duplicate/conflict/replacement warning behavior unchanged.
+- No publish execution path added.
+
+Validation
+- npm run check: PASS
+- npm run test -- --runInBand: PASS
+- npm run build: PASS
+
+Tests added/updated
+- tests/merlin-intake-action-cards-runtime.test.ts
+  - cross-file phone/email from non-profile screenshots hydrates matching card
+  - unrelated contact is not auto-attached to target card
+- tests/merlin-intake-action-cards-dryrun.test.ts
+  - recipient ambiguity blocks notification preview with `recipient_ambiguous`
+
+Operational outcome
+- Recipient eligibility is now batch-aware instead of single-card-file-only.
+- When contact appears on linked schedule/menu/logo/social evidence, it can be used for preview recipient selection.
+- When contact is conflicting/ambiguous, preview remains safely blocked and surfaces candidate context.

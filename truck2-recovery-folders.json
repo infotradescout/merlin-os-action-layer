@@ -1,0 +1,94 @@
+{
+  "status": "ready",
+  "mode": "read_only",
+  "root": {
+    "merlin": {
+      "id": "1Ht0Fk5p8YhyaaHE74F8fzh2g75SyIiYc",
+      "path": "Merlin OR Storage"
+    },
+    "mealscout_intake": {
+      "id": "1UT4rR8p1SVPbE-jRRZbyinurGvTT5od9",
+      "path": "Merlin OR Storage/MealScout Intake"
+    }
+  },
+  "summary": {
+    "required": 17,
+    "present": 17,
+    "missing": 0,
+    "duplicateCount": 0
+  },
+  "folders": {
+    "incoming": {
+      "id": "1pZOsk3pXSb_2mjBgVHx6KD0ZIoUcp52t",
+      "path": "Merlin OR Storage/MealScout Intake/incoming"
+    },
+    "incoming/screenshots": {
+      "id": "1hrGNFOdmYVHj5ZoWg-xY4ANSkmYj75Gb",
+      "path": "Merlin OR Storage/MealScout Intake/incoming/screenshots"
+    },
+    "incoming/logos": {
+      "id": "1fLKTWLPmSlmuv1_RsqjYZe6jx4oDtQyk",
+      "path": "Merlin OR Storage/MealScout Intake/incoming/logos"
+    },
+    "incoming/menus": {
+      "id": "1MkWq-coeHMyo55EuU3o8sHANf4nUSC3i",
+      "path": "Merlin OR Storage/MealScout Intake/incoming/menus"
+    },
+    "incoming/unknown": {
+      "id": "15B90aAVNXQtMQWtbgNKV-1BUcgeaIJfg",
+      "path": "Merlin OR Storage/MealScout Intake/incoming/unknown"
+    },
+    "processing": {
+      "id": "1sQJzmaybsjaxXop14TSsnkiXHkpHlaRA",
+      "path": "Merlin OR Storage/MealScout Intake/processing"
+    },
+    "processed": {
+      "id": "1wMM5Etox671T-esjvAtMfOIbUhXLgF9v",
+      "path": "Merlin OR Storage/MealScout Intake/processed"
+    },
+    "processed/screenshots": {
+      "id": "1eLJ6Hle7xj6ynf96Wkv80rSWdRJSj8_f",
+      "path": "Merlin OR Storage/MealScout Intake/processed/screenshots"
+    },
+    "processed/logos": {
+      "id": "1zl8ojJl_G0bPvmR9guwCBbJEZ-6TizsS",
+      "path": "Merlin OR Storage/MealScout Intake/processed/logos"
+    },
+    "processed/menus": {
+      "id": "1JSyukAXLIF9doARoJJPElYEwe38mOurG",
+      "path": "Merlin OR Storage/MealScout Intake/processed/menus"
+    },
+    "review-needed": {
+      "id": "1403iWULyvm0ys2kYOtn62efeaKZCffoE",
+      "path": "Merlin OR Storage/MealScout Intake/review-needed"
+    },
+    "review-needed/uncertain-match": {
+      "id": "1Zu65EUGDaXzGSw6u2X9KwxF64E05jenD",
+      "path": "Merlin OR Storage/MealScout Intake/review-needed/uncertain-match"
+    },
+    "review-needed/missing-required": {
+      "id": "1R0hC6IKtL0t2ydMqO969CR_dMmfMFcHH",
+      "path": "Merlin OR Storage/MealScout Intake/review-needed/missing-required"
+    },
+    "review-needed/duplicate-possible": {
+      "id": "1mZGzADkvpxxFmQjGTQMQBirxCIyUucRx",
+      "path": "Merlin OR Storage/MealScout Intake/review-needed/duplicate-possible"
+    },
+    "review-needed/logo-unmatched": {
+      "id": "1yJf_vYhROh3bKMIKWymb8UHYvgreJeGM",
+      "path": "Merlin OR Storage/MealScout Intake/review-needed/logo-unmatched"
+    },
+    "failed": {
+      "id": "1RalOo_NQ8CCeVG50fFFy3rmj_ZjeRhgv",
+      "path": "Merlin OR Storage/MealScout Intake/failed"
+    },
+    "archive": {
+      "id": "1kyxy5mmq_QvAW755JIof955kWapw9DIS",
+      "path": "Merlin OR Storage/MealScout Intake/archive"
+    }
+  },
+  "duplicates": {},
+  "missing": [],
+  "mutationAllowed": false,
+  "checkedAt": "2026-05-31T16:49:42.862Z"
+}

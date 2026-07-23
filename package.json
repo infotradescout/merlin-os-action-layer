@@ -14,6 +14,11 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "test:contracts": "node --test scripts/*.contract.test.mjs",
+    "lint": "npm run check",
+    "screenshots:move": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=execute",
+    "screenshots:diagnose": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=diagnose",
+    "screenshots:copy": "tsx scripts/screenshots-manifest-move-and-seed.ts --mode=copy",
     "test:browser": "playwright test",
     "drive:auth:token": "tsx scripts/generate-google-refresh-token.ts"
   },

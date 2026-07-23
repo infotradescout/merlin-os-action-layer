@@ -1,0 +1,110 @@
+MealScout Drive Intake Scope Selector + Seen-State Requeue Report
+Date: 2026-06-01
+
+Summary
+Implemented Drive intake scope diagnostics/selection, optional recursive scan for sync flows, and include-unattached-seen requeue behavior for already_seen files, while preserving no-publish/no-notify/no-cleanup safety.
+
+Files Changed
+- src/driveClient.ts
+- src/server.ts
+- public/mealscout-review-queue-client.js
+- public/mealscout-review-queue.html
+- tests/mealscout-batch-intake.test.ts
+
+What Was Added
+
+1) Drive scope diagnostic endpoint
+- Added: GET /api/mealscout/intake/drive/inventory-diagnostic
+- Role-gated: admin/operator/staff only
+- Returns:
+  - configuredFolderId/configuredFolderName
+  - parentFolderId
+  - currentIntakeScopeLabel
+  - syncRecursive
+  - driveVisibleFileCount
+  - directChildFileCount
+  - directChildFolderCount
+  - recursiveFileCount (when recursive)
+  - mimeTypeCounts
+  - sampleFolders (up to 25)
+  - sampleFiles (up to 25)
+  - auditCounts (diagnostic summary)
+  - mutationAllowed:false
+
+2) Drive folder scope selection endpoint
+- Added: PATCH /api/mealscout/intake/drive/folder-scope
+- Role-gated: admin/operator/staff only
+- Request supports:
+  - folderId (required)
+  - folderName (optional)
+  - recursive (boolean)
+  - reason (required)
+- Validates listability via current Drive auth (metadata/list call)
+- Stores active scope in runtime state:
+  - folderId/folderName/recursive/updatedAt/updatedBy/reason
+- No file move/copy/delete and no processing side effects
+- Returns mutationAllowed:false
+
+3) Recursive listing support
+- Added DriveClient method: listSubfoldersInFolder(folderId)
+- Added server helper for scope listing:
+  - listDriveFilesForScope({ folderId, recursive })
+- Recursive traversal dedupes by fileId and folderId
+
+4) Sync/sync-and-process/admin-fast-lane payload support
+- Updated endpoints:
+  - POST /api/mealscout/intake/drive/sync
+  - POST /api/mealscout/intake/drive/sync-and-process
+  - POST /api/mealscout/intake/drive/admin-fast-lane
+- New request options:
+  - recursive?: boolean
+  - folderId?: string
+  - includeUnattachedSeen?: boolean
+- If folderId provided, uses that scope for the run.
+- If recursive true, scans selected folder + descendants.
+- Responses now include:
+  - configuredFolderId/configuredFolderName
+  - syncRecursive
+  - syncExclusionCounts
+
+5) Seen-state requeue behavior (safe)
+- Added selection helper that classifies already_seen files and supports requeue path:
+  - already_seen_attached
+  - already_seen_unattached_requeue_available
+- includeUnattachedSeen:true allows re-selection for files that are already_seen but effectively unattached/no durable active linkage.
+- Does not auto-requeue attached/applied entities by default.
+
+6) UI controls (admin review queue)
+- Added controls in Drive Automation panel:
+  - Run Inventory Diagnostic
+  - Set Intake Folder
+  - recursive scan toggle
+  - include unattached already-seen toggle
+- Sync / Sync+Process / Admin Fast Lane now pass toggles.
+- Added status text updates showing active scope + counts.
+- Added client methods:
+  - getDriveInventoryDiagnostic(...)
+  - setDriveFolderScope(...)
+  - syncDriveFolder(payload)
+  - syncAndProcessDriveFolder(payload)
+
+Safety Confirmations
+- No publish path added.
+- No profile mutation added to scope/diagnostic endpoints.
+- No notification send path added.
+- No Drive cleanup/delete/archive/suppress behavior added.
+- Existing Admin Fast Lane apply behavior remains separately gated by existing strict eligibility.
+
+Validation
+- npm run check: PASS
+- npx tsx --test tests/mealscout-batch-intake.test.ts tests/mealscout-review-queue-ui.test.ts: PASS
+- npm run build: PASS
+
+Tests Added/Updated
+- tests/mealscout-batch-intake.test.ts
+  - Added coverage for folder-scope role gate + update + inventory diagnostic response shape
+  - Updated DriveClient stub for new listSubfoldersInFolder/getFileMetadata usage
+
+Notes
+- Scope selection is runtime state in this patch (no cross-restart persistence store was introduced).
+- This patch provides the operational controls needed to point intake at the real screenshot folder and prove visibility before further extraction tuning.

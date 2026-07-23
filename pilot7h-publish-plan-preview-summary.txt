@@ -1,0 +1,19 @@
+Pilot 7H Publish Plan Preview Smoke Summary
+Generated: 2026-05-29T14:07:01
+previewStatus: ok
+mutationAllowed: False
+draftCount: 2
+savedDecisionCount: 1
+planId: ms-plan-8357b164-a255-4be1-9de5-b0242e0644cc
+planMutationAllowed: False
+planRecordCount: 2
+createNewCount: 0
+updateExistingCount: 0
+blockedCount: 2
+needsReviewCount: 0
+Per-record summary:
+- action=blocked publishReady=False draftIds=ms-draft-47c21805-9419-496b-829d-5950382b8952 existingTruckId= fields=1 menuItems=2 blockedReasons=missing_city_or_service_area|missing_contact_or_web_or_social
+- action=blocked publishReady=False draftIds=ms-draft-312c8e66-4c96-495b-b824-f67d7fbb3d1c existingTruckId= fields=2 menuItems=0 blockedReasons=missing_contact_or_web_or_social|missing_menu_or_menu_deferred
+Safety checks:
+- Preview only, mutationAllowed remained false
+- No publish/update/merge/delete endpoints called during smoke

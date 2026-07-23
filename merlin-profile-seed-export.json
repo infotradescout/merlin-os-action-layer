@@ -1,0 +1,215 @@
+[
+  {
+    "export_schema_version": "merlin_profile_seed_export_v1",
+    "brand_lane": "MEALSCOUT",
+    "target_profile_type": "food_truck",
+    "profile_action": "create",
+    "profile_name": "Rolling In The Dough Handmade",
+    "profile_email": null,
+    "phone": "601-916-9151",
+    "website": null,
+    "socials": {
+      "facebook": null,
+      "instagram": null
+    },
+    "source_file_id": "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF",
+    "source_file_name": "IMG_5982.PNG",
+    "source_file_path": "MealScout screenshot /IMG_5982.PNG",
+    "source_refs": [
+      "1B0dXVM2qslvPpND4LVztg84-N3GnbwoF"
+    ],
+    "extracted_fields": {
+      "truckName": "Rolling In The Dough Handmade",
+      "phone": "601-916-9151"
+    },
+    "seeded_from_evidence": true,
+    "profile_origin": "evidence_seed",
+    "onboarding_source": "admin_seed",
+    "claim_status": "unclaimed",
+    "email_verified": false,
+    "insurance_verified": false,
+    "owner_user_id": null,
+    "affiliate_attribution": null,
+    "affiliate_email": null,
+    "affiliate_source_folder": null,
+    "attribution_method": "admin_unattributed",
+    "submission_flow": "admin",
+    "verification_email_status": "not_available",
+    "import_decision": "importable",
+    "safety_notes": [
+      "handoff export only; does not prove live MealScout persistence",
+      "email_verified remains false",
+      "insurance_verified remains false",
+      "claim_status remains unclaimed",
+      "owner_user_id remains null",
+      "no payout logic",
+      "no Drive cleanup/delete/archive/suppress"
+    ]
+  },
+  {
+    "export_schema_version": "merlin_profile_seed_export_v1",
+    "brand_lane": "MEALSCOUT",
+    "target_profile_type": "food_truck",
+    "profile_action": "create",
+    "profile_name": "eee",
+    "profile_email": "www.theflaminpepper@yahoo.com",
+    "phone": "228-372-4071",
+    "website": null,
+    "socials": {
+      "facebook": null,
+      "instagram": null
+    },
+    "source_file_id": "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1",
+    "source_file_name": "IMG_5981.PNG",
+    "source_file_path": "MealScout screenshot /IMG_5981.PNG",
+    "source_refs": [
+      "1SmNwaEG_QiG9KpR-f5d8CDfyeT-9xik1"
+    ],
+    "extracted_fields": {
+      "truckName": "eee",
+      "phone": "228-372-4071",
+      "email": "www.theflaminpepper@yahoo.com",
+      "website": "www.theflaminpepper@yahoo.com",
+      "instagram": "@yahoo.com",
+      "cityArea": "Jackson County, MS",
+      "cuisine": "Mexican"
+    },
+    "seeded_from_evidence": true,
+    "profile_origin": "evidence_seed",
+    "onboarding_source": "admin_seed",
+    "claim_status": "unclaimed",
+    "email_verified": false,
+    "insurance_verified": false,
+    "owner_user_id": null,
+    "affiliate_attribution": null,
+    "affiliate_email": null,
+    "affiliate_source_folder": null,
+    "attribution_method": "admin_unattributed",
+    "submission_flow": "admin",
+    "verification_email_status": "failed",
+    "import_decision": "blocked",
+    "blocked_reason": "invalid_extraction_identity",
+    "review_reasons": [
+      "invalid_profile_name",
+      "invalid_email"
+    ],
+    "normalized_fields": [
+      "website_dropped_email_like",
+      "instagram_dropped_email_domain_like"
+    ],
+    "safety_notes": [
+      "handoff export only; does not prove live MealScout persistence",
+      "email_verified remains false",
+      "insurance_verified remains false",
+      "claim_status remains unclaimed",
+      "owner_user_id remains null",
+      "no payout logic",
+      "no Drive cleanup/delete/archive/suppress"
+    ]
+  },
+  {
+    "export_schema_version": "merlin_profile_seed_export_v1",
+    "brand_lane": "MEALSCOUT",
+    "target_profile_type": "food_truck",
+    "profile_action": "create",
+    "profile_name": "Crav'N Da Flava Food Truck",
+    "profile_email": null,
+    "phone": "251-234-4421",
+    "website": null,
+    "socials": {
+      "facebook": null,
+      "instagram": null
+    },
+    "source_file_id": "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB",
+    "source_file_name": "IMG_5980.PNG",
+    "source_file_path": "MealScout screenshot /IMG_5980.PNG",
+    "source_refs": [
+      "1xHQnlIjrIBF8WaI1ly2fibLl8IkQqKJB"
+    ],
+    "extracted_fields": {
+      "truckName": "Crav'N Da Flava Food Truck",
+      "phone": "251-234-4421",
+      "cityArea": "Mobile, AL"
+    },
+    "seeded_from_evidence": true,
+    "profile_origin": "evidence_seed",
+    "onboarding_source": "admin_seed",
+    "claim_status": "unclaimed",
+    "email_verified": false,
+    "insurance_verified": false,
+    "owner_user_id": null,
+    "affiliate_attribution": null,
+    "affiliate_email": null,
+    "affiliate_source_folder": null,
+    "attribution_method": "admin_unattributed",
+    "submission_flow": "admin",
+    "verification_email_status": "not_available",
+    "import_decision": "importable",
+    "safety_notes": [
+      "handoff export only; does not prove live MealScout persistence",
+      "email_verified remains false",
+      "insurance_verified remains false",
+      "claim_status remains unclaimed",
+      "owner_user_id remains null",
+      "no payout logic",
+      "no Drive cleanup/delete/archive/suppress"
+    ]
+  },
+  {
+    "export_schema_version": "merlin_profile_seed_export_v1",
+    "brand_lane": "MEALSCOUT",
+    "target_profile_type": "food_truck",
+    "profile_action": "create",
+    "profile_name": "MANN Kettle Corn",
+    "profile_email": "mannkettlecorn@gmail.com",
+    "phone": "228-623-9469",
+    "website": null,
+    "socials": {
+      "facebook": null,
+      "instagram": null
+    },
+    "source_file_id": "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ",
+    "source_file_name": "IMG_5979.PNG",
+    "source_file_path": "MealScout screenshot /IMG_5979.PNG",
+    "source_refs": [
+      "1MteEYZxSUfaJ_G1fnQqt2JxXc4FG0QDJ"
+    ],
+    "extracted_fields": {
+      "truckName": "MANN Kettle Corn 2",
+      "phone": "228-623-9469",
+      "email": "Mannkettlecorn@gmail.com",
+      "instagram": "@gmail.com",
+      "cityArea": "Moss Point, MS"
+    },
+    "seeded_from_evidence": true,
+    "profile_origin": "evidence_seed",
+    "onboarding_source": "admin_seed",
+    "claim_status": "unclaimed",
+    "email_verified": false,
+    "insurance_verified": false,
+    "owner_user_id": null,
+    "affiliate_attribution": null,
+    "affiliate_email": null,
+    "affiliate_source_folder": null,
+    "attribution_method": "admin_unattributed",
+    "submission_flow": "admin",
+    "verification_email_status": "failed",
+    "import_decision": "review_required",
+    "review_reasons": [
+      "profile_name_trailing_numeric_suffix"
+    ],
+    "normalized_fields": [
+      "profile_name",
+      "instagram_dropped_email_domain_like"
+    ],
+    "safety_notes": [
+      "handoff export only; does not prove live MealScout persistence",
+      "email_verified remains false",
+      "insurance_verified remains false",
+      "claim_status remains unclaimed",
+      "owner_user_id remains null",
+      "no payout logic",
+      "no Drive cleanup/delete/archive/suppress"
+    ]
+  }
+]

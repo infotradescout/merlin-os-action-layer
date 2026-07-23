@@ -1,0 +1,53 @@
+Upload Intent Packet v1 Report
+
+Files changed
+- src/intakeUploadIntent.ts (new)
+- src/server.ts
+- tests/upload-intent-packet.test.ts (new)
+
+Model added
+- Shared Upload Intent model/state in src/intakeUploadIntent.ts
+  - UploadIntentBrand: MEALSCOUT | HOMEID | TRADESCOUT | MERLIN
+  - UploadIntentEntityType: food_truck | restaurant | home | contractor | host_location | event | unknown
+  - UploadIntentAction: raw_dump | update_menu | update_schedule | add_logo | add_photos | add_document | add_receipt | add_warranty | add_repair_record | add_estimate | add_permit | unknown
+  - UploadIntentStatus: CREATED | FILES_ATTACHED | ROUTED | PREVIEW_READY | APPROVED | REJECTED | ERROR
+  - File refs + routed file records + preview draft records
+  - In-memory store with create/get/attach/route/preview setters + test reset
+
+Endpoints added
+- POST /api/intake/upload-intents
+- GET /api/intake/upload-intents/:uploadId
+- POST /api/intake/upload-intents/:uploadId/files
+- POST /api/intake/upload-intents/:uploadId/route
+- POST /api/intake/upload-intents/:uploadId/preview
+
+MealScout action context behavior
+- Route classification combines file evidence and action intent.
+- update_menu biases menu classification confidence.
+- update_schedule biases schedule classification confidence.
+- add_logo biases logo classification confidence.
+- add_photos biases photo classification confidence.
+- raw_dump runs general evidence-based classification.
+- Ambiguous/unrelated files are held (routedType=held) and do not produce live mutations.
+- Preview endpoint returns draft-only changes and warning text; no publish path invoked.
+- Non-MealScout brand routes are explicitly held in v1 (no cross-brand routing).
+
+Tests added/updated
+- Added tests/upload-intent-packet.test.ts
+  - upload intent preserves brand/entity/action context
+  - files attach to correct upload intent
+  - update_menu action biases menu screenshot routing
+  - update_schedule action biases schedule screenshot routing
+  - unrelated file is held
+  - preview flow does not trigger publish execution audit entries
+
+Validation results
+- npm run check: PASS
+- npx tsx --test tests/upload-intent-packet.test.ts: PASS (4/4)
+- npx tsx --test tests/mealscout-candidate-import.test.ts: PASS (1/1)
+- npm run test: PASS (305/305)
+
+Safety confirmations
+- publish execution called: no
+- live profile mutation occurred: no
+- mutationAllowed is false on upload-intent endpoints/preview responses

@@ -1,0 +1,17 @@
+{
+  "totalDuplicateGroupsBeforeCleanup": 45,
+  "unsuppressedExactGroupsBeforeCleanup": 0,
+  "chunkSize": 5,
+  "chunksAttempted": 0,
+  "groupsProcessed": 0,
+  "primaryProtectionEvents": 0,
+  "filesTrashed": 0,
+  "filesSuppressedAfterPermissionDenial": 0,
+  "permissionFailures": 0,
+  "attributionConflicts": 0,
+  "auditIds": [],
+  "remainingExactFilenameDuplicateGroups": 45,
+  "serverHealthByChunk": [],
+  "stopReason": "",
+  "noPublishExecutionCalled": true
+}
