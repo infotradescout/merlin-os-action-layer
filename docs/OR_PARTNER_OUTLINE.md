@@ -268,6 +268,46 @@ Plain version:
 
 Most tools save and regenerate too much. OR records important activity once, turns it into reusable current context, expires stale context, and only generates when needed. That is how it lowers storage churn, reduces compute, and keeps results cleaner over time.
 
+
+## 8.5 Mission (assist, do not replace)
+
+We are not selling "AI." We are selling a better way to operate:
+
+- Creators and users stay in control of decisions, publishing, and outcomes.
+- AI assists — it expedites appropriate tasks (draft, search, filter, stamp, route). It does not replace decision-making or the human layer.
+- Assist, do not replace.
+- Reduce storage churn, drift, and unnecessary compute — and still get roughly 10x better results because work starts from what is current and real (OR / LISA / 4data), not from a blank prompt and a pile of stale generations.
+
+Device context and permissions exist only to support that mission: clearer intent for them, less waste, same success path — never to harvest a corpus or automate away judgment.
+
+## 8.6 Selective inheritance (the model, not just a tool)
+
+Selective inheritance is how OR works, not a one-off audit checklist.
+
+Generic AI regenerates. OR inherits selectively:
+
+- Inherit what is still true (LISA current findings, 4data, verified outcomes). Discard stale, superseded, redundant generations.
+- Inherit human intent, decisions, and creator control. Discard silent automation of judgment.
+- Inherit on-device context the user already has (with permission and clear why). Discard copying their life into a data center "for the model."
+- Inherit proven routes and keep-lists that still earn their place. Discard dead duplicates and parallel systems that bypass law.
+
+Rules:
+
+1. Start from what already works and is still current — do not blank-prompt the world.
+2. Keep the human layer — inherit assistance paths; never inherit "replace the person."
+3. Expire and supersede — inheritance without freshness is drift (~20%).
+4. Refuse the ~80% — if storage, bandwidth, or generation is not necessary for this outcome, do not create it.
+5. Parity — local-first / on-device must not weaken success.
+6. Name keep vs discard — every change should say what is carried forward and what is left behind.
+
+Product packets (for example TradeScout community makeover keep/discard lists) use selective inheritance as a process tool. That tool is an instance of this model across Merlin, LISA, Continuum, TradeScout, MealScout, and 4data.
+
+## 8.7 How we talk about permissions (not "AI wants your data")
+
+Do not frame access as "help our AI learn." Frame as creator control and their outcome: ask at the moment of need, say what stays on device, what leaves, and how to revoke. Prefer OS pickers. Skip still works (parity). Never batch "AI permissions" into one scary wall.
+
+Canonical LISA doctrine for TradeScout (and mirrored where LISA lives): `TradeScoutPro/docs/LISA_PRODUCT_DEFINITION.md`.
+
 ## 9. Product promise
 
 For everyday users:
