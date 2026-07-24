@@ -69,6 +69,16 @@ import {
   updateManifestExtraction,
   resetDriveManifestForTest
 } from './driveManifest.js';
+import {
+  closeDriveBufferLifecycleStore,
+  ensureDriveFileBuffered,
+  getDriveBufferLifecycleByFileId,
+  listDriveBufferLifecycle,
+  markDriveFileAcceptedForApply,
+  markDriveFileCleanupReady,
+  markDriveFileCleaned,
+  resetDriveBufferLifecycleStoreForTest
+} from './driveBufferLifecycle.js';
 import { discoverManagedFolders, syncDriveInbox } from './driveSync.js';
 import { getDriveSchedulerStatus, startDriveScheduler } from './driveScheduler.js';
 import { getDriveClient } from './driveClient.js';
@@ -189,15 +199,24 @@ import { handleMerlinOperatorReviewPresentationRoute } from './merlin/routes/mer
 import { handleMerlinApprovalRoute } from './merlin/routes/merlinApprovalRoutes.js';
 import { handleMerlinExecutionPlanRoute } from './merlin/routes/merlinExecutionPlanRoutes.js';
 import { handleMerlinConnectorAdapterRoute } from './merlin/routes/merlinConnectorAdapterRoutes.js';
+import { handleMerlinSystemConnectorRoute } from './merlin/routes/merlinSystemConnectorRoutes.js';
 import { handleMerlinDryRunExecutorRoute } from './merlin/routes/merlinDryRunExecutorRoutes.js';
 import { handleMerlinLiveExecutionGateRoute } from './merlin/routes/merlinLiveExecutionGateRoutes.js';
 import { handleMerlinWorkspaceRoute } from './merlin/routes/merlinWorkspaceRoutes.js';
 import { handleMerlinScoreboardRoute } from './merlin/routes/merlinScoreboardRoutes.js';
 import { handleMerlinSearchRoute } from './merlin/routes/merlinSearchRoutes.js';
 import { handleMealScoutActionCardRoute } from './merlin/routes/mealscoutActionCardRoutes.js';
-import { resetActionCardQueueForTest } from './merlin/intake/actionCardQueue.js';
+import { handleMealScoutIncrementalIntakeRoute } from './merlin/routes/mealscoutIncrementalIntakeRoutes.js';
+import { handleMerlinShellRoute } from './merlin/routes/merlinShellRoutes.js';
+import { handleMerlinThreadRoute } from './merlin/routes/merlinThreadRoutes.js';
+import { rememberActionCards, resetActionCardQueueForTest } from './merlin/intake/actionCardQueue.js';
+import { buildMealScoutActionCards } from './merlin/intake/actionCards.js';
 import { resetUploadIntentStoreForTest } from './merlin/intake/uploadIntentStore.js';
 import { resetEvidenceIndexForTest } from './merlin/index/evidenceIndex.js';
+import {
+  closeMealScoutIncrementalIntakeRuntime,
+  resetMealScoutIncrementalIntakeRuntimeForTest
+} from './mealscoutIncrementalIntakeRuntime.js';
 import {
   dispatchRoundTableDiscordPacket,
   verifyAndWriteDiscordApproval,
@@ -1317,6 +1336,8 @@ function getPublicMimeType(filePath: string): string {
   const extension = filePath.split('.').pop()?.toLowerCase();
   if (extension === 'js') return 'application/javascript';
   if (extension === 'css') return 'text/css';
+  if (extension === 'json' || extension === 'webmanifest') return 'application/manifest+json';
+  if (extension === 'svg') return 'image/svg+xml';
   return 'text/html';
 }
 
@@ -1331,6 +1352,50 @@ function servePublicFile(res: ServerResponse, fileName: string): boolean {
     const contents = readFileSync(publicPath, 'utf8');
     res.statusCode = 200;
     res.setHeader('Content-Type', getPublicMimeType(fileName));
+    res.end(contents);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const WEB_DIST_DIR = resolve(process.cwd(), 'web', 'dist');
+
+function getWebAssetMimeType(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (extension === 'js' || extension === 'mjs') return 'application/javascript';
+  if (extension === 'css') return 'text/css';
+  if (extension === 'svg') return 'image/svg+xml';
+  if (extension === 'png') return 'image/png';
+  if (extension === 'woff2') return 'font/woff2';
+  if (extension === 'woff') return 'font/woff';
+  if (extension === 'json' || extension === 'webmanifest') return 'application/manifest+json';
+  return 'application/octet-stream';
+}
+
+function serveMerlinShellIndex(res: ServerResponse): boolean {
+  const indexPath = resolve(WEB_DIST_DIR, 'index.html');
+  if (!existsSync(indexPath)) return false;
+  try {
+    const html = readFileSync(indexPath, 'utf8');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/html');
+    res.end(html);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function serveMerlinShellAsset(res: ServerResponse, assetPath: string): boolean {
+  const resolvedPath = resolve(WEB_DIST_DIR, assetPath);
+  const normalizedDir = WEB_DIST_DIR.endsWith(sep) ? WEB_DIST_DIR : `${WEB_DIST_DIR}${sep}`;
+  if (!resolvedPath.startsWith(normalizedDir)) return false;
+  if (!existsSync(resolvedPath)) return false;
+  try {
+    const contents = readFileSync(resolvedPath);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', getWebAssetMimeType(resolvedPath));
     res.end(contents);
     return true;
   } catch {
@@ -1528,6 +1593,13 @@ function buildBrowserSearchCandidates(query: string, limit = 50): LisaBrowserSea
 }
 
 type DriveManifestStatusLiteral = 'seen' | 'pending' | 'processed' | 'skipped' | 'needs_review' | 'archived' | 'failed';
+type DriveBufferLifecycleStateLiteral =
+  | 'buffered'
+  | 'attached_to_thread'
+  | 'preview_ready'
+  | 'accepted_for_apply'
+  | 'cleanup_ready'
+  | 'cleaned';
 
 function parseDriveManifestStatus(
   value: string | undefined
@@ -1536,6 +1608,22 @@ function parseDriveManifestStatus(
   const normalized = value.toLowerCase();
   const allowedStatuses = new Set(['seen', 'pending', 'processed', 'skipped', 'needs_review', 'archived', 'failed']);
   return allowedStatuses.has(normalized) ? (normalized as DriveManifestStatusLiteral) : undefined;
+}
+
+function parseDriveBufferLifecycleState(
+  value: string | undefined
+): DriveBufferLifecycleStateLiteral | undefined {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  const allowedStates = new Set([
+    'buffered',
+    'attached_to_thread',
+    'preview_ready',
+    'accepted_for_apply',
+    'cleanup_ready',
+    'cleaned'
+  ]);
+  return allowedStates.has(normalized) ? (normalized as DriveBufferLifecycleStateLiteral) : undefined;
 }
 
 function getDriveImportRejectReason(fileRecord: ReturnType<typeof createDriveFileRecord>, eventCreated: boolean, hasEntity: boolean): string {
@@ -1641,6 +1729,7 @@ function resetDemoRuntimeState(): void {
   resetEntityResolutionForTest();
   resetSourceRegistryForTest();
   resetDriveManifestForTest();
+  resetDriveBufferLifecycleStoreForTest();
   resetDriveReviewQueueForTest();
   resetMealScoutProfileImportForTest();
   resetMealScoutReviewDecisionsForTest();
@@ -1649,6 +1738,7 @@ function resetDemoRuntimeState(): void {
   resetMealScoutPublishPlansForTest();
   resetMealScoutPublishExecutionForTest();
   resetMealScoutBatchProcessedStateForTest();
+  resetMealScoutIncrementalIntakeRuntimeForTest();
   resetMealScoutDuplicateRemovalForTest();
   resetAffiliateTrackingLedgerForTest();
   resetMerlinProfileSeedRuntimeForTest();
@@ -1747,6 +1837,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     const handled = await handleMerlinConnectorAdapterRoute(req, res, pathname);
     if (handled) return;
   }
+  if (pathname === '/api/merlin/system-connectors' || pathname.startsWith('/api/merlin/system-connectors/')) {
+    const handled = await handleMerlinSystemConnectorRoute(req, res, pathname);
+    if (handled) return;
+  }
   if (pathname.startsWith('/api/merlin/dry-run-executions')) {
     const handled = await handleMerlinDryRunExecutorRoute(req, res, pathname);
     if (handled) return;
@@ -1757,6 +1851,18 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
   }
   if (pathname.startsWith('/api/merlin/workspaces') || pathname.startsWith('/api/merlin/role-policy-checks')) {
     const handled = await handleMerlinWorkspaceRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (
+    pathname === '/api/merlin/shell' ||
+    pathname === '/api/merlin/connected-sources' ||
+    pathname === '/api/merlin/drive-buffer/upload'
+  ) {
+    const handled = await handleMerlinShellRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname === '/api/merlin/threads' || pathname.startsWith('/api/merlin/threads/')) {
+    const handled = await handleMerlinThreadRoute(req, res, pathname);
     if (handled) return;
   }
 
@@ -1780,6 +1886,15 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
 
   if (pathname.startsWith('/api/merlin/action-cards')) {
     const handled = await handleMerlinActionCardRoute(req, res, pathname);
+    if (handled) return;
+  }
+
+  if (
+    pathname === '/api/mealscout/intake/incremental/next' ||
+    pathname === '/api/mealscout/intake/incremental/queues' ||
+    pathname.startsWith('/api/mealscout/intake/incremental/queues/')
+  ) {
+    const handled = await handleMealScoutIncrementalIntakeRoute(req, res, pathname);
     if (handled) return;
   }
 
@@ -2276,6 +2391,37 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     return responseJson(res, { error: 'Merlin operator review panel not found' }, 404);
   }
 
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/merlin') {
+    const served = serveMerlinShellIndex(res);
+    if (served) return;
+    return responseJson(res, { error: 'Merlin shell not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname.startsWith('/merlin/assets/')) {
+    const assetPath = pathname.slice('/merlin/'.length);
+    const served = serveMerlinShellAsset(res, assetPath);
+    if (served) return;
+    return responseJson(res, { error: 'Merlin shell asset not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/manifest.webmanifest') {
+    const served = servePublicFile(res, 'manifest.webmanifest');
+    if (served) return;
+    return responseJson(res, { error: 'Manifest not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/service-worker.js') {
+    const served = servePublicFile(res, 'service-worker.js');
+    if (served) return;
+    return responseJson(res, { error: 'Service worker not found' }, 404);
+  }
+
+  if ((method === 'GET' || method === 'HEAD') && pathname === '/merlin-shell-icon.svg') {
+    const served = servePublicFile(res, 'merlin-shell-icon.svg');
+    if (served) return;
+    return responseJson(res, { error: 'Shell icon not found' }, 404);
+  }
+
   if (method === 'GET' && pathname === '/api/drive/review-queue') {
     try {
       const queue = await runDriveReviewQueue();
@@ -2519,6 +2665,13 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       socials: profile.socials
     }));
     const drafts = buildMealScoutDraftsFromClusters(clusters, existingProfiles);
+    const actionCards = rememberActionCards(
+      buildMealScoutActionCards({
+        drafts,
+        clusters
+      }),
+      'preview'
+    );
     const unattachedMedia = buildMealScoutUnattachedMediaFromClusters(clusters);
     const mergeAssist = buildMealScoutMergeAssist(drafts);
     const reviewDecisions = listMealScoutReviewDecisions();
@@ -2591,6 +2744,7 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
       evidenceFiles,
       clusters,
       drafts,
+      actionCards,
       unattachedMedia,
       mergeAssist,
       fieldCorrections,
@@ -4378,6 +4532,167 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     }
   }
 
+  if (method === 'GET' && pathname === '/api/drive/buffer-lifecycle') {
+    const requestedState = parseDriveBufferLifecycleState(query.state);
+    const limit = getNumber(query.limit, 100);
+    const records = listDriveBufferLifecycle({
+      state: requestedState,
+      limit
+    });
+    return responseJson(res, {
+      mutationAllowed: false,
+      lifecycle: records,
+      filters: {
+        state: requestedState || null,
+        limit
+      }
+    });
+  }
+
+  const driveBufferLifecycleMatch = pathname.match(/^\/api\/drive\/buffer-lifecycle\/([^/]+)$/);
+  if (method === 'GET' && driveBufferLifecycleMatch) {
+    const driveFileId = decodeURIComponent(driveBufferLifecycleMatch[1]);
+    const lifecycle =
+      getDriveBufferLifecycleByFileId(driveFileId) ||
+      ensureDriveFileBuffered(driveFileId, 'buffer_record_requested_from_api');
+    return responseJson(res, {
+      mutationAllowed: false,
+      lifecycle
+    });
+  }
+
+  const driveBufferAcceptMatch = pathname.match(/^\/api\/drive\/buffer-lifecycle\/([^/]+)\/accept$/);
+  if (method === 'POST' && driveBufferAcceptMatch) {
+    const driveFileId = decodeURIComponent(driveBufferAcceptMatch[1]);
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      proof_reference?: unknown;
+      upload_intent_id?: unknown;
+      note?: unknown;
+    };
+    const proofReference = typeof payload.proof_reference === 'string' ? payload.proof_reference.trim() : '';
+    const uploadIntentId = typeof payload.upload_intent_id === 'string' ? payload.upload_intent_id.trim() : undefined;
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    const acceptedBy = resolveOperatorIdentity(req).decidedBy || 'unknown_operator';
+    const lifecycle = markDriveFileAcceptedForApply({
+      drive_file_id: driveFileId,
+      accepted_by: acceptedBy,
+      proof_reference: proofReference || undefined,
+      upload_intent_id: uploadIntentId,
+      note
+    });
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      lifecycle
+    });
+  }
+
+  const driveBufferCleanupReadyMatch = pathname.match(/^\/api\/drive\/buffer-lifecycle\/([^/]+)\/cleanup-ready$/);
+  if (method === 'POST' && driveBufferCleanupReadyMatch) {
+    const driveFileId = decodeURIComponent(driveBufferCleanupReadyMatch[1]);
+    const existing = getDriveBufferLifecycleByFileId(driveFileId);
+    if (!existing || existing.lifecycle_state !== 'accepted_for_apply') {
+      return responseJson(
+        res,
+        {
+          error: 'drive_file_not_ready_for_cleanup',
+          mutationAllowed: false,
+          lifecycle_state: existing?.lifecycle_state || null
+        },
+        409
+      );
+    }
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      proof_reference?: unknown;
+      note?: unknown;
+    };
+    const proofReference =
+      typeof payload.proof_reference === 'string' && payload.proof_reference.trim().length > 0
+        ? payload.proof_reference.trim()
+        : existing.proof_reference;
+    if (!proofReference) {
+      return responseJson(res, { error: 'proof_reference is required', mutationAllowed: false }, 400);
+    }
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+    const lifecycle = markDriveFileCleanupReady({
+      drive_file_id: driveFileId,
+      proof_reference: proofReference,
+      note
+    });
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      lifecycle
+    });
+  }
+
+  const driveBufferCleanMatch = pathname.match(/^\/api\/drive\/buffer-lifecycle\/([^/]+)\/clean$/);
+  if (method === 'POST' && driveBufferCleanMatch) {
+    const driveFileId = decodeURIComponent(driveBufferCleanMatch[1]);
+    const existing = getDriveBufferLifecycleByFileId(driveFileId);
+    if (!existing || existing.lifecycle_state !== 'cleanup_ready') {
+      return responseJson(
+        res,
+        {
+          error: 'drive_file_not_ready_to_clean',
+          mutationAllowed: false,
+          lifecycle_state: existing?.lifecycle_state || null
+        },
+        409
+      );
+    }
+    const body = await parseBody(req);
+    if (typeof body === 'object' && body !== null && '__invalid_body' in body) {
+      return responseJson(res, { error: 'Invalid JSON body', mutationAllowed: false }, 400);
+    }
+    const payload = (body || {}) as {
+      cleanup_mode?: unknown;
+      note?: unknown;
+    };
+    const cleanupMode = payload.cleanup_mode === 'trash' ? 'trash' : 'mark_only';
+    const note = typeof payload.note === 'string' ? payload.note.trim() : undefined;
+
+    if (cleanupMode === 'trash') {
+      const mutationHealth = await assertDriveHealthForMutation('drive_buffer_cleanup', driveFileId);
+      if (!mutationHealth.ok) {
+        return responseJson(
+          res,
+          buildDriveAuthUnhealthyPayload(mutationHealth.health, 'drive_buffer_cleanup', driveFileId),
+          409
+        );
+      }
+      const driveClient = getDriveClient();
+      if (typeof driveClient.trashFile !== 'function') {
+        return responseJson(res, { error: 'trash_mode_unsupported_by_client', mutationAllowed: false }, 409);
+      }
+      try {
+        await driveClient.trashFile(driveFileId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'drive_buffer_cleanup_failed';
+        return responseJson(res, { error: message, mutationAllowed: false }, 409);
+      }
+    }
+
+    const lifecycle = markDriveFileCleaned({
+      drive_file_id: driveFileId,
+      cleanup_mode: cleanupMode,
+      note
+    });
+    return responseJson(res, {
+      status: 'ok',
+      mutationAllowed: false,
+      lifecycle
+    });
+  }
+
   if (method === 'GET' && pathname === '/api/mealscout/intake/folders') {
     try {
       const createMissing = query.create === 'true';
@@ -4868,6 +5183,8 @@ export function createMerlinServer(): HttpServer {
   const server = createServer(createMerlinHandler);
   server.on('close', () => {
     closeDriveReviewQueuePersistence();
+    closeDriveBufferLifecycleStore();
+    closeMealScoutIncrementalIntakeRuntime();
   });
   return server;
 }

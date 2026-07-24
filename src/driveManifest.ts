@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import type { DriveFileRecord } from './driveTypes.js';
+import { ensureDriveFileBuffered } from './driveBufferLifecycle.js';
 
 export type DriveManifestStatus = 'seen' | 'pending' | 'processed' | 'skipped' | 'needs_review' | 'archived' | 'failed';
 
@@ -303,6 +304,8 @@ export function createManifestEntry(fileRecord: DriveFileRecord): DriveImportMan
       notes: row.notes ?? null,
       order_id: sequence
     });
+
+  ensureDriveFileBuffered(row.drive_file_id, 'manifest_entry_created');
 
   return row;
 }

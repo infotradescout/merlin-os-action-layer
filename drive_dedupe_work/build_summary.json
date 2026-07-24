@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-07-05T15:17:04.245Z",
+  "local_sources_scanned": 16,
+  "source_tabs_scanned": 39,
+  "raw_records_normalized": 323249,
+  "canonical_profile_seeds": 286498,
+  "restaurants_food_trucks_bars": 16946,
+  "hosts": 990,
+  "contractors": 268562,
+  "profile_seeds_with_image_links": 2877,
+  "restaurant_food_bar_rows_with_image_links": 0,
+  "host_rows_with_image_links": 0,
+  "contractor_rows_with_image_links": 2877,
+  "duplicate_group_member_rows": 60426,
+  "needs_review_rows": 15,
+  "screenshot_processing_files_excluded": 4,
+  "inventory_only_sources": 1,
+  "workbook": "Generated XLSX; imported as native Google Sheet",
+  "build_id": "42544f1d93"
+}

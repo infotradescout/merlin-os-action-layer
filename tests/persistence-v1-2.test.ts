@@ -91,7 +91,7 @@ beforeEach(() => {
 
 after(() => {
   closeStores();
-  rmSync(tempDir, { recursive: true, force: true });
+  rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
 });
 
 test('events, entity state, and timeline survive sqlite re-instantiation', () => {

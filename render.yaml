@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: merlin-os-action-layer
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MERLIN_INTAKE_ENABLED
+        value: "true"
+      - key: MERLIN_INTAKE_MEALSCOUT_ENABLED
+        value: "true"
+      - key: MERLIN_RUNTIME
+        value: production

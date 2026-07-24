@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { MealScoutPublishPlanRecord } from '../../mealscoutPublishPlan.js';
 import {
-  createMealScoutProfileFromPlanRecord,
-  getMealScoutTruckById,
-  updateMealScoutProfileFromPlanRecord
-} from '../../mealscoutProfileImport.js';
+  buildApplyPlan,
+  duplicateWarningsForCard,
+  executeApplyPlan,
+  normalizeApplyResult,
+  resolveExistingProfile,
+  validateApplyPlan
+} from '../adapters/mealscoutApplyAdapter.js';
 import { resolveOperatorIdentity, resolveOperatorRole } from '../../operatorIdentity.js';
 import {
   findActionCardByNotificationTrackingId,
@@ -61,115 +63,8 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0) : [];
 }
 
-function buildField(sourceFileIds: string[], value: string | undefined): MealScoutPublishPlanRecord['profileFields'][string] | undefined {
-  const trimmed = (value || '').trim();
-  if (!trimmed) return undefined;
-  return {
-    value: trimmed,
-    evidenceRefs: sourceFileIds,
-    sourceFileIds
-  };
-}
-
-function buildPlanRecord(card: StoredActionCard, plannedAction: 'create_new' | 'update_existing'): MealScoutPublishPlanRecord {
-  const fields = card.extractedFields as Record<string, unknown>;
-  const socials = (fields.socials && typeof fields.socials === 'object' ? fields.socials : {}) as Record<string, unknown>;
-  const sourceFileIds = card.sourceFileIds || [];
-  const profileFields: MealScoutPublishPlanRecord['profileFields'] = {};
-
-  const truckName = buildField(sourceFileIds, asString(fields.truckName));
-  const phone = buildField(sourceFileIds, asString(fields.phone));
-  const email = buildField(sourceFileIds, asString(fields.email));
-  const website = buildField(sourceFileIds, asString(fields.website));
-  const cityArea = buildField(sourceFileIds, asString(fields.cityArea));
-  const facebook = buildField(sourceFileIds, asString(socials.facebook));
-  const instagram = buildField(sourceFileIds, asString(socials.instagram));
-
-  if (truckName) profileFields.truckName = truckName;
-  if (phone) profileFields.phone = phone;
-  if (email) profileFields.email = email;
-  if (website) profileFields.website = website;
-  if (cityArea) profileFields.cityArea = cityArea;
-  if (facebook) profileFields.facebook = facebook;
-  if (instagram) profileFields.instagram = instagram;
-
-  return {
-    recordId: `action-card-record-${card.id}`,
-    plannedAction,
-    publishReady: false,
-    draftIds: [card.id],
-    existingTruckId: card.existingEntityMatch?.entityId,
-    profileFields,
-    menuItems: [],
-    attachedMedia: [],
-    blockedReasons: [],
-    warnings: [...(card.duplicateWarnings || []), ...(card.conflictWarnings || [])],
-    conflicts: [],
-    sourceAttribution: {
-      contributingRepIds: [],
-      sourceFileIds,
-      attributionPolicy: 'merlin_mealscout_action_card_route_surface'
-    }
-  };
-}
-
-function resolveExistingProfile(card: StoredActionCard): ReturnType<typeof getMealScoutTruckById> {
-  const targetId = card.existingEntityMatch?.entityId;
-  if (!targetId) return undefined;
-
-  const direct = getMealScoutTruckById(targetId);
-  if (direct) return direct;
-
-  if (targetId.startsWith('ms-runtime-')) {
-    const sourceCardId = targetId.slice('ms-runtime-'.length);
-    const sourceCard = getActionCard(sourceCardId);
-    const createdEntityId =
-      sourceCard?.applyResult && typeof sourceCard.applyResult === 'object'
-        ? asString((sourceCard.applyResult as Record<string, unknown>).createdEntity && typeof (sourceCard.applyResult as Record<string, unknown>).createdEntity === 'object'
-            ? ((sourceCard.applyResult as Record<string, unknown>).createdEntity as Record<string, unknown>).id
-            : undefined)
-        : '';
-    if (createdEntityId) {
-      return getMealScoutTruckById(createdEntityId);
-    }
-  }
-
-  return undefined;
-}
-
-function buildFieldDiff(card: StoredActionCard, existing?: ReturnType<typeof getMealScoutTruckById>): Array<{ field: string; before: unknown; after: unknown }> {
-  const record = buildPlanRecord(card, 'update_existing');
-  const nextFields = record.profileFields;
-  const currentSocials = existing?.socials || {};
-  const diff: Array<{ field: string; before: unknown; after: unknown }> = [];
-  const fieldSpecs: Array<{ key: string; before: unknown; after: string | undefined }> = [
-    { key: 'truckName', before: existing?.truckName, after: nextFields.truckName?.value },
-    { key: 'phone', before: existing?.phone, after: nextFields.phone?.value },
-    { key: 'email', before: existing?.email, after: nextFields.email?.value },
-    { key: 'website', before: existing?.website, after: nextFields.website?.value },
-    { key: 'cityArea', before: existing?.cityArea, after: nextFields.cityArea?.value },
-    { key: 'facebook', before: currentSocials.facebook, after: nextFields.facebook?.value },
-    { key: 'instagram', before: currentSocials.instagram, after: nextFields.instagram?.value }
-  ];
-
-  for (const field of fieldSpecs) {
-    if (!field.after) continue;
-    if (String(field.before || '') === field.after) continue;
-    diff.push({ field: field.key, before: field.before ?? '', after: field.after });
-  }
-  return diff;
-}
-
 function buildCanonicalProfileLink(profileId: string): string {
   return `/mealscout/profile/${encodeURIComponent(profileId)}`;
-}
-
-function duplicateWarningsForCard(card: StoredActionCard): string[] {
-  if ((card.duplicateWarnings || []).length > 0) return card.duplicateWarnings || [];
-  if (card.type === 'create_profile_draft' && card.existingEntityMatch) {
-    return ['possible_duplicate_existing_entity_match'];
-  }
-  return [];
 }
 
 function resolveAppliedProfileId(card: StoredActionCard): string {
@@ -408,27 +303,27 @@ export async function handleMealScoutActionCardRoute(req: IncomingMessage, res: 
     if (!card) return responseJson(res, { error: 'action_card_not_found', mutationAllowed: false }, 404), true;
 
     if (card.type === 'create_profile_draft') {
-      const duplicateWarnings = duplicateWarningsForCard(card);
+      const plan = buildApplyPlan(card, 'create_new');
       return responseJson(res, {
         mutationAllowed: false,
         wouldCreate: {
-          fields: buildPlanRecord(card, 'create_new').profileFields,
-          duplicateWarnings
+          fields: plan.record.profileFields,
+          duplicateWarnings: plan.duplicateWarnings
         },
         wouldUpdate: null,
         skippedReason: null,
-        duplicateWarnings
+        duplicateWarnings: plan.duplicateWarnings
       }), true;
     }
 
     if (card.type === 'update_existing_profile') {
-      const existing = resolveExistingProfile(card);
+      const plan = buildApplyPlan(card, 'update_existing');
       return responseJson(res, {
         mutationAllowed: false,
         wouldCreate: null,
         wouldUpdate: {
           entityId: card.existingEntityMatch?.entityId,
-          fieldDiffs: buildFieldDiff(card, existing)
+          fieldDiffs: plan.fieldDiff
         },
         skippedReason: null
       }), true;
@@ -511,142 +406,99 @@ export async function handleMealScoutActionCardRoute(req: IncomingMessage, res: 
     }
 
     if (card.type === 'create_profile_draft') {
-      const duplicateWarnings = duplicateWarningsForCard(card);
-      if (duplicateWarnings.length > 0 && !allowDuplicateCreate) {
+      const plan = buildApplyPlan(card, 'create_new');
+      const validation = validateApplyPlan(plan, { allowDuplicateCreate });
+      if (!validation.ok) {
         updateActionCardApplyState({
           cardId,
           applyState: 'apply_failed',
           appliedBy: resolveOperatorIdentity(req).decidedBy,
-          applyError: 'duplicate_override_required',
+          applyError: validation.blockedReason,
           applyResult: {
-            skippedReason: 'duplicate_override_required',
-            duplicateWarnings,
+            skippedReason: validation.blockedReason,
+            duplicateWarnings: plan.duplicateWarnings,
             auditWarnings
           }
         });
         return responseJson(res, {
           mutationAllowed: false,
           applyState: 'apply_failed',
-          skippedReason: 'duplicate_override_required',
-          applyError: 'duplicate_override_required',
-          duplicateWarnings,
+          skippedReason: validation.blockedReason,
+          applyError: validation.blockedReason,
+          duplicateWarnings: plan.duplicateWarnings,
           auditWarnings
         }), true;
       }
 
-      const record = buildPlanRecord(card, 'create_new');
-      const created = createMealScoutProfileFromPlanRecord(record);
+      const execution = executeApplyPlan(plan);
+      const normalized = normalizeApplyResult(execution, plan.fieldDiff);
       updateActionCardApplyState({
         cardId,
         applyState: 'applied',
         appliedBy: resolveOperatorIdentity(req).decidedBy,
-        applyResult: {
-          createdEntity: {
-            id: created.id,
-            fields: {
-              truckName: created.truckName,
-              phone: created.phone,
-              email: created.email,
-              website: created.website,
-              cityArea: created.cityArea
-            }
-          },
-          auditWarnings
-        }
+        applyResult: { ...normalized, auditWarnings }
       });
       return responseJson(res, {
         mutationAllowed: true,
         applyState: 'applied',
-        createdEntity: {
-          id: created.id,
-          fields: {
-            truckName: created.truckName,
-            phone: created.phone,
-            email: created.email,
-            website: created.website,
-            cityArea: created.cityArea
-          }
-        },
+        ...normalized,
         auditWarnings
       }), true;
     }
 
     if (card.type === 'update_existing_profile') {
-      const existing = resolveExistingProfile(card);
-      if (!existing) {
+      const plan = buildApplyPlan(card, 'update_existing');
+      const validation = validateApplyPlan(plan, { allowDuplicateCreate });
+      if (!validation.ok) {
         updateActionCardApplyState({
           cardId,
           applyState: 'apply_failed',
           appliedBy: resolveOperatorIdentity(req).decidedBy,
-          applyError: 'stale_before_state_conflict',
+          applyError: validation.blockedReason,
           applyResult: {
-            skippedReason: 'stale_before_state_conflict',
+            skippedReason: validation.blockedReason,
             auditWarnings
           }
         });
         return responseJson(res, {
           mutationAllowed: false,
           applyState: 'apply_failed',
-          skippedReason: 'stale_before_state_conflict',
+          skippedReason: validation.blockedReason,
           auditWarnings
         }), true;
       }
 
-      const record = buildPlanRecord(card, 'update_existing');
-      const fieldDiff = buildFieldDiff(card, existing);
-      const updated = updateMealScoutProfileFromPlanRecord(existing.id, record);
-      if (!updated) {
+      const execution = executeApplyPlan(plan);
+      if (execution.status === 'failed') {
         updateActionCardApplyState({
           cardId,
           applyState: 'apply_failed',
           appliedBy: resolveOperatorIdentity(req).decidedBy,
-          applyError: 'stale_before_state_conflict',
+          applyError: execution.failureReason,
           applyResult: {
-            skippedReason: 'stale_before_state_conflict',
+            skippedReason: execution.failureReason,
             auditWarnings
           }
         });
         return responseJson(res, {
           mutationAllowed: false,
           applyState: 'apply_failed',
-          skippedReason: 'stale_before_state_conflict',
+          skippedReason: execution.failureReason,
           auditWarnings
         }), true;
       }
 
+      const normalized = normalizeApplyResult(execution, plan.fieldDiff);
       updateActionCardApplyState({
         cardId,
         applyState: 'applied',
         appliedBy: resolveOperatorIdentity(req).decidedBy,
-        applyResult: {
-          updatedEntity: {
-            id: updated.id,
-            fields: {
-              truckName: updated.truckName,
-              phone: updated.phone,
-              email: updated.email,
-              website: updated.website,
-              cityArea: updated.cityArea
-            }
-          },
-          fieldDiff,
-          auditWarnings
-        }
+        applyResult: { ...normalized, auditWarnings }
       });
       return responseJson(res, {
         mutationAllowed: true,
         applyState: 'applied',
-        updatedEntity: {
-          id: updated.id,
-          fields: {
-            truckName: updated.truckName,
-            phone: updated.phone,
-            email: updated.email,
-            website: updated.website,
-            cityArea: updated.cityArea
-          }
-        },
-        fieldDiff,
+        ...normalized,
         auditWarnings
       }), true;
     }

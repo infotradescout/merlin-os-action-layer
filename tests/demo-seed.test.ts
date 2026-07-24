@@ -11,12 +11,7 @@ process.env.MERLIN_DB_PATH = resolve(tempDir, 'merlin-or.sqlite');
 process.env.MERLIN_RUNTIME = 'test';
 
 const { createMerlinServer } = await import('../src/server.ts');
-const { closeLisaStore } = await import('../src/lisa.ts');
-const { closeApprovalQueueStore } = await import('../src/approvalQueue.ts');
-const { closeDriveManifestStore } = await import('../src/driveManifest.ts');
-const { closeRecommendationsStore } = await import('../src/recommendations.ts');
-const { closeReplayStore } = await import('../src/replay.ts');
-const { closeOutcomesStore } = await import('../src/outcomes.ts');
+const { closeAllMerlinStoresForTest } = await import('./testSupport/closeAllStores.ts');
 
 let server: Server;
 let baseUrl: string;
@@ -64,13 +59,8 @@ after(async () => {
   await new Promise<void>((resolve) => {
     server.close(() => resolve());
   });
-  closeLisaStore();
-  closeApprovalQueueStore();
-  closeDriveManifestStore();
-  closeRecommendationsStore();
-  closeReplayStore();
-  closeOutcomesStore();
-  rmSync(tempDir, { recursive: true, force: true });
+  closeAllMerlinStoresForTest();
+  rmSync(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
 });
 
 beforeEach(async () => {

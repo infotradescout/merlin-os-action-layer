@@ -1,0 +1,20 @@
+Location Safe logo verification report
+
+generated_at: 2026-07-05T22:56:36.047Z
+mode: merge_location_safe
+location_safe_file: Business Lists Master - Profile Seeds - Deduped - 2026-07-05 - Image Links - Location Safe.xlsx
+placeholder_used: /assets/placeholders/business-logo-placeholder.svg
+master_rows_total: 286498
+verified_from_location_safe: 2284
+kept_existing_master_image: 798
+placeholdered: 283416
+rejected_image_urls: 801
+location_safe_rows_with_images: 2877
+
+Decision counts:
+- verified_ambiguous_resolved_by_phone: 761
+- verified: 1308
+- rejected_ambiguous: 7
+
+Output workbook: Business Lists Master - Profile Seeds - Logo Verified - 2026-07-05.xlsx
+JSON report: logo_verification_report.json
