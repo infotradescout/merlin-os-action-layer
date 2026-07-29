@@ -4,10 +4,18 @@ import type { MerlinShellPayload, SourceCatalogEntry } from './types';
 import ConnectedAppsList from './ConnectedAppsList';
 import AppWorkspacePanel from './AppWorkspacePanel';
 
+const CONNECT_ERROR_MESSAGES: Record<string, string> = {
+  github_not_configured: 'GitHub connect is not configured on this server yet.',
+  invalid_state: 'That GitHub sign-in link expired or was already used. Try connecting again.',
+  github_denied: 'GitHub sign-in was cancelled.',
+  github_oauth_failed: 'GitHub sign-in failed. Try connecting again.'
+};
+
 export default function App() {
   const [shell, setShell] = useState<MerlinShellPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeApp, setActiveApp] = useState<SourceCatalogEntry | null>(null);
+  const [connectNotice, setConnectNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   const loadShell = useCallback(() => {
     setLoadError(null);
@@ -19,6 +27,23 @@ export default function App() {
   useEffect(() => {
     loadShell();
   }, [loadShell]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const connectError = params.get('connect_error');
+    if (connected) {
+      setConnectNotice({ kind: 'success', text: `Connected ${connected}.` });
+    } else if (connectError) {
+      setConnectNotice({ kind: 'error', text: CONNECT_ERROR_MESSAGES[connectError] || 'Connecting that app failed.' });
+    }
+    if (connected || connectError) {
+      params.delete('connected');
+      params.delete('connect_error');
+      const nextSearch = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`);
+    }
+  }, []);
 
   const brandForSourceKey = (sourceKey: string): string | undefined =>
     shell?.shell.connectors.find((connector) => connector.sourceKey === sourceKey)?.brand;
@@ -36,6 +61,15 @@ export default function App() {
         Staging mode: Merlin previews and stages changes here. Nothing is applied to a connected app automatically.
       </div>
 
+      {connectNotice && (
+        <div className={connectNotice.kind === 'success' ? 'success-banner' : 'error-banner'}>
+          {connectNotice.text}{' '}
+          <button type="button" className="secondary" onClick={() => setConnectNotice(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {loadError && (
         <div className="error-banner">
           Couldn&apos;t load Merlin: {loadError}{' '}
@@ -50,6 +84,7 @@ export default function App() {
       {shell && (
         <ConnectedAppsList
           sourceCatalog={shell.shell.sourceCatalog}
+          workspaceId={getWorkspaceId()}
           onSelectApp={(app) => setActiveApp(app)}
           onConnected={loadShell}
         />

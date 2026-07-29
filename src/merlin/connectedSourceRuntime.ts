@@ -17,6 +17,7 @@ export type MerlinConnectedSourceRecord = {
   auth_kind: MerlinConnectedSourceAuthKind;
   capabilities: string[];
   metadata: Record<string, unknown>;
+  external_account_login?: string;
   created_at: string;
   updated_at: string;
 };
@@ -31,6 +32,11 @@ type ConnectedSourceRow = {
   auth_kind: MerlinConnectedSourceAuthKind;
   capabilities_json: string;
   metadata_json: string;
+  oauth_access_token: string | null;
+  oauth_refresh_token: string | null;
+  oauth_token_expires_at: string | null;
+  oauth_scope: string | null;
+  external_account_login: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -94,6 +100,7 @@ function mapRow(row: ConnectedSourceRow): MerlinConnectedSourceRecord {
     auth_kind: row.auth_kind,
     capabilities: JSON.parse(row.capabilities_json) as string[],
     metadata: JSON.parse(row.metadata_json) as Record<string, unknown>,
+    external_account_login: row.external_account_login || undefined,
     created_at: row.created_at,
     updated_at: row.updated_at
   };
@@ -179,6 +186,13 @@ export function initializeMerlinConnectedSourceRuntime(explicitPath?: string): s
     CREATE INDEX IF NOT EXISTS merlin_connected_sources_workspace_idx
       ON merlin_connected_sources(workspace_id, updated_at DESC);
   `);
+  const columns = nextDb.prepare(`PRAGMA table_info('merlin_connected_sources')`).all() as Array<{ name: string }>;
+  const hasColumn = (name: string) => columns.some((col) => col.name === name);
+  if (!hasColumn('oauth_access_token')) nextDb.exec('ALTER TABLE merlin_connected_sources ADD COLUMN oauth_access_token TEXT');
+  if (!hasColumn('oauth_refresh_token')) nextDb.exec('ALTER TABLE merlin_connected_sources ADD COLUMN oauth_refresh_token TEXT');
+  if (!hasColumn('oauth_token_expires_at')) nextDb.exec('ALTER TABLE merlin_connected_sources ADD COLUMN oauth_token_expires_at TEXT');
+  if (!hasColumn('oauth_scope')) nextDb.exec('ALTER TABLE merlin_connected_sources ADD COLUMN oauth_scope TEXT');
+  if (!hasColumn('external_account_login')) nextDb.exec('ALTER TABLE merlin_connected_sources ADD COLUMN external_account_login TEXT');
   seedDefaultConnectedSources();
   return nextPath;
 }
@@ -241,8 +255,9 @@ export function upsertMerlinConnectedSource(input: {
   getDb()
     .prepare(
       `INSERT OR REPLACE INTO merlin_connected_sources
-      (id, workspace_id, source_key, source_label, source_type, connection_status, auth_kind, capabilities_json, metadata_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, workspace_id, source_key, source_label, source_type, connection_status, auth_kind, capabilities_json, metadata_json,
+       oauth_access_token, oauth_refresh_token, oauth_token_expires_at, oauth_scope, external_account_login, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       record.id,
@@ -254,11 +269,55 @@ export function upsertMerlinConnectedSource(input: {
       record.auth_kind,
       JSON.stringify(record.capabilities),
       JSON.stringify(record.metadata),
+      // Carried forward untouched — this generic upsert never sets OAuth credentials itself.
+      // Only upsertMerlinConnectedSourceOAuthTokens below writes these columns, otherwise a
+      // routine status-only upsert (e.g. from the public API) would wipe stored tokens.
+      existing?.oauth_access_token ?? null,
+      existing?.oauth_refresh_token ?? null,
+      existing?.oauth_token_expires_at ?? null,
+      existing?.oauth_scope ?? null,
+      existing?.external_account_login ?? null,
       record.created_at,
       record.updated_at
     );
 
   return record;
+}
+
+export function upsertMerlinConnectedSourceOAuthTokens(input: {
+  workspace_id: string;
+  source_key: string;
+  access_token: string;
+  refresh_token?: string;
+  expires_at?: string;
+  scope?: string;
+  external_account_login?: string;
+}): void {
+  const workspaceId = String(input.workspace_id || '').trim();
+  const sourceKey = normalizeKey(input.source_key);
+  if (!workspaceId) throw new Error('workspace_id_required');
+  if (!sourceKey) throw new Error('source_key_required');
+  if (!input.access_token) throw new Error('access_token_required');
+
+  const now = nowIso();
+  const result = getDb()
+    .prepare(
+      `UPDATE merlin_connected_sources
+       SET oauth_access_token = ?, oauth_refresh_token = ?, oauth_token_expires_at = ?, oauth_scope = ?, external_account_login = ?, updated_at = ?
+       WHERE workspace_id = ? AND source_key = ?`
+    )
+    .run(
+      input.access_token,
+      input.refresh_token || null,
+      input.expires_at || null,
+      input.scope || null,
+      input.external_account_login || null,
+      now,
+      workspaceId,
+      sourceKey
+    );
+
+  if (result.changes === 0) throw new Error('connected_source_not_found');
 }
 
 initializeMerlinConnectedSourceRuntime();

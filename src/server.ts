@@ -208,6 +208,7 @@ import { handleMerlinSearchRoute } from './merlin/routes/merlinSearchRoutes.js';
 import { handleMealScoutActionCardRoute } from './merlin/routes/mealscoutActionCardRoutes.js';
 import { handleMealScoutIncrementalIntakeRoute } from './merlin/routes/mealscoutIncrementalIntakeRoutes.js';
 import { handleMerlinShellRoute } from './merlin/routes/merlinShellRoutes.js';
+import { handleMerlinGithubOAuthRoute } from './merlin/routes/merlinGithubOAuthRoutes.js';
 import { handleMerlinThreadRoute } from './merlin/routes/merlinThreadRoutes.js';
 import { rememberActionCards, resetActionCardQueueForTest } from './merlin/intake/actionCardQueue.js';
 import { buildMealScoutActionCards } from './merlin/intake/actionCards.js';
@@ -1859,6 +1860,10 @@ export const createMerlinHandler = async (req: IncomingMessage, res: ServerRespo
     pathname === '/api/merlin/drive-buffer/upload'
   ) {
     const handled = await handleMerlinShellRoute(req, res, pathname);
+    if (handled) return;
+  }
+  if (pathname.startsWith('/api/merlin/connected-sources/github/')) {
+    const handled = await handleMerlinGithubOAuthRoute(req, res, pathname);
     if (handled) return;
   }
   if (pathname === '/api/merlin/threads' || pathname.startsWith('/api/merlin/threads/')) {
