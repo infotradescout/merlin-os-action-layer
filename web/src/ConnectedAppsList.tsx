@@ -9,14 +9,28 @@ const STATUS_LABEL: Record<SourceCatalogEntry['connectionStatus'], string> = {
   not_connected: 'Not connected'
 };
 
+// GitHub is the only source with a real OAuth handshake today — connecting it means
+// leaving the SPA for GitHub's consent screen, not a same-page status flip like the
+// other manually-tracked sources below.
+const OAUTH_SOURCE_KEYS = new Set(['github']);
+
 export default function ConnectedAppsList(props: {
   sourceCatalog: SourceCatalogEntry[];
+  workspaceId: string;
   onSelectApp: (app: SourceCatalogEntry) => void;
   onConnected: () => void;
 }) {
   const [connectingKey, setConnectingKey] = useState<string | null>(null);
 
+  function handleOAuthConnect(): void {
+    window.location.href = `/api/merlin/connected-sources/github/authorize?workspace_id=${encodeURIComponent(props.workspaceId)}`;
+  }
+
   async function handleConnect(app: SourceCatalogEntry): Promise<void> {
+    if (OAUTH_SOURCE_KEYS.has(app.sourceKey)) {
+      handleOAuthConnect();
+      return;
+    }
     setConnectingKey(app.sourceKey);
     try {
       await connectSource({
@@ -64,8 +78,14 @@ export default function ConnectedAppsList(props: {
               </button>
             )}
           </div>
-          {app.connectionStatus === 'not_connected' && (
+          {app.connectionStatus === 'not_connected' && !OAUTH_SOURCE_KEYS.has(app.sourceKey) && (
             <p className="app-card-note">Marks this app as connected in Merlin. No live account sign-in happens yet.</p>
+          )}
+          {app.connectionStatus === 'not_connected' && OAUTH_SOURCE_KEYS.has(app.sourceKey) && (
+            <p className="app-card-note">Opens GitHub's sign-in page to authorize Merlin.</p>
+          )}
+          {app.connectionStatus === 'connected' && app.sourceKey === 'github' && (
+            <p className="app-card-note">Connected via GitHub OAuth.</p>
           )}
         </article>
       ))}

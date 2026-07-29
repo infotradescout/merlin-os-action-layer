@@ -15,3 +15,9 @@ services:
         value: "true"
       - key: MERLIN_RUNTIME
         value: production
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_OAUTH_REDIRECT_URI
+        sync: false
